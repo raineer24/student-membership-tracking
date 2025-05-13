@@ -14,19 +14,51 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {}
-
-enum Role {
-  
+model User {
+  id          Int          @id @default(autoincrement())
+  name        String
+  email       String       @unique
+  password    String
+  role        Role         @default(STUDENT)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  memberships Membership[]
 }
 
-model Membership {}
+enum Role {
+  ADMIN
+  TRAINER
+  STUDENT
+}
 
-enum Membership {
+model Membership {
+  id            Int            @id @default(autoincrement())
+  userId        Int
+  user          User           @relation(fields: [userId], references: [id])
+  startDate     DateTime
+  endDate       DateTime
+  type          MembershipType
+  paymentStatus PaymentStatus
+  payments      Payment[]
+  createdAt     DateTime       @default(now())
+}
+
+enum MembershipType {
   MONTHLY
   YEARLY
 }
 
-enum PaymentStatus {}
+enum PaymentStatus {
+  PAID
+  DUE
+  OVERDUE
+}
 
-model Payment {}
+model Payment {
+  id           Int        @id @default(autoincrement())
+  membershipId Int
+  membership   Membership @relation(fields: [membershipId], references: [id])
+  amount       Float
+  paymentDate  DateTime
+  createdAt    DateTime   @default(now())
+}
