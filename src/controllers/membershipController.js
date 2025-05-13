@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const AppError = require("../utils/AppError");
+const { calculateDueDate } = require("../utils/membershipUtils");
 
 exports.getAllMemberships = async (req, res, next) => {
   try {
@@ -31,12 +32,15 @@ exports.createMembership = async (req, res, next) => {
         const { userId} = req.params;
         const { startDate, type} = req.body;
 
+        const dueDate = calculateDueDate(new Date(startDate), type);
+
         const membership = await prisma.membership.create({
             data: {
                 userId: parseInt(userId),
                 startDate: new Date(startDate),
                 type,
-                paymentStatus: 'DUE'
+                paymentStatus: 'DUE',
+                endDate: dueDate
             }
         });
         res.status(201).json(membership);
