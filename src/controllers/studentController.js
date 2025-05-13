@@ -7,6 +7,7 @@ exports.getAllStudents = async (req, res, next) => {
       where: { role: "STUDENT" },
       select: { id: true, name: true, email: true, createdAt: true },
     });
+    res.json(students);
   } catch (err) {
     next(err);
   }

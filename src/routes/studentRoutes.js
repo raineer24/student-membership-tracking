@@ -9,7 +9,7 @@ router.use(isAdmin);
 router.get('/', studentCtrl.getAllStudents);
 router.get('/:id', studentCtrl.getStudentById);
 router.post('/',studentCtrl.createStudent);
-router.put('/', studentCtrl.updateStudent);
+router.put('/:id', studentCtrl.updateStudent);
 router.delete('/:id', studentCtrl.deleteStudent);
 
 module.exports = router;
