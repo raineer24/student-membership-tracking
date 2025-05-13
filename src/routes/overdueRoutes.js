@@ -5,6 +5,6 @@ const { verifyToken, isAdmin } = require('../middleware/authJwt');
 
 router.use(verifyToken);
 router.use(isAdmin);
-router.get('/overdue'/overdueCtrl.getOverdueStudents);
+router.get('/',overdueCtrl.getOverdueStudents);
 
 module.exports = router;
