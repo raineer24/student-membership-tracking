@@ -6,7 +6,7 @@ exports.verifyToken = (req, res, next) => {
   if (!token) return next(new AppError("You are not logged in!", 401));
 
   try {
-    const decoded = jwt.verifyToken(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
