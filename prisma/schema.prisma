@@ -13,3 +13,20 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {}
+
+enum Role {
+  
+}
+
+model Membership {}
+
+enum Membership {
+  MONTHLY
+  YEARLY
+}
+
+enum PaymentStatus {}
+
+model Payment {}

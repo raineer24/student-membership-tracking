@@ -26,6 +26,18 @@ exports.getStudentById = async (req, res, next) => {
   }
 };
 
+exports.createStudent = async (req, res, next) => {
+    try {
+        const { name, email, password} = req.body;
+        const user = await prisma.user.create({
+            data: { name, email, password, role: 'STUDENT'}
+        });
+        res.status(201).json(user);
+    } catch (error) {
+        next(error);
+    }
+}
+
 exports.updateStudent = async (req, res, next) => {
   try {
     const { id } = req.params;
