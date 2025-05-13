@@ -41,6 +41,6 @@ exports.createMembership = async (req, res, next) => {
         });
         res.status(201).json(membership);
     } catch (error) {
-        next(err);
+        next(error);
     }
 };
