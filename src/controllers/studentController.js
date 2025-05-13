@@ -16,6 +16,19 @@ exports.getAllStudents = async (req, res, next) => {
 exports.getStudentById = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    // Ensure ID is parsed as integer
+    const studentId = parseInt(id);
+
+    // Get logged-in user from JWT
+    const requesterId = req.user.id;
+    const requesterRole = req.user.role;
+
+    //If requester is not Admin and is not viewing self → deny
+    if (requesterRole !== 'ADMIN' && requesterId !== studentId) {
+      return next(new AppError('You do not have permission to view this profile', 403))
+    }
+
     const student = await prisma.user.findUnique({
       where: { id: parseInt(id), role: "STUDENT" },
       include: { memberships: true },
