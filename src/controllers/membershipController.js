@@ -6,6 +6,7 @@ exports.getAllMemberships = async (req, res, next) => {
     const memberships = await prisma.membership.findMany({
       include: { user: true },
     });
+    res.json(memberships);
   } catch (error) {
     next(error);
   }
@@ -33,7 +34,7 @@ exports.createMembership = async (req, res, next) => {
         const membership = await prisma.membership.create({
             data: {
                 userId: parseInt(userId),
-                startDate: new Date(startDate);
+                startDate: new Date(startDate),
                 type,
                 paymentStatus: 'DUE'
             }
