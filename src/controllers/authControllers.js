@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 const prisma = require("../config/db");
 const AppError = require("../utils/AppError");
 
-exports.signup = async (req, resizeBy, next) => {
+exports.signup = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -14,7 +14,7 @@ exports.signup = async (req, resizeBy, next) => {
     });
     res.status(201).json({ message: "User created successfully", user });
   } catch (error) {
-    next(err);
+    next(error);
   }
 };
 
