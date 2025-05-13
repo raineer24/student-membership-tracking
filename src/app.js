@@ -5,6 +5,7 @@ const authRoutes = require('./routes/authRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const membershipRoutes = require('./routes/membershipRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const overdueRoutes = require('./routes/overdueRoutes');
 const {handleErrors} = require('./middleware/error');
 
 const app = express();
@@ -18,6 +19,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/memberships', membershipRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/overdue', overdueRoutes);
 
 app.use(handleErrors);
 
