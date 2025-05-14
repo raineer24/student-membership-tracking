@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -36,7 +35,7 @@ model Membership {
   userId        Int
   user          User           @relation(fields: [userId], references: [id])
   startDate     DateTime
-  endDate       DateTime
+  endDate       DateTime?
   type          MembershipType
   paymentStatus PaymentStatus
   payments      Payment[]
