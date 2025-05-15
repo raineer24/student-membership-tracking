@@ -2,16 +2,23 @@ const prisma = require('../../../utils/db');
 const { authenticate, authorizeRole } = require('../../../utils/auth');
 
 module.exports.default = async function handler(req, res) {
+      const { id } = req.query;
   try {
-    const user = authenticate(req);
-    authorizeRole(user, 'admin');
+    const decode = authenticate(req);
+    if (decode.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Forbidden: Admin only' });
+    }
+
+    //authorizeRole(user, 'admin');
 
     const { id } = req.query;
 
+   // GET Student by ID
     if (req.method === 'GET') {
       const student = await prisma.student.findUnique({
         where: { id: parseInt(id) },
         include: {
+          user: true,
           memberships: true,
           payments: true,
         },
@@ -19,17 +26,25 @@ module.exports.default = async function handler(req, res) {
 
       if (!student) return res.status(404).json({ error: 'Student not found' });
 
-      // Update overdue status for memberships
-      const now = new Date();
-      for (const membership of student.memberships) {
-        const isOverdue = membership.endDate < now;
-        if (membership.overdue !== isOverdue) {
-          await prisma.membership.update({
-            where: { id: membership.id },
-            data: { overdue: isOverdue },
-          });
-        }
+    
+    // PUT Update Student
+    if (req.method === 'PUT') {
+      const { name, email } = req.body;
+
+      if (!name || !email) {
+        return res.status(400).json({ error: 'Missing required fields' });
       }
+
+      const updatedStudent = await prisma.student.update({
+        where: { id: parseInt(id) },
+        data: {
+          name,
+          email,
+        },
+      });
+
+      return res.json(updatedStudent);
+    }
 
       return res.json(student);
     }

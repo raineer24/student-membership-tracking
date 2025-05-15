@@ -3,16 +3,21 @@ const {authenticate} = require('../../../utils/auth');
 
 module.exports.default = async function handler(req, res) {
   try {
-    const user = authenticate(req);
+    const decode = authenticate(req);
 
-    const student = await prisma.student.findUnique({ where: { id: user.id } });
+     // Only students can access this route
+    if (decoded.role !== 'STUDENT') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const student = await prisma.student.findUnique({ where: { userId: decode.id } });
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
     const payments = await prisma.payment.findMany({
       where: { studentId: student.id },
     });
 
-    res.json(payments);
+    return res.json(payments);
   } catch (err) {
     res.status(401).json({ error: err.message });
   }
