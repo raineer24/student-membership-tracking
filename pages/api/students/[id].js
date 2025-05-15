@@ -47,6 +47,15 @@ module.exports.default = async function handler(req, res) {
       return res.status(204).json();
     }
 
+     // ✅ NEW: GET /api/students/1/payments
+    if (req.url.includes('/payments') && req.method === 'GET') {
+      const payments = await prisma.payment.findMany({
+        where: { studentId: parseInt(id) }
+      });
+
+      return res.json(payments);
+    }
+
     return res.status(405).json({ error: "Method not allowed" });
   } catch (err) {
     res.status(401).json({ error: err.message });
