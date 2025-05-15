@@ -15,6 +15,15 @@ module.exports.default = async function handler(req, res) {
     }
 
     if (req.method === "POST") {
+         let data;
+      try {
+        data = JSON.parse(req.body);
+      } catch (e) {
+        return res.status(400).json({ error: 'Invalid JSON format' });
+      }
+
+        const { amount, studentId} = data;
+
       if (!amount || !studentId)
         return res.status(400).json({ error: "Missing required fields" });
 
