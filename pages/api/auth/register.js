@@ -23,6 +23,7 @@ module.exports.default = async function handler(req, res) {
         email: data.email,
         password: hashed,
         role: role,
+        name: data.name
       },
     });
 
