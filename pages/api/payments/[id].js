@@ -3,6 +3,7 @@ const { authenticate } = require('../../../utils/auth');
 
 module.exports.default = async function handler(req, res) {
     const { id } = req.query;
+    console.log('id', id);
   try {
     const decoded = authenticate(req);
      if (decoded.role !== 'ADMIN')
@@ -12,7 +13,9 @@ module.exports.default = async function handler(req, res) {
         return res.status(400).json({ error: 'No fields to update' });
      
      if (req.method === 'PUT') {
+        console.log('data!');
       const { amount, studentId } = req.body;
+      console.log('amount', amount);
 
       const updatedPayment = await prisma.payment.update({
         where: { id: parseInt(id) },
@@ -32,7 +35,7 @@ module.exports.default = async function handler(req, res) {
 
     return res.status(405).json({ error: 'Method not allowed' });
 
-    res.status(405).end();
+
   } catch (err) {
     res.status(401).json({ error: err.message });
   }
