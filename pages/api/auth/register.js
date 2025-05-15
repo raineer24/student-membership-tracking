@@ -23,6 +23,7 @@ module.exports.default = async function handler(req, res) {
     //student creation
     const userData = {
         email: data.email,
+        name: data.name || data.email.split('@')[0],
         password: hashed,
         role,
     }
@@ -30,8 +31,8 @@ module.exports.default = async function handler(req, res) {
     if (role === 'STUDENT') {
     userData.student = {
       create: {
-        name: data.name || data.email.split('@')[0],
-        email: data.email
+        name: userData.name,
+        email: userData.email
       }
     };
   }
