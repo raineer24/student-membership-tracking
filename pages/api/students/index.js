@@ -3,8 +3,8 @@ const { authenticate, authorizeRole } = require('../../../utils/auth');
 
 module.exports.default = async function handler(req, res) {
   try {
-    const user = authenticate(req);
-    authorizeRole(user, 'admin');
+    const decoded = await authenticate(req);
+    authorizeRole('ADMIN', decoded);
 
     if (req.method === 'GET') {
       const students = await prisma.student.findMany({
