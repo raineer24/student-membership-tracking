@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "name": "student-membership-tracking",
+  "builds": [
+    {
+      "src": "pages/api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/auth/(.*)",
+      "dest": "/api/auth/:path*"
+    },
+    {
+      "src": "/api/students/(.*)",
+      "dest": "/api/students/:path*"
+    },
+    {
+      "src": "/api/memberships/(.*)",
+      "dest": "/api/memberships/:path*"
+    },
+    {
+      "src": "/api/payments/(.*)",
+      "dest": "/api/payments/:path*"
+    },
+    {
+      "src": "/api/dashboard(.*)",
+      "dest": "/api/dashboard/:path*"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
+  ]
+}
