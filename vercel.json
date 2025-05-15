@@ -16,13 +16,29 @@
       "src": "/api/students/(.*)",
       "dest": "/api/students/:path*"
     },
-    {
-      "src": "/api/memberships/(.*)",
-      "dest": "/api/memberships/:path*"
+     {
+      "src": "/api/memberships/me",
+      "dest": "/api/memberships.js"
     },
     {
-      "src": "/api/payments/(.*)",
-      "dest": "/api/payments/:path*"
+      "src": "/api/memberships/overdue",
+      "dest": "/api/memberships.js"
+    },
+        {
+      "src": "/api/memberships/create",
+      "dest": "/api/memberships.js"
+    },
+    {
+      "src": "/api/memberships(.*)",
+      "dest": "/api/memberships.js"
+    },
+    {
+      "src": "/api/payments/me",
+      "dest": "/api/payments.js"
+    },
+    {
+      "src": "/api/payments(.*)",
+      "dest": "/api/payments.js"
     },
     {
       "src": "/api/dashboard(.*)",
