@@ -1,7 +1,7 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { z } from 'zod';
-import prisma from '../../../utils/db';
+const bcrypt = require('bcryptjs');
+const jwt = require("jsonwebtoken");
+const z = require("zod");
+const prisma = require('../../../utils/db');
 
 const schema = z.object({
   name: z.string().min(1),
