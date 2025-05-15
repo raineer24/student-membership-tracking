@@ -36,6 +36,7 @@ model Membership {
   type      String
   startDate DateTime
   endDate   DateTime
+  isActive  Boolean  @default(true)
   overdue   Boolean  @default(false)
 }
 
