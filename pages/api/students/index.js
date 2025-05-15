@@ -1,10 +1,10 @@
 const prisma = require('../../../utils/db');
-const { authenticate, authorize } = require('../../../utils/auth');
+const { authenticate, authorizeRole } = require('../../../utils/auth');
 
 module.exports.default = async function handler(req, res) {
   try {
     const user = authenticate(req);
-    authorize(user, 'admin');
+    authorizeRole(user, 'admin');
 
     if (req.method === 'GET') {
       const students = await prisma.student.findMany({
