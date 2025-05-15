@@ -1,63 +1,42 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "postgresql" // or your preferred database
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id          Int          @id @default(autoincrement())
-  name        String
-  email       String       @unique
-  password    String
-  role        Role         @default(STUDENT)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  memberships Membership[]
+  id       Int     @id @default(autoincrement())
+  name     String
+  email    String  @unique
+  password String
+  role     String  @default("student")
 }
 
-enum Role {
-  ADMIN
-  TRAINER
-  STUDENT
+model Student {
+  id           Int           @id @default(autoincrement())
+  name         String
+  email        String        @unique
+  memberships  Membership[]
+  payments     Payment[]
 }
 
 model Membership {
-  id            Int            @id @default(autoincrement())
-  userId        Int
-  user          User           @relation(fields: [userId], references: [id])
-  startDate     DateTime
-  endDate       DateTime?
-  type          MembershipType
-  paymentStatus PaymentStatus
-  payments      Payment[]
-  createdAt     DateTime       @default(now())
-}
-
-enum MembershipType {
-  MONTHLY
-  YEARLY
-}
-
-enum PaymentStatus {
-  PAID
-  DUE
-  OVERDUE
+  id         Int      @id @default(autoincrement())
+  student    Student  @relation(fields: [studentId], references: [id])
+  studentId  Int
+  type       String
+  startDate  DateTime
+  endDate    DateTime
+  overdue    Boolean  @default(false)
 }
 
 model Payment {
-  id           Int        @id @default(autoincrement())
-  membershipId Int
-  membership   Membership @relation(fields: [membershipId], references: [id])
-  amount       Float
-  paymentDate  DateTime
-  createdAt    DateTime   @default(now())
+  id         Int      @id @default(autoincrement())
+  student    Student  @relation(fields: [studentId], references: [id])
+  studentId  Int
+  amount     Float
+  paidAt     DateTime
 }
