@@ -1,6 +1,6 @@
 // pages/api/api.js
 
-const prisma = require('../../utils/db');
+const prisma = require('../utils/db');
 const { authenticate } = require('../utils/auth');
 
 module.exports.default = async function handler(req, res) {
