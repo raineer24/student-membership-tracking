@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "student-membership-tracking",
   "builds": [
     {
       "src": "pages/api/**/*.js",
@@ -9,14 +8,22 @@
   ],
   "routes": [
     {
-      "src": "/api/auth/(.*)",
-      "dest": "/api/auth/:path*"
+      "src": "/api/auth/login",
+      "dest": "/api/auth/login.js"
     },
     {
-      "src": "/api/students/(.*)",
-      "dest": "/api/students/:path*"
+      "src": "/api/auth/register",
+      "dest": "/api/auth/register.js"
     },
-     {
+    {
+      "src": "/api/students",
+      "dest": "/api/students/index.js"
+    },
+    {
+      "src": "/api/students/:id",
+      "dest": "/api/students/[id].js"
+    },
+    {
       "src": "/api/memberships/me",
       "dest": "/api/memberships.js"
     },
@@ -24,7 +31,7 @@
       "src": "/api/memberships/overdue",
       "dest": "/api/memberships.js"
     },
-        {
+    {
       "src": "/api/memberships/create",
       "dest": "/api/memberships.js"
     },
@@ -37,16 +44,20 @@
       "dest": "/api/payments.js"
     },
     {
+      "src": "/api/payments/:id",
+      "dest": "/api/payments.js"
+    },
+    {
       "src": "/api/payments(.*)",
       "dest": "/api/payments.js"
     },
     {
-      "src": "/api/dashboard(.*)",
-      "dest": "/api/dashboard/:path*"
+      "src": "/api/dashboard",
+      "dest": "/api/dashboard/index.js"
     },
     {
       "src": "/(.*)",
       "dest": "/"
     }
-  ]
+]
 }
