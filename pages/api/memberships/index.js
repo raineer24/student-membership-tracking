@@ -4,7 +4,8 @@ const { authenticate, authorizeRole } = require('../../../utils/auth');
 module.exports.default = async function handler(req, res) {
   try {
     const decode = authenticate(req);
-    authorizeRole('ADMIN', decode);
+    if (decode.role !== 'ADMIN')
+      return res.status(403).json({ error: 'Forbidden: Admin only' });
 
     if (req.method === 'GET') {
       const memberships = await prisma.membership.findMany({
@@ -13,7 +14,7 @@ module.exports.default = async function handler(req, res) {
       return res.json(memberships);
     }
 
-    res.status(405).end();
+    return res.status(405).end();
   } catch (err) {
     res.status(401).json({ error: err.message });
   }

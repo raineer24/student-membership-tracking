@@ -1,20 +1,34 @@
-const prisma = require('../../../utils/db');
-const { authenticate, authorize } = require('../../../utils/auth');
+const prisma = require("../../../utils/db");
+const { authenticate } = require("../../../utils/auth");
 
 module.exports.default = async function handler(req, res) {
   try {
-    const user = authenticate(req);
-    authorize(user, 'admin');
+    const decoded = authenticate(req);
+    if (decoded.role !== "ADMIN")
+      return res.status(403).json({ error: "Forbidden: Admin only" });
 
-    if (req.method === 'GET') {
+    if (req.method === "GET") {
       const payments = await prisma.payment.findMany({
         include: { student: true },
       });
       return res.json(payments);
     }
 
-    res.status(405).end();
+    if (req.method === "POST") {
+      if (!amount || !studentId)
+        return res.status(400).json({ error: "Missing required fields" });
+
+      const payment = await prisma.payment.create({
+        data: {
+          amount,
+          studentId,
+        },
+      });
+
+      return res.status(201).json(payment);
+    }
+     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
-    res.status(401).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
-}
+};
