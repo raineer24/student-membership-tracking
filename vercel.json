@@ -2,62 +2,26 @@
   "version": 2,
   "builds": [
     {
-      "src": "pages/api/**/*.js",
+      "src": "pages/api/auth.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "pages/api/api.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/auth/login",
-      "dest": "/api/auth/login.js"
+      "dest": "/api/auth.js"
     },
     {
       "src": "/api/auth/register",
-      "dest": "/api/auth/register.js"
+      "dest": "/api/auth.js"
     },
     {
-      "src": "/api/students",
-      "dest": "/api/students/index.js"
-    },
-    {
-      "src": "/api/students/:id",
-      "dest": "/api/students/[id].js"
-    },
-    {
-      "src": "/api/memberships/me",
-      "dest": "/api/memberships.js"
-    },
-    {
-      "src": "/api/memberships/overdue",
-      "dest": "/api/memberships.js"
-    },
-    {
-      "src": "/api/memberships/create",
-      "dest": "/api/memberships.js"
-    },
-    {
-      "src": "/api/memberships(.*)",
-      "dest": "/api/memberships.js"
-    },
-    {
-      "src": "/api/payments/me",
-      "dest": "/api/payments.js"
-    },
-    {
-      "src": "/api/payments/:id",
-      "dest": "/api/payments.js"
-    },
-    {
-      "src": "/api/payments(.*)",
-      "dest": "/api/payments.js"
-    },
-    {
-      "src": "/api/dashboard",
-      "dest": "/api/dashboard/index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/"
+      "src": "/api/(.*)",
+      "dest": "/api/api.js"
     }
-]
+  ]
 }

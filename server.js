@@ -34,30 +34,9 @@ app.use(helmet());
 app.use(express.json());
 app.use(morgan('dev'));
 
-// AUTH
-app.post('/api/auth/register', wrap(require('./pages/api/auth/register').default));
-app.post('/api/auth/login', wrap(require('./pages/api/auth/login').default));
-
-// STUDENTS
-app.get('/api/students', wrap(require('./pages/api/students/index').default));
-app.post('/api/students', wrap(require('./pages/api/students/index').default));
-app.get('/api/students/:id', wrap(require('./pages/api/students/[id]').default));
-app.put('/api/students/:id', wrap(require('./pages/api/students/[id]').default));
-app.delete('/api/students/:id', wrap(require('./pages/api/students/[id]').default));
-
-// MEMBERSHIPS
-app.get('/api/memberships', wrap(require('./pages/api/memberships/index').default));
-app.get('/api/memberships/me', wrap(require('./pages/api/memberships/me').default));
-app.post('/api/memberships/create', wrap(require('./pages/api/memberships/create').default));
-app.get('/api/memberships/overdue', wrap(require('./pages/api/memberships/overdue').default));
-
-// PAYMENTS
-app.get('/api/payments', wrap(require('./pages/api/payments/index').default));
-app.get('/api/payments/me', wrap(require('./pages/api/payments/me').default));
-app.put('/api/payments/:id', wrap(require('./pages/api/payments/[id]').default));
-app.post('/api/payments', wrap(require('./pages/api/payments/index').default));
-// DASHBOARD
-app.get('/api/dashboard', wrap(require('./pages/api/dashboard/index').default));
+// Auth Routes
+app.post('/api/auth/login', wrap(require('./pages/api/auth').default));
+app.post('/api/auth/register', wrap(require('./pages/api/auth').default));
 
 // Start the server
 app.listen(PORT, () => {
