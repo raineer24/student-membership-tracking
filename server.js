@@ -54,7 +54,7 @@ app.post('/api/memberships/create', wrap(require('./pages/api/memberships/create
 app.get('/api/payments', wrap(require('./pages/api/payments/index').default));
 app.get('/api/payments/me', wrap(require('./pages/api/payments/me').default));
 app.put('/api/payments/:id', wrap(require('./pages/api/payments/[id]').default));
-
+app.post('/api/payments', wrap(require('./pages/api/payments/index').default));
 // DASHBOARD
 app.get('/api/dashboard', wrap(require('./pages/api/dashboard/index').default));
 
