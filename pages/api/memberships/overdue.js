@@ -18,7 +18,7 @@ module.exports.default = async function handler(req, res) {
           memberships: {
             some: {
               endDate: {
-                lt: new Date(),
+                lt: today,
               },
             },
           },
