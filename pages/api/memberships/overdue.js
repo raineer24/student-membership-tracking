@@ -15,7 +15,7 @@ module.exports.default = async function handler(req, res) {
 
       const overdueStudents = await prisma.student.findMany({
         where: {
-          membership: {
+          memberships: {
             endDate: {
               lt: today,
             },
