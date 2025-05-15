@@ -12,7 +12,7 @@ function wrap(handler) {
   return async (req, res) => {
     const mockReq = {
       ...req,
-      query: req.query,
+       query: { ...req.query, ...req.params },
       body: req.body,
       method: req.method,
       headers: req.headers,
@@ -49,6 +49,7 @@ app.delete('/api/students/:id', wrap(require('./pages/api/students/[id]').defaul
 app.get('/api/memberships', wrap(require('./pages/api/memberships/index').default));
 app.get('/api/memberships/me', wrap(require('./pages/api/memberships/me').default));
 app.post('/api/memberships/create', wrap(require('./pages/api/memberships/create').default));
+app.get('/api/memberships/overdue', wrap(require('./pages/api/memberships/overdue').default));
 
 // PAYMENTS
 app.get('/api/payments', wrap(require('./pages/api/payments/index').default));
