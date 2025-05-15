@@ -1,7 +1,7 @@
-import prisma from '../../../utils/db';
-import { authenticate, authorize } from '../../../utils/auth';
+const prisma = require('../../../utils/db');
+const { authenticate, authorize } = require('../../../utils/auth');
 
-export default async function handler(req, res) {
+module.exports.default = async function handler(req, res) {
   try {
     const user = authenticate(req);
     authorize(user, 'admin');

@@ -1,14 +1,14 @@
 const bcrypt = require('bcryptjs');
 const jwt = require("jsonwebtoken");
-import { z } from 'zod';
-import prisma from '../../../utils/db';
+const z = require("zod");
+const prisma = require('../../../utils/db');
 
 const schema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
 });
 
-export default async function handler(req, res) {
+module.exports.default = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   try {

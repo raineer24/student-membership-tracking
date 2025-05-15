@@ -9,7 +9,7 @@ const schema = z.object({
   password: z.string().min(6),
 });
 
-export default async function handler(req, res) {
+module.exports.default = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   try {
