@@ -14,17 +14,30 @@ module.exports.default = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
   try {
+
+    
     const data = schema.parse(req.body);
     const role = (data.role || "student").toUpperCase();
     const hashed = await bcrypt.hash(data.password, 10);
 
-    const user = await prisma.user.create({
-      data: {
+    //student creation
+    const userData = {
         email: data.email,
         password: hashed,
-        role: role,
-        name: data.name
-      },
+        role,
+    }
+
+    if (role === 'STUDENT') {
+    userData.student = {
+      create: {
+        name: data.name || data.email.split('@')[0],
+        email: data.email
+      }
+    };
+  }
+
+    const user = await prisma.user.create({
+      data: userData,
     });
 
     const token = jwt.sign(
@@ -33,7 +46,7 @@ module.exports.default = async function handler(req, res) {
       { expiresIn: "7d" }
     );
 
-    res.json({ token });
+    return res.status(201).json({ token });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
