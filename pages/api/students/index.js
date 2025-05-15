@@ -14,20 +14,6 @@ module.exports.default = async function handler(req, res) {
         },
       });
 
-      // Update overdue status for memberships
-      const now = new Date();
-      for (const student of students) {
-        for (const membership of student.memberships) {
-          const isOverdue = membership.endDate < now;
-          if (membership.overdue !== isOverdue) {
-            await prisma.membership.update({
-              where: { id: membership.id },
-              data: { overdue: isOverdue },
-            });
-          }
-        }
-      }
-
       return res.json(students);
     }
 
