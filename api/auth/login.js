@@ -1,5 +1,6 @@
 const prisma = require("../../utils/db");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 
 module.exports.default = async function handler(req, res) {
   if (req.method !== "POST") {
