@@ -1,55 +1,42 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const z = require("zod");
 const prisma = require("../../utils/db");
-
-const schema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(6),
-  role: z.enum(["admin", "student"]).optional(),
-});
+const bcrypt = require("bcryptjs");
 
 module.exports.default = async function handler(req, res) {
-    console.log('asdad');
-  if (req.method !== "POST") return res.status(405).end();
-
-  try {
-
-    
-    const data = schema.parse(req.body);
-    const role = (data.role || "student").toUpperCase();
-    const hashed = await bcrypt.hash(data.password, 10);
-
-    //student creation
-    const userData = {
-        email: data.email,
-        name: data.name || data.email.split('@')[0],
-        password: hashed,
-        role,
-    }
-
-    if (role === 'STUDENT') {
-    userData.student = {
-      create: {
-        name: userData.name,
-        email: userData.email
-      }
-    };
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const { name, email, password, role } = req.body;
+
+  if (!name || !email || !password || !role) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = await prisma.user.create({
-      data: userData,
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role,
+      },
     });
 
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    if (role === "STUDENT") {
+      await prisma.student.create({
+        data: {
+          name,
+          email,
+          userId: user.id,
+        },
+      });
+    }
 
-    return res.status(201).json({ token });
+    return res.status(201).json(user);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
