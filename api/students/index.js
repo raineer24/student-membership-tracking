@@ -2,6 +2,7 @@ const prisma = require("../../../utils/db");
 const authenticate = require("../../../utils/auth");
 const authorizeRole = require("../../../utils/authorizeRole");
 
+
 module.exports.default = async function handler(req, res) {
   try {
     const decoded = authenticate(req);
