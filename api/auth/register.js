@@ -9,7 +9,7 @@ module.exports.default = async function handler(req, res) {
   const { name, email, password, role } = req.body;
 
   if (!name || !email || !password || !role) {
-    return res.status(400).json({ error: "Missing required fields" });
+    return res.status(400).json({ error: "Missing required fields!" });
   }
 
   try {
