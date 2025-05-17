@@ -1,6 +1,6 @@
 // /api/students.js
 const prisma = require("../utils/db");
-const authenticate = require("../utils/auth");
+const { authenticate } = require("../utils/auth");
 const bcrypt = require("bcryptjs");
 
 export default async function handler(req, res) {
@@ -72,7 +72,8 @@ export default async function handler(req, res) {
           },
         });
 
-        if (!student) return res.status(404).json({ error: "Student not found" });
+        if (!student)
+          return res.status(404).json({ error: "Student not found" });
         return res.json(student);
       }
 
