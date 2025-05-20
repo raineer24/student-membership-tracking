@@ -23,6 +23,7 @@ module.exports.default = async function handler(req, res) {
 
     //Convert role to uppercase (safe even if already uppercase);
     const role = data.role ? data.role.toUpperCase() : 'STUDENT';
+    console.log('role', role);
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
       where: { email: data.email },
