@@ -1,22 +1,28 @@
-const prisma = require("../../utils/db");
-const { authenticate } = require("../../utils/auth");
-const bcrypt = require("bcryptjs");
+import prisma from "../../utils/db";
+import { authenticate } from "../../utils/auth";
+import bcrypt from "bcryptjs";
+import { parse } from "url";
 
 export default async function handler(req, res) {
+  console.log("HANDLER HIT 🚀");
+  console.log("req.url =", req.url);
+
+  const parsedUrl = parse(req.url || "", true);
+  const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
+  const slug = pathParts.slice(2); // /api/students/:slug... (skip "api" and "students")
+
+  console.log("Parsed slug:", slug);
+
   try {
     const decoded = authenticate(req);
     if (decoded.role !== "ADMIN") {
       return res.status(403).json({ error: "Forbidden: Admin only" });
     }
 
-    const { slug = [] } = req.query;
     const method = req.method;
 
-   console.log("slug =", slug); // is empty; slug = []
-
     // ✅ GET /api/students/:id
-    if (slug && slug.length === 1 && method === "GET") {
-    
+    if (slug.length === 1 && method === "GET") {
       const studentId = parseInt(slug[0], 10);
       if (isNaN(studentId)) {
         return res.status(400).json({ error: "Invalid student ID" });
@@ -39,7 +45,7 @@ export default async function handler(req, res) {
     }
 
     // ✅ POST /api/students
-    if ((!slug || slug.length === 0) && method === "POST") {
+    if (slug.length === 0 && method === "POST") {
       const { name, email, password } = req.body;
 
       if (!name || !email || !password) {
@@ -69,7 +75,7 @@ export default async function handler(req, res) {
     }
 
     // ✅ GET /api/students
-    if ((!slug || slug.length === 0) && method === "GET") {
+    if (slug.length === 0 && method === "GET") {
       const students = await prisma.student.findMany({
         include: {
           user: true,
@@ -81,7 +87,7 @@ export default async function handler(req, res) {
       return res.json(students);
     }
 
-    // ❌ If none matched
+    // ❌ If nothing matched
     return res.status(405).json({ error: "Method not allowed" });
 
   } catch (err) {

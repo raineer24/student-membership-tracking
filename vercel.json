@@ -6,7 +6,11 @@
   "routes": [
     {
       "src": "/api/students/(.*)",
-      "dest": "/api/students/[...slug].js"
+      "dest": "/api/students/[[...slug]].js"
+    },
+    {
+      "src": "/api/students",
+      "dest": "/api/students/[[...slug]].js"
     },
     {
       "src": "/api/(.*)",
