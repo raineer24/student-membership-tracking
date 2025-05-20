@@ -12,12 +12,11 @@ export default async function handler(req, res) {
     const { slug = [] } = req.query;
     const method = req.method;
 
-   // console.log("slug =", slug);
+   console.log("slug =", slug); // is empty; slug = []
 
     // ✅ GET /api/students/:id
     if (slug && slug.length === 1 && method === "GET") {
-      console.log("url =", req.url);
-        console.log("slug =", slug);
+    
       const studentId = parseInt(slug[0], 10);
       if (isNaN(studentId)) {
         return res.status(400).json({ error: "Invalid student ID" });
