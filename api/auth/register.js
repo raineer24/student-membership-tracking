@@ -42,15 +42,15 @@ module.exports.default = async function handler(req, res) {
         name: data.name,
         email: data.email,
         password: hashedPassword,
-        role: data.role,
+        role: role,
       },
     });
 
     if (role === "STUDENT") {
       await prisma.student.create({
         data: {
-          name,
-          email,
+          name: data.name,
+          email: data.email,
           userId: user.id,
         },
       });
