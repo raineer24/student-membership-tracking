@@ -8,6 +8,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum MembershipType {
+  MONTHLY
+  YEARLY
+}
+
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
@@ -33,7 +39,7 @@ model Student {
 model Membership {
   id        Int      @id @default(autoincrement())
   studentId Int
-  type      String
+  type      MembershipType @default(MONTHLY)
   startDate DateTime
   endDate   DateTime
   isActive  Boolean  @default(true)
