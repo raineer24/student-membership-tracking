@@ -5,20 +5,12 @@
   ],
   "routes": [
     {
-      "src": "/api/students/(.*)",
-      "dest": "/api/students/[[...slug]].js"
-    },
-    {
-      "src": "/api/students",
-      "dest": "/api/students/[[...slug]].js"
-    },
-    {
       "src": "/api/memberships/(.*)",
       "dest": "/api/memberships/[[...slug]].js"
     },
     {
-      "src": "/api/memberships",
-      "dest": "/api/memberships/[[...slug]].js"
+      "src": "/api/students/(.*)",
+      "dest": "/api/students/[[...slug]].js"
     },
     {
       "src": "/api/(.*)",
