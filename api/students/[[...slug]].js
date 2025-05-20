@@ -143,6 +143,23 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: "Failed to update student" });
       }
     }
+
+      // ✅ GET /api/students/17/payments
+    if (slug.length === 2 && slug[1] === "payments" && method === "GET") {
+      const studentId = parseInt(slug[0], 10);
+
+      if (isNaN(studentId)) {
+        return res.status(400).json({ error: "Invalid student ID" });
+      }
+
+      const payments = await prisma.payment.findMany({
+        where: { studentId },
+        orderBy: { paidAt: "desc" },
+      });
+
+      return res.json(payments);
+    }
+
     // ❌ If nothing matched
     return res.status(405).json({ error: "Method not allowed" });
   } catch (err) {
