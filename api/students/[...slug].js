@@ -1,6 +1,6 @@
 // /api/students/[...slug].js
-const prisma = require("../../../utils/db");
-const authenticate = require("../../../utils/auth");
+const prisma = require("../../utils/db");
+const authenticate = require("../../utils/auth");
 
 module.exports.default = async function handler(req, res) {
   try {
