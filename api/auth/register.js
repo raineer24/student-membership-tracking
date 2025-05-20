@@ -1,5 +1,6 @@
 const prisma = require("../../utils/db");
 const bcrypt = require("bcryptjs");
+const { z } = require("zod");
 
 module.exports.default = async function handler(req, res) {
   if (req.method !== "POST") {
