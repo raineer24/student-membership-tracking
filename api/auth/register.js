@@ -13,7 +13,7 @@ module.exports.default = async function handler(req, res) {
       name: z.string().min(1, "Name is required"),
       email: z.string().email("Invalid email address"),
       password: z.string().min(6, "Password must be at least 6 characters"),
-     
+       role: z.enum(['admin', 'student']).optional().default('student'),
     });
 
     // Parse and validate request body
