@@ -13,6 +13,14 @@
       "dest": "/api/students/[[...slug]].js"
     },
     {
+      "src": "/api/memberships/(.*)",
+      "dest": "/api/memberships/[[...slug]].js"
+    },
+    {
+      "src": "/api/memberships",
+      "dest": "/api/memberships/[[...slug]].js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1.js"
     }
