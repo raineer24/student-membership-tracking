@@ -25,15 +25,24 @@ exports.getStudentById = async (req, res, next) => {
     const requesterRole = req.user.role;
 
     //If requester is not Admin and is not viewing self → deny
-    if (requesterRole !== 'ADMIN' && requesterId !== studentId) {
-      return next(new AppError('You do not have permission to view this profile', 403))
+    if (requesterRole !== "ADMIN" && requesterId !== studentId) {
+      return next(
+        new AppError("You do not have permission to view this profile", 403)
+      );
     }
 
+    // Fetch Student
     const student = await prisma.user.findUnique({
-      where: { id: parseInt(id), role: "STUDENT" },
-      include: { memberships: true },
+      where: { id: studentId },
+      include: {
+        memberships: true,
+      },
     });
-    if (!student) return next(new AppError("Student not found", 404));
+
+    if (!student || student.role !== "STUDENT") {
+      return next(new AppError("Student not found", 404));
+    }
+
     res.json(student);
   } catch (error) {
     next(err);
@@ -41,16 +50,16 @@ exports.getStudentById = async (req, res, next) => {
 };
 
 exports.createStudent = async (req, res, next) => {
-    try {
-        const { name, email, password} = req.body;
-        const user = await prisma.user.create({
-            data: { name, email, password, role: 'STUDENT'}
-        });
-        res.status(201).json(user);
-    } catch (error) {
-        next(error);
-    }
-}
+  try {
+    const { name, email, password } = req.body;
+    const user = await prisma.user.create({
+      data: { name, email, password, role: "STUDENT" },
+    });
+    res.status(201).json(user);
+  } catch (error) {
+    next(error);
+  }
+};
 
 exports.updateStudent = async (req, res, next) => {
   try {

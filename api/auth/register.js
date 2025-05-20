@@ -5,22 +5,42 @@ module.exports.default = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-
-  const { name, email, password, role } = req.body;
-
-  if (!name || !email || !password || !role) {
-    return res.status(400).json({ error: "Missing required fields!" });
-  }
+    
 
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
+     const bodySchema = z.object({
+      name: z.string().min(1, "Name is required"),
+      email: z.string().email("Invalid email address"),
+      password: z.string().min(6, "Password must be at least 6 characters"),
+      role: z.enum(["ADMIN", "STUDENT"], {
+        errorMap: () => ({ message: "Role must be either ADMIN or STUDENT" }),
+      }),
+    });
+
+    // Parse and validate request body
+    const data = bodySchema.parse(req.body);
+
+    //Convert role to uppercase (safe even if already uppercase);
+    data.role = data.role.toUpperCase();
+    // Check if user exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: "Email already in use" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
 
     const user = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: data.name,
+        email: data.email,
         password: hashedPassword,
-        role,
+        role: data.role,
       },
     });
 
@@ -36,6 +56,11 @@ module.exports.default = async function handler(req, res) {
 
     return res.status(201).json(user);
   } catch (err) {
+     // Handle Zod validation errors
+    if (err.name === "ZodError") {
+      return res.status(400).json({ error: err.issues[0].message });
+    }
+
     console.error(err);
     return res.status(500).json({ error: "Internal server error" });
   }
