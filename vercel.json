@@ -5,6 +5,10 @@
   ],
   "routes": [
     {
+      "src": "/api/payments/(.*)",
+      "dest": "/api/payments/[[...slug]].js"
+    },
+    {
       "src": "/api/memberships/(.*)",
       "dest": "/api/memberships/[[...slug]].js"
     },
