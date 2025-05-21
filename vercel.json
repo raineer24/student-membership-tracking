@@ -9,15 +9,15 @@
       "dest": "/api/dashboard/[[...slug]].js"
     },
     {
-      "src": "/api/payments/(.*)",
+      "src": "/api/payments(?:/(.*))?",
       "dest": "/api/payments/[[...slug]].js"
     },
     {
-      "src": "/api/memberships/(.*)",
+      "src": "/api/memberships(?:/(.*))?",
       "dest": "/api/memberships/[[...slug]].js"
     },
     {
-      "src": "/api/students/(.*)",
+      "src": "/api/students(?:/(.*))?",
       "dest": "/api/students/[[...slug]].js"
     },
     {

@@ -1,148 +1,114 @@
 import prisma from "../../utils/db";
-import { authenticate } from "../../utils/auth";
+import { authenticate, authorizeRole } from "../../utils/auth";
 
 export default async function handler(req, res) {
-  console.log("PAYMENTS HANDLER HIT");
-  const { method } = req;
-
-  // Parse full URL
+  const { method, query } = req;
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = url.pathname;
 
-  console.log("RAW URL:", req.url);
+  // Extract path parts after "/api/payments"
+  const parts = pathname.split("/").filter(Boolean);
+  const paymentsIndex = parts.indexOf("payments");
+  const pathParts = paymentsIndex !== -1 ? parts.slice(paymentsIndex + 1) : [];
+
+  console.log("🔥 payments API hit");
+  console.log("REQ.URL:", req.url);
   console.log("PATHNAME:", pathname);
-  console.log("METHOD:", method);
+  console.log("PATH PARTS:", pathParts);
 
   try {
     const user = await authenticate(req);
-    console.log("USER ROLE:", user?.role);
 
-    // ✅ STUDENT: GET /api/payments/me
-    if (method === "GET" && pathname === "/api/payments/me") {
+    // ✅ GET /api/payments – List all payments
+    if (method === "GET" && pathParts.length === 0) {
+      await authorizeRole("ADMIN", user);
+
       const payments = await prisma.payment.findMany({
-        where: { student: { userId: user.id } },
-        include: { student: true },
+        include: { student: true }
       });
 
       return res.status(200).json(payments);
     }
 
-    // ✅ ADMIN: GET /api/payments
-    if (method === "GET" && pathname === "/api/payments") {
-      if (user.role !== "ADMIN") {
-        return res.status(403).json({ error: "Unauthorized" });
-      }
+    // ✅ GET /api/payments/:id
+    if (method === "GET" && pathParts.length === 1 && !isNaN(Number(pathParts[0]))) {
+      await authorizeRole("ADMIN", user);
 
-      const payments = await prisma.payment.findMany({
-        include: { student: true },
+      const id = Number(pathParts[0]);
+
+      const payment = await prisma.payment.findUnique({
+        where: { id },
+        include: { student: true }
       });
 
-      return res.status(200).json(payments);
+      return payment
+        ? res.status(200).json(payment)
+        : res.status(404).json({ error: "Payment not found" });
     }
 
-    // ✅ ADMIN: GET /api/payments/:id
-    if (method === "GET" && pathname.startsWith("/api/payments/")) {
-      const parts = pathname.split("/");
-      const maybeId = parts[parts.length - 1];
-
-      if (!isNaN(Number(maybeId))) {
-        const paymentId = Number(maybeId);
-
-        if (user.role !== "ADMIN") {
-          return res.status(403).json({ error: "Unauthorized" });
-        }
-
-        const payment = await prisma.payment.findUnique({
-          where: { id: paymentId },
-          include: { student: true },
-        });
-
-        
-const allPayments = await prisma.payment.findMany({
-  include: { student: true },
-});
-console.log("ALL PAYMENTS:", allPayments);
-
-
-        if (!payment) {
-          return res.status(404).json({ error: "Payment not found" });
-        }
-
-        return res.status(200).json(payment);
-      }
-    }
-
-    // ✅ ADMIN: POST /api/payments/create
-    if (method === "POST" && pathname === "/api/payments/create") {
-      if (user.role !== "ADMIN") {
-        return res.status(403).json({ error: "Unauthorized" });
-      }
+    // ✅ POST /api/payments/create
+    if (method === "POST" && pathParts.length === 1 && pathParts[0] === "create") {
+      await authorizeRole("ADMIN", user);
 
       const { studentId, amount } = req.body;
 
       const newPayment = await prisma.payment.create({
-        data: {
-          studentId,
-          amount,
-          paidAt: new Date(),
-        },
+        data: { studentId, amount, paidAt: new Date() }
+      });
+
+      // Auto-renew membership
+      const membership = await prisma.membership.findFirst({ where: { studentId } });
+      if (!membership) return res.status(404).json({ error: "Membership not found" });
+
+      const baseDate = new Date(membership.endDate) < new Date()
+        ? new Date()
+        : new Date(membership.endDate);
+      const newEndDate = new Date(baseDate);
+      newEndDate.setDate(newEndDate.getDate() + 30);
+
+      await prisma.membership.update({
+        where: { id: membership.id },
+        data: { endDate: newEndDate }
       });
 
       return res.status(201).json(newPayment);
     }
 
-    // ✅ ADMIN: PUT /api/payments/:id
-    if (method === "PUT" && pathname.startsWith("/api/payments/")) {
-      const parts = pathname.split("/");
-      const maybeId = parts[parts.length - 1];
+    // ✅ PUT /api/payments/:id
+    if (method === "PUT" && pathParts.length === 1 && !isNaN(Number(pathParts[0]))) {
+      await authorizeRole("ADMIN", user);
 
-      if (!isNaN(Number(maybeId))) {
-        const paymentId = Number(maybeId);
+      const id = Number(pathParts[0]);
+      const { amount } = req.body;
 
-        if (user.role !== "ADMIN") {
-          return res.status(403).json({ error: "Unauthorized" });
-        }
+      const updated = await prisma.payment.update({
+        where: { id },
+        data: { amount }
+      });
 
-        const { amount } = req.body;
-
-        const updatedPayment = await prisma.payment.update({
-          where: { id: paymentId },
-          data: { amount },
-        });
-
-        return res.status(200).json(updatedPayment);
-      }
+      return res.status(200).json(updated);
     }
 
-    // ✅ ADMIN: DELETE /api/payments/:id
-    if (method === "DELETE" && pathname.startsWith("/api/payments/")) {
-      const parts = pathname.split("/");
-      const maybeId = parts[parts.length - 1];
+    // ✅ DELETE /api/payments/:id
+    if (method === "DELETE" && pathParts.length === 1 && !isNaN(Number(pathParts[0]))) {
+      await authorizeRole("ADMIN", user);
 
-      if (!isNaN(Number(maybeId))) {
-        const paymentId = Number(maybeId);
-
-        if (user.role !== "ADMIN") {
-          return res.status(403).json({ error: "Unauthorized" });
-        }
-
-        await prisma.payment.delete({
-          where: { id: paymentId },
-        });
-
-        return res.status(204).end();
-      }
+      const id = Number(pathParts[0]);
+      await prisma.payment.delete({ where: { id } });
+      return res.status(204).end();
     }
 
     // 🚫 Unsupported route
     return res.status(404).json({ error: "Route not found" });
 
   } catch (err) {
+    console.error("❌ ERROR:", err);
     if (err.message === "Authentication required") {
-      return res.status(401).json({ error: "Authentication required" });
+      return res.status(401).json({ error: err.message });
     }
-
-    console.error("Unhandled Error:", err);
+    if (err.message === "Unauthorized") {
+      return res.status(403).json({ error: err.message });
+    }
     return res.status(500).json({ error: "Internal server error" });
   }
 }
