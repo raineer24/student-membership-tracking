@@ -57,6 +57,13 @@ export default async function handler(req, res) {
           include: { student: true },
         });
 
+        
+const allPayments = await prisma.payment.findMany({
+  include: { student: true },
+});
+console.log("ALL PAYMENTS:", allPayments);
+
+
         if (!payment) {
           return res.status(404).json({ error: "Payment not found" });
         }

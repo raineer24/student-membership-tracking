@@ -5,6 +5,10 @@
   ],
   "routes": [
     {
+      "src": "/api/dashboard(?:/(.*))?",
+      "dest": "/api/dashboard/[[...slug]].js"
+    },
+    {
       "src": "/api/payments/(.*)",
       "dest": "/api/payments/[[...slug]].js"
     },
