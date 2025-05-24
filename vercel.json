@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/**/*.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    {
+      "src": "/api/dashboard(?:/(.*))?",
+      "dest": "/api/dashboard/[[...slug]].js"
+    },
+    {
+      "src": "/api/payments(?:/(.*))?",
+      "dest": "/api/payments/[[...slug]].js"
+    },
+    {
+      "src": "/api/memberships(?:/(.*))?",
+      "dest": "/api/memberships/[[...slug]].js"
+    },
+    {
+      "src": "/api/students(?:/(.*))?",
+      "dest": "/api/students/[[...slug]].js"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1.js"
+    }
+  ]
+}
