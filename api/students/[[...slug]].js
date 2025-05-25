@@ -187,4 +187,25 @@ export default async function handler(req, res) {
       });
 
       if (!student) {
-        return res.status(404).json({ error: "Student not
+        return res.status(404).json({ error: "Student not found" });
+      }
+
+      try {
+        await prisma.student.delete({ where: { id: studentId } });
+        await prisma.user.delete({ where: { id: student.userId } });
+
+        return res.status(204).end();
+      } catch (err) {
+        console.error("Delete error:", err);
+        return res.status(500).json({ error: "Failed to delete student" });
+      }
+    }
+
+    // ❌ Method Not Allowed
+    return res.status(405).json({ error: "Method not allowed" });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(401).json({ error: err.message });
+  }
+}
