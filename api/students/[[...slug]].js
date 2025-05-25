@@ -18,6 +18,26 @@ export default async function handler(req, res) {
 
     const method = req.method;
 
+    // ✅ STUDENT SELF VIEW: GET /api/students/me
+    if (method === "GET" && slug[0] === "me") {
+      const studentId = decoded.studentId;
+
+      const student = await prisma.student.findUnique({
+        where: { id: studentId },
+        include: {
+          user: true,
+          memberships: true,
+          payments: true,
+        },
+      });
+
+      if (!student) {
+        return res.status(404).json({ error: "Student not found" });
+      }
+
+      return res.json(student);
+    }
+
     // -----------------------------
     // ✅ GET /api/students/17/payments - Payments View
     // -----------------------------
@@ -31,7 +51,7 @@ export default async function handler(req, res) {
       // Fetch the student to get associated userId
       const student = await prisma.student.findUnique({
         where: { id: studentId },
-        select: { userId: true }
+        select: { userId: true },
       });
 
       if (!student) {
@@ -42,7 +62,9 @@ export default async function handler(req, res) {
       if (decoded.role === "STUDENT") {
         // Student can only access their own payments
         if (decoded.id !== student.userId) {
-          return res.status(403).json({ error: "Forbidden: You can only view your own payments" });
+          return res
+            .status(403)
+            .json({ error: "Forbidden: You can only view your own payments" });
         }
       } else if (decoded.role === "ADMIN") {
         // Admin can view any payments
@@ -53,7 +75,7 @@ export default async function handler(req, res) {
       // ✅ Get payments for the student
       const payments = await prisma.payment.findMany({
         where: { studentId },
-        orderBy: { paidAt: "desc" }
+        orderBy: { paidAt: "desc" },
       });
 
       return res.json(payments);
@@ -201,7 +223,7 @@ export default async function handler(req, res) {
 
       const student = await prisma.student.findUnique({
         where: { id: studentId },
-        include: { user: true }
+        include: { user: true },
       });
 
       if (!student) {
@@ -211,11 +233,11 @@ export default async function handler(req, res) {
       // Option: Delete both student and user
       try {
         await prisma.student.delete({
-          where: { id: studentId }
+          where: { id: studentId },
         });
 
         await prisma.user.delete({
-          where: { id: student.userId }
+          where: { id: student.userId },
         });
 
         return res.status(204).end(); // No content
@@ -227,7 +249,6 @@ export default async function handler(req, res) {
 
     // ❌ Method Not Allowed
     return res.status(405).json({ error: "Method not allowed" });
-
   } catch (err) {
     console.error(err);
     return res.status(401).json({ error: err.message });
