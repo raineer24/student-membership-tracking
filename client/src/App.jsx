@@ -10,6 +10,8 @@ function App() {
    <AuthProvider>
     <Routes>
       <Route path="/login"  element={<Login />}/>
+
+      <Route path="*" element={<div>404 Not Found</div>}/>
     </Routes>
    </AuthProvider>
   )
