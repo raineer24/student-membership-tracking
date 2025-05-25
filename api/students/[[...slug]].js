@@ -1,4 +1,4 @@
-import prisma from "../../utils/db";
+import {prisma } from "../../utils/db";
 import { authenticate } from "../../utils/auth";
 import bcrypt from "bcryptjs";
 import { parse } from "url";
