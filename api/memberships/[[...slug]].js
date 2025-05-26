@@ -1,14 +1,14 @@
-import prisma from "../../utils/db";
+import { prisma } from "../../utils/db";
 import { authenticate } from "../../utils/auth";
 
 export default async function handler(req, res) {
   const { method } = req;
 
-  // Parse full URL
+  // Parse URL
   const url = new URL(req.url, `http://${req.headers.host}`);
   let pathname = url.pathname;
 
-  // Normalize path (remove trailing slash)
+  // Normalize path
   if (pathname.endsWith("/") && pathname.length > 1) {
     pathname = pathname.slice(0, -1);
   }
@@ -24,20 +24,16 @@ export default async function handler(req, res) {
 
     // ✅ STUDENT: GET /api/memberships/me
     if (method === "GET" && pathname === "/api/memberships/me") {
-      // ✅ Use studentId from JWT payload
       const { studentId } = decoded;
 
       if (!studentId) {
         return res.status(404).json({ error: "Student ID not found in token" });
       }
 
+      // ✅ Use lowercase model name
       const membership = await prisma.membership.findFirst({
-        where: {
-          studentId: studentId
-        },
-        include: {
-          student: true
-        }
+        where: { studentId },
+        include: { student: true }
       });
 
       if (!membership) {
@@ -83,7 +79,7 @@ export default async function handler(req, res) {
       }
 
       const memberships = await prisma.membership.findMany({
-        include: { student: true },
+        include: { student: true }
       });
 
       return res.status(200).json(memberships);
