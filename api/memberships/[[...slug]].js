@@ -24,11 +24,16 @@ export default async function handler(req, res) {
 
     // ✅ STUDENT: GET /api/memberships/me
     if (method === "GET" && pathname === "/api/memberships/me") {
+      // ✅ Use studentId from JWT payload
+      const { studentId } = decoded;
+
+      if (!studentId) {
+        return res.status(404).json({ error: "Student ID not found in token" });
+      }
+
       const membership = await prisma.membership.findFirst({
         where: {
-          student: {
-            userId: decoded.id // user.id from JWT
-          }
+          studentId: studentId
         },
         include: {
           student: true
