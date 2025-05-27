@@ -8,6 +8,7 @@ import MembershipPage from "./pages/MembershipPage";
 function App() {
  
   return (
+     <BrowserRouter>
    <AuthProvider>
     <Routes>
       <Route path="/login"  element={<Login />}/>
@@ -19,6 +20,7 @@ function App() {
       <Route path="*" element={<div>404 Not Found</div>}/>
     </Routes>
    </AuthProvider>
+   </BrowserRouter>
   )
 }
 

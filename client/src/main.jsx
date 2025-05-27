@@ -6,8 +6,8 @@ import App from './App';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>  {/* 👈 Wrap your app here */}
+   {/* 👈 Wrap your app here */}
       <App />
-    </BrowserRouter>
+
   </React.StrictMode>
 );
