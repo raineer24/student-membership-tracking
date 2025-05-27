@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import api from "../utils/api";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -10,13 +11,24 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefaul();
     try {
-      const res = await axios.post("/api/auth/login", { email, password });
+      const res = await api.post("/api/auth/login", { email, password });
       localStorage.setItem('token', res.data.accessToken);
       navigate('/');
     } catch (error) {
       alert("Login failed");
     }
   };
+
+  fetch('/api/auth/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'your-email@example.com',
+    password: 'your-password'
+  })
+})
+.then(res => res.json())
+.then(console.log);
 
   return (
     <form onSubmit={handleSubmit}>
