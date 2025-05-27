@@ -1,4 +1,23 @@
-node_modules
-# Keep environment variables out of version control
-.env
-.vercel
+# Node modules
+node_modules/
+dist/
+build/
+
+# Environment variables
+.env.local
+.env.development
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS metadata
+.DS_Store
+Thumbs.db
