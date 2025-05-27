@@ -2,7 +2,13 @@
   "version": 2,
   "builds": [
     { "src": "api/**/*.js", "use": "@vercel/node" },
-    { "src": "src/main.jsx", "use": "@vercel/static-build" }
+    {
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "client/dist"
+      }
+    }
   ],
   "routes": [
     { "src": "/api/dashboard(?:/(.*))?", "dest": "/api/dashboard/[[...slug]].js" },
@@ -11,6 +17,10 @@
     { "src": "/api/students(?:/(.*))?", "dest": "/api/students/[[...slug]].js" },
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
 
-    { "src": "/(.*)", "dest": "/src/index.html" }
+    { "handle": "filesystem" },
+    {
+      "src": "/(.*)",
+      "dest": "/client/dist/index.html"
+    }
   ]
 }
