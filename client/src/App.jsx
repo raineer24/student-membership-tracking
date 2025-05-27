@@ -11,6 +11,9 @@ function App() {
     <Routes>
       <Route path="/login"  element={<Login />}/>
 
+      <Route element={<ProtectedRoute />}>
+        <Route />
+      </Route>
       <Route path="*" element={<div>404 Not Found</div>}/>
     </Routes>
    </AuthProvider>
