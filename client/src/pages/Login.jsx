@@ -11,6 +11,8 @@ const Login = () => {
     e.preventDefaul();
     try {
       const res = await axios.post("/api/auth/login", { email, password });
+      localStorage.setItem('token', res.data.accessToken);
+      navigate('/');
     } catch (error) {
       alert("Login failed");
     }
