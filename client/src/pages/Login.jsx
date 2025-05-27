@@ -9,7 +9,7 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefaul();
+    e.preventDefault();
     try {
       const res = await api.post("auth/login", { email, password });
       localStorage.setItem('token', res.data.accessToken);
