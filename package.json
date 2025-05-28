@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
 "scripts": {
-    "dev": "cd client && npm run build && cd .. && vercel dev",
+    "dev": "vercel dev",
     "build": "cd client && npm run build",
     "start": "cd client && npm run preview",
     "postinstall": "npx prisma generate && cd client && npm install",

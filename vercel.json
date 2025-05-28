@@ -6,7 +6,7 @@
       "src": "client/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "client/dist"
+        "distDir": "client/dist" 
       }
     }
   ],
@@ -16,11 +16,10 @@
     { "src": "/api/memberships(?:/(.*))?", "dest": "/api/memberships/[[...slug]].js" },
     { "src": "/api/students(?:/(.*))?", "dest": "/api/students/[[...slug]].js" },
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
-
     { "handle": "filesystem" },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/client/dist/index.html"  
     }
   ]
 }
