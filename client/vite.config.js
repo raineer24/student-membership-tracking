@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
@@ -10,7 +9,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: resolve(__dirname, '../dist'),  // Output to student-membership-tracking/dist
-    emptyOutDir: true  // Force empty the output directory to avoid stale files
+    outDir: 'dist',  // Output to client/dist
+    emptyOutDir: true  // Clear the output directory
   }
 });

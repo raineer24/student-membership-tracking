@@ -3,24 +3,22 @@
   "builds": [
     { "src": "api/**/*.js", "use": "@vercel/node" },
     {
-      "src": "client/package.json",
+      "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist",
-        "buildCommand": "cd client && npm run build"
+        "distDir": "client/dist",
+        "buildCommand": "npm run build"
       }
+    },
+    {
+      "src": "client/dist/**/*",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
-    { "src": "/api/dashboard(?:/(.*))?", "dest": "/api/dashboard/[[...slug]].js" },
-    { "src": "/api/payments(?:/(.*))?", "dest": "/api/payments/[[...slug]].js" },
-    { "src": "/api/memberships(?:/(.*))?", "dest": "/api/memberships/[[...slug]].js" },
-    { "src": "/api/students(?:/(.*))?", "dest": "/api/students/[[...slug]].js" },
-    { "src": "/api/(.*)", "dest": "/api/$1.js" },
-    { "handle": "filesystem" },
-    {
-      "src": "/(.*)",
-      "dest": "/dist/index.html"
-    }
+    { "src": "/api/auth/login", "dest": "/api/auth/login.js", "methods": ["POST"] },
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/assets/(.*)", "dest": "client/dist/assets/$1" },
+    { "src": "/(.*)", "dest": "client/dist/index.html", "status": 200 }
   ]
 }
