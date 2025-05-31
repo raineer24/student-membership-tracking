@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// ✅ Custom hook for easy access
+// ✅ Custom hook to use auth context
 export const useAuth = () => {
   const context = React.useContext(AuthContext);
   if (!context) {

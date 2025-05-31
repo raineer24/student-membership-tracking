@@ -1,44 +1,44 @@
-// App.jsx
+// client/src/pages/Login.jsx
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import apiClient from "./utils/api";
 
-import React, { useContext } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthContext, AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Login from "./pages/Login";
-import MembershipPage from "./pages/MembershipPage";
+const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-function App() {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await apiClient.post("/auth/login", { email, password });
+      localStorage.setItem("token", res.data.accessToken);
+      navigate("/");
+    } catch (error) {
+      alert("Login failed");
+    }
+  };
+
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-
-          {/* Redirect root `/` to `/membership` if logged in */}
-          <Route path="/" element={<HomeRedirect />} />
-
-          <Route element={<ProtectedRoute allowedRoles={["STUDENT"]} />}>
-            <Route path="/membership" element={<MembershipPage />} />
-          </Route>
-
-          <Route path="*" element={<div>404 Not Found</div>} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+    <form onSubmit={handleSubmit}>
+      <h2>Login</h2>
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+      />
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+      />
+      <button type="submit">Login</button>
+    </form>
   );
-}
-
-// Custom redirect component
-const HomeRedirect = () => {
-  const { user, loading } = useContext(AuthContext);
-
-  if (loading) return null;
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <Navigate to="/membership" replace />;
 };
 
-export default App;
+export default Login;

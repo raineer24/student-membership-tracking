@@ -1,11 +1,10 @@
 // client/src/pages/MembershipPage.jsx
-
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React from "react";
 import { useAuth } from "../context/AuthContext";
+import axios from "axios";
 
 const MembershipPage = () => {
-  const { token } = useAuth(); // ✅ Use custom hook
+  const { token } = useAuth();
   const [membership, setMembership] = useState(null);
 
   useEffect(() => {
