@@ -1,5 +1,6 @@
+// client/src/context/AuthContext.jsx
 import React, { createContext, useState, useEffect } from "react";
-import axios from "react";
+import axios from "axios";
 
 const AuthContext = createContext();
 
@@ -16,11 +17,11 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        const res = await axios.get("api/students/me", {
+        const res = await axios.get("/api/students/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(res.data);
-      } catch (error) {
+      } catch (err) {
         localStorage.removeItem("token");
         setToken(null);
         setUser(null);
@@ -28,16 +29,15 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
       }
     };
+
     fetchUser();
   }, [token]);
 
   const login = async (email, password) => {
-    const res = await axios.post("api/auth/login", { email, password });
-    const { accessToken } = res.data;
-    localStorage.setItem("token", accessToken);
-    setToken(accessToken);
+    const res = await axios.post("/api/auth/login", { email, password });
+    localStorage.setItem("token", res.data.accessToken);
+    setToken(res.data.accessToken);
     setUser(res.data.user);
-    return res.data;
   };
 
   const logout = () => {
@@ -53,4 +53,11 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export default AuthContext;
+// ✅ Custom hook for easy access
+export const useAuth = () => {
+  const context = React.useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used inside AuthProvider");
+  }
+  return context;
+};
