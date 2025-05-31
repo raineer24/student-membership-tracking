@@ -17,6 +17,9 @@
   ],
   "routes": [
     { "src": "/api/auth/login", "dest": "/api/auth/login.js", "methods": ["POST"] },
+    { "src": "/api/students(?:/(.*))?", "dest": "/api/students/[[...slug]].js" },
+    { "src": "/api/memberships(?:/(.*))?", "dest": "/api/memberships/[[...slug]].js" },
+    { "src": "/api/payments(?:/(.*))?", "dest": "/api/payments/[[...slug]].js" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/assets/(.*)", "dest": "client/dist/assets/$1" },
     { "src": "/(.*)", "dest": "client/dist/index.html", "status": 200 }

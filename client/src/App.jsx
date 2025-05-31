@@ -1,45 +1,46 @@
-// client/src/App.jsx
-
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import MembershipPage from "./pages/MembershipPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-// ✅ Custom Redirect Component
+// Custom Redirect Component
 const HomeRedirect = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
-  if (loading) return null;
+  useEffect(() => {
+    if (loading) return;
 
-  if (!user) {
-    navigate("/login", { replace: true });
-    return null;
-  }
+    if (!user) {
+      navigate("/login", { replace: true });
+    } else if (user.role === "STUDENT") {
+      navigate("/membership", { replace: true });
+    } else {
+      navigate("/login", { replace: true }); // Fallback for unexpected roles
+    }
+  }, [user, loading, navigate]);
 
-  if (user.role === "STUDENT") {
-    navigate("/membership", { replace: true });
-    return null;
-  }
+  if (loading) return <div>Loading...</div>;
 
   return <div>Redirecting...</div>;
 };
 
-// ✅ Main App Component
+// Main App Component
 function App() {
   return (
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
-
         <Route
-          element={<ProtectedRoute allowedRoles={["STUDENT"]} />}
-        >
-          <Route path="/membership" element={<MembershipPage />} />
-        </Route>
-
+          path="/membership"
+          element={
+            <ProtectedRoute allowedRoles={["STUDENT"]}>
+              <MembershipPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/" element={<HomeRedirect />} />
         <Route path="*" element={<div>404 Not Found</div>} />
       </Routes>

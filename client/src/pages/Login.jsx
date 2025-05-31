@@ -1,21 +1,20 @@
-// client/src/pages/Login.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthProvider } from "../context/AuthContext";
-import api from "../utils/api";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post("/auth/login", { email, password });
-      localStorage.setItem("token", res.data.accessToken);
-      navigate("/");
+      await login(email, password);
+      navigate("/", { replace: true });
     } catch (error) {
+      console.error("Login failed:", error);
       alert("Login failed");
     }
   };

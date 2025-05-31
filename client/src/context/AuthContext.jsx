@@ -1,5 +1,3 @@
-// client/src/context/AuthContext.jsx
-
 import React, { createContext, useState, useEffect } from "react";
 import axios from "axios";
 
@@ -23,6 +21,7 @@ export const AuthProvider = ({ children }) => {
         });
         setUser(res.data);
       } catch (err) {
+        console.error("Fetch user error:", err);
         localStorage.removeItem("token");
         setToken(null);
         setUser(null);
@@ -35,16 +34,29 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const login = async (email, password) => {
-    const res = await axios.post("/api/auth/login", { email, password });
-    localStorage.setItem("token", res.data.accessToken);
-    setToken(res.data.accessToken);
-    setUser(res.data.user);
+    try {
+      const res = await axios.post("/api/auth/login", { email, password });
+      const { accessToken, user } = res.data;
+      localStorage.setItem("token", accessToken);
+      setToken(accessToken);
+      setUser(user);
+      setLoading(false);
+      return true;
+    } catch (err) {
+      console.error("Login error:", err);
+      localStorage.removeItem("token");
+      setToken(null);
+      setUser(null);
+      setLoading(false);
+      throw err;
+    }
   };
 
   const logout = () => {
     localStorage.removeItem("token");
     setToken(null);
     setUser(null);
+    setLoading(false);
   };
 
   return (
@@ -54,7 +66,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// ✅ Custom hook
 export const useAuth = () => {
   const context = React.useContext(AuthContext);
   if (!context) {

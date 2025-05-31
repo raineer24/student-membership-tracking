@@ -1,5 +1,5 @@
 // client/src/pages/MembershipPage.jsx
-import React from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 
@@ -30,9 +30,18 @@ const MembershipPage = () => {
   return (
     <div style={{ padding: "20px" }}>
       <h2>Your Membership</h2>
-      <p><strong>Status:</strong> {new Date(membership.endDate) > new Date() ? "Active" : "Expired"}</p>
-      <p><strong>Start Date:</strong> {new Date(membership.startDate).toLocaleDateString()}</p>
-      <p><strong>End Date:</strong> {new Date(membership.endDate).toLocaleDateString()}</p>
+      <p>
+        <strong>Status:</strong>{" "}
+        {new Date(membership.endDate) > new Date() ? "Active" : "Expired"}
+      </p>
+      <p>
+        <strong>Start Date:</strong>{" "}
+        {new Date(membership.startDate).toLocaleDateString()}
+      </p>
+      <p>
+        <strong>End Date:</strong>{" "}
+        {new Date(membership.endDate).toLocaleDateString()}
+      </p>
     </div>
   );
 };
