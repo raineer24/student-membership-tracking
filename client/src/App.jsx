@@ -11,20 +11,23 @@ const HomeRedirect = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("HomeRedirect:", { user, loading });
     if (loading) return;
 
     if (!user) {
+      console.log("Redirecting to /login");
       navigate("/login", { replace: true });
     } else if (user.role === "STUDENT") {
+      console.log("Redirecting to /membership");
       navigate("/membership", { replace: true });
     } else {
-      navigate("/login", { replace: true }); // Fallback for unexpected roles
+      console.log("Redirecting to /login (unexpected role)");
+      navigate("/login", { replace: true });
     }
   }, [user, loading, navigate]);
 
   if (loading) return <div>Loading...</div>;
-
-  return <div>Redirecting...</div>;
+  return null;
 };
 
 // Main App Component

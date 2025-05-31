@@ -9,25 +9,20 @@ const MembershipPage = () => {
 
   useEffect(() => {
     const fetchMembership = async () => {
-      if (!token || !user) {
-        console.log("No token or user, skipping fetch");
-        return;
-      }
+      if (!token || !user) return;
 
       try {
-        console.log("Fetching membership with token:", token);
         const res = await axios.get("/api/memberships/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log("Membership fetched:", res.data);
         setMembership(res.data);
         setError(null);
+        console.log("Membership fetched:", res.data);
       } catch (err) {
         console.error("Failed to load membership:", err.response?.status, err.message);
         setError("Failed to load membership");
-        // Only logout on 401
         if (err.response?.status === 401) {
-          console.log("401 error on memberships/me, logging out");
+          console.log("Unauthorized, logging out");
           logout();
         }
       }
@@ -36,18 +31,9 @@ const MembershipPage = () => {
     fetchMembership();
   }, [token, user, logout]);
 
-  if (!token || !user) {
-    console.log("Rendering not logged in");
-    return <div>Not logged in</div>;
-  }
-  if (error) {
-    console.log("Rendering error:", error);
-    return <div>{error}</div>;
-  }
-  if (!membership) {
-    console.log("Rendering loading membership");
-    return <div>Loading membership info...</div>;
-  }
+  if (!token || !user) return <div>Not logged in</div>;
+  if (error) return <div>{error}</div>;
+  if (!membership) return <div>Loading membership info...</div>;
 
   return (
     <div style={{ padding: "20px" }}>

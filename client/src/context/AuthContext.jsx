@@ -11,22 +11,33 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const fetchUser = async () => {
       if (!token) {
-        console.log("No token found, setting loading to false");
         setLoading(false);
         return;
       }
 
       try {
-        console.log("Fetching user with token:", token);
         const res = await axios.get("/api/students/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log("User fetched:", res.data);
-        setUser(res.data);
+        // Normalize user object to ensure role is at top level
+        const student = res.data;
+        setUser({
+          id: student.userId || student.id,
+          email: student.email,
+          role: student.user?.role || "STUDENT", // Extract role from nested user
+          studentId: student.id,
+          name: student.name,
+        });
+        console.log("Normalized user:", {
+          id: student.userId || student.id,
+          email: student.email,
+          role: student.user?.role || "STUDENT",
+          studentId: student.id,
+          name: student.name,
+        });
       } catch (err) {
         console.error("Fetch user error:", err.response?.status, err.message);
         if (err.response?.status === 401) {
-          console.log("401 error, clearing token");
           localStorage.removeItem("token");
           setToken(null);
           setUser(null);
@@ -41,14 +52,23 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      console.log("Attempting login with:", { email });
       const res = await axios.post("/api/auth/login", { email, password });
       const { accessToken, user } = res.data;
-      console.log("Login response:", { accessToken, user });
       localStorage.setItem("token", accessToken);
-      console.log("Token saved to localStorage:", localStorage.getItem("token"));
       setToken(accessToken);
-      setUser(user);
+      // Normalize user object from login
+      setUser({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        studentId: user.studentId,
+      });
+      console.log("Login user:", {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        studentId: user.studentId,
+      });
       return true;
     } catch (err) {
       console.error("Login error:", err.response?.status, err.message);
@@ -59,7 +79,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    console.log("Logging out, clearing token");
     localStorage.removeItem("token");
     setToken(null);
     setUser(null);

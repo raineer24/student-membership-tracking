@@ -8,18 +8,16 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
 
   console.log("ProtectedRoute check:", { user, loading, allowedRoles });
 
-  if (loading) {
-    console.log("ProtectedRoute: Still loading");
-    return <div>Loading...</div>;
-  }
+  if (loading) return <div>Loading...</div>;
 
   if (!user) {
     console.log("ProtectedRoute: No user, redirecting to /login");
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    console.log("ProtectedRoute: Role not allowed, redirecting to /login");
+  const userRole = user.role || (user.user && user.user.role);
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
+    console.log(`ProtectedRoute: Role ${userRole} not allowed, redirecting to /login`);
     return <Navigate to="/login" replace />;
   }
 

@@ -10,6 +10,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Attempting login with:", { email });
     try {
       await login(email, password);
       console.log("Login successful, navigating to /membership");
