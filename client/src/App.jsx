@@ -1,44 +1,50 @@
-// client/src/pages/Login.jsx
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import apiClient from "./utils/api";
+// client/src/App.jsx
 
-const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+import React from "react";
+import { Routes, Route, useNavigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import Login from "./pages/Login";
+import MembershipPage from "./pages/MembershipPage";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+// ✅ Custom Redirect Component
+const HomeRedirect = () => {
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await apiClient.post("/auth/login", { email, password });
-      localStorage.setItem("token", res.data.accessToken);
-      navigate("/");
-    } catch (error) {
-      alert("Login failed");
-    }
-  };
+  if (loading) return null;
 
-  return (
-    <form onSubmit={handleSubmit}>
-      <h2>Login</h2>
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      <button type="submit">Login</button>
-    </form>
-  );
+  if (!user) {
+    navigate("/login", { replace: true });
+    return null;
+  }
+
+  if (user.role === "STUDENT") {
+    navigate("/membership", { replace: true });
+    return null;
+  }
+
+  return <div>Redirecting...</div>;
 };
 
-export default Login;
+// ✅ Main App Component
+function App() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+
+        <Route
+          element={<ProtectedRoute allowedRoles={["STUDENT"]} />}
+        >
+          <Route path="/membership" element={<MembershipPage />} />
+        </Route>
+
+        <Route path="/" element={<HomeRedirect />} />
+        <Route path="*" element={<div>404 Not Found</div>} />
+      </Routes>
+    </AuthProvider>
+  );
+}
+
+export default App;
