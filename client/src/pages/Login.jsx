@@ -12,9 +12,10 @@ const Login = () => {
     e.preventDefault();
     try {
       await login(email, password);
-      navigate("/", { replace: true });
+      console.log("Login successful, navigating to /membership");
+      navigate("/membership", { replace: true });
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Login failed:", error.response?.status, error.message);
       alert("Login failed");
     }
   };
