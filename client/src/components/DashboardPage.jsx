@@ -95,8 +95,57 @@ export default function DashboardPage() {
       </nav>
 
       {/* Main Content */}
+      <main className="max-w-7x mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === "overview" && (
+          <DashboardOverview data={dashboardData} token={token} />
+        )}
+        {activeTab === "students" && <StudentsTab token={token} />}
+        {activeTab === "revenue" && <RevenueTab token={token} />}
+        {activeTab === "activity" && <ActivityTab token={token} />}
+      </main>
     </div>
   );
-};
+}
 
 //Dashboard overview component
+const DashboardOverview = ({ data }) => {
+  const { summary, timestamp } = data;
+
+  const statsCard = [
+    {
+      title: "Total Students",
+      value: summary.totalStudents,
+      subtitle: `${summary.activeStudents} active • ${summary.inactiveStudents} inactive`,
+      icon: "👥",
+      color: "blue",
+    },
+     {
+      title: "Memberships",
+      value: summary.totalMemberships,
+      subtitle: `${summary.activeMemberships} active • ${summary.expiredMemberships} expired`,
+      icon: "👥",
+      color: "green",
+    },
+     {
+      title: "Total Revenue",
+      value: `$${summary.totalRevenue}`,
+      subtitle: `$${summary.thisMonthRevenue} this month`,
+      icon: '💰',
+      color: "yellow",
+    },
+     {
+      title: "Pending Payments",
+      value: summary.pendingPayments,
+      subtitle: 'Students with overdue memberships',
+      icon: '⚠️',
+      color: "red",
+    },
+  ];
+
+  return (
+    <div className="space-y-6"></div>
+  )
+};
+
+
+// Stats Card component
