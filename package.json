@@ -2,12 +2,13 @@
   "name": "student-membership-tracking",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
-    "dev": "NODE_ENV=development nodemon server.js",
-    "prod": "NODE_ENV=production node server.js",
-    "postinstall": "prisma generate",
-    "migrate": "npx prisma migrate dev --name init",
-    "build": "prisma generate && echo 'Build complete'"
+"scripts": {
+    "dev": "vercel dev",
+    "build": "cd client && npm run build",
+    "start": "cd client && npm run preview",
+    "postinstall": "npx prisma generate && cd client && npm install",
+    "lint": "eslint . --ext .js,.jsx",
+    "format": "prettier --write ."
   },
   "keywords": [],
   "author": "",

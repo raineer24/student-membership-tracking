@@ -1,27 +1,39 @@
-import prisma from "../../utils/db";
+import { prisma } from "../../utils/db";
 import { authenticate } from "../../utils/auth";
 
 export default async function handler(req, res) {
   const { method } = req;
 
-  // Parse full URL
+  // Parse URL
   const url = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = url.pathname; // 👈 Most reliable part
+  let pathname = url.pathname;
+
+  // Normalize path
+  if (pathname.endsWith("/") && pathname.length > 1) {
+    pathname = pathname.slice(0, -1);
+  }
 
   console.log("RAW URL:", req.url);
   console.log("PATHNAME:", pathname);
   console.log("METHOD:", method);
   console.log("QUERY:", req.query);
-  console.log("USER ROLE:", (await authenticate(req))?.role);
 
   try {
-    const user = await authenticate(req);
+    const decoded = await authenticate(req);
+    console.log("USER ROLE:", decoded.role);
 
     // ✅ STUDENT: GET /api/memberships/me
     if (method === "GET" && pathname === "/api/memberships/me") {
+      const { studentId } = decoded;
+
+      if (!studentId) {
+        return res.status(404).json({ error: "Student ID not found in token" });
+      }
+
+      // ✅ Use lowercase model name
       const membership = await prisma.membership.findFirst({
-        where: { student: { userId: user.id } },
-        include: { student: true },
+        where: { studentId },
+        include: { student: true }
       });
 
       if (!membership) {
@@ -32,20 +44,24 @@ export default async function handler(req, res) {
     }
 
     // ✅ ADMIN: GET /api/memberships/:studentId
-    if (method === "GET" && pathname.startsWith("/api/memberships/")) {
+    if (
+      method === "GET" &&
+      pathname.startsWith("/api/memberships/") &&
+      pathname !== "/api/memberships"
+    ) {
+      if (decoded.role !== "ADMIN") {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
       const parts = pathname.split("/");
       const maybeStudentId = parts[parts.length - 1];
 
       if (!isNaN(Number(maybeStudentId))) {
         const studentId = Number(maybeStudentId);
 
-        if (user.role !== "ADMIN") {
-          return res.status(403).json({ error: "Unauthorized" });
-        }
-
         const membership = await prisma.membership.findFirst({
           where: { studentId },
-          include: { student: true },
+          include: { student: true }
         });
 
         if (!membership) {
@@ -58,12 +74,12 @@ export default async function handler(req, res) {
 
     // ✅ ADMIN: GET /api/memberships
     if (method === "GET" && pathname === "/api/memberships") {
-      if (user.role !== "ADMIN") {
+      if (decoded.role !== "ADMIN") {
         return res.status(403).json({ error: "Unauthorized" });
       }
 
       const memberships = await prisma.membership.findMany({
-        include: { student: true },
+        include: { student: true }
       });
 
       return res.status(200).json(memberships);
@@ -71,7 +87,7 @@ export default async function handler(req, res) {
 
     // ✅ ADMIN: POST /api/memberships/create
     if (method === "POST" && pathname === "/api/memberships/create") {
-      if (user.role !== "ADMIN") {
+      if (decoded.role !== "ADMIN") {
         return res.status(403).json({ error: "Unauthorized" });
       }
 

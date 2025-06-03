@@ -1,4 +1,4 @@
-import prisma from "../../utils/db";
+import {prisma } from "../../utils/db";
 import { authenticate } from "../../utils/auth";
 import bcrypt from "bcryptjs";
 import { parse } from "url";
@@ -9,65 +9,53 @@ export default async function handler(req, res) {
 
   const parsedUrl = parse(req.url || "", true);
   const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
-  const slug = pathParts.slice(2); // skip ['api', 'students']
+  const slug = pathParts.length > 2 ? pathParts.slice(2) : [];
 
   console.log("Parsed slug:", slug);
 
   try {
-    const decoded = authenticate(req);
+    const decoded = await authenticate(req); // This decodes JWT
 
     const method = req.method;
 
-    // -----------------------------
-    // ✅ GET /api/students/17/payments - Payments View
-    // -----------------------------
-    if (slug.length === 2 && slug[1] === "payments" && method === "GET") {
-      const studentId = parseInt(slug[0], 10);
-
-      if (isNaN(studentId)) {
-        return res.status(400).json({ error: "Invalid student ID" });
+    // ✅ STUDENT SELF VIEW: GET /api/students/me
+    if (method === "GET" && slug[0] === "me") {
+      if (!["STUDENT", "ADMIN"].includes(decoded.role)) {
+        return res.status(403).json({ error: "Unauthorized" });
       }
 
-      // Fetch the student to get associated userId
+      const studentId = decoded.studentId;
+
+      if (!studentId) {
+        return res.status(404).json({ error: "Student not found" });
+      }
+
       const student = await prisma.student.findUnique({
         where: { id: studentId },
-        select: { userId: true }
+        include: {
+          user: true,
+          memberships: true,
+          payments: true,
+        },
       });
 
       if (!student) {
         return res.status(404).json({ error: "Student not found" });
       }
 
-      // 🔒 Role-based access control
-      if (decoded.role === "STUDENT") {
-        // Student can only access their own payments
-        if (decoded.id !== student.userId) {
-          return res.status(403).json({ error: "Forbidden: You can only view your own payments" });
-        }
-      } else if (decoded.role === "ADMIN") {
-        // Admin can view any payments
-      } else {
-        return res.status(403).json({ error: "Forbidden: Unauthorized role" });
-      }
-
-      // ✅ Get payments for the student
-      const payments = await prisma.payment.findMany({
-        where: { studentId },
-        orderBy: { paidAt: "desc" }
-      });
-
-      return res.json(payments);
+      return res.json(student);
     }
 
     // -----------------------------
     // 👤 Admin-Only Routes Below
     // -----------------------------
 
+    // Ensure only admins proceed
     if (decoded.role !== "ADMIN") {
       return res.status(403).json({ error: "Forbidden: Admin only" });
     }
 
-    // ✅ GET /api/students
+    // ✅ GET /api/students – List all students
     if (slug.length === 0 && method === "GET") {
       const students = await prisma.student.findMany({
         include: {
@@ -80,9 +68,10 @@ export default async function handler(req, res) {
       return res.json(students);
     }
 
-    // ✅ GET /api/students/:id
+    // ✅ GET /api/students/:id – View specific student
     if (slug.length === 1 && method === "GET") {
       const studentId = parseInt(slug[0], 10);
+
       if (isNaN(studentId)) {
         return res.status(400).json({ error: "Invalid student ID" });
       }
@@ -103,7 +92,7 @@ export default async function handler(req, res) {
       return res.json(student);
     }
 
-    // ✅ POST /api/students
+    // ✅ POST /api/students – Create new student
     if (slug.length === 0 && method === "POST") {
       const { name, email, password } = req.body;
 
@@ -133,7 +122,7 @@ export default async function handler(req, res) {
       return res.status(201).json(student);
     }
 
-    // ✅ PUT /api/students/17
+    // ✅ PUT /api/students/:id – Update student
     if (slug.length === 1 && method === "PUT") {
       const studentId = parseInt(slug[0], 10);
 
@@ -147,25 +136,18 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Name and email are required" });
       }
 
-      // 🔍 Fetch the student first to get associated userId
       const student = await prisma.student.findUnique({
         where: { id: studentId },
-        include: { user: true },
+        include: { user: true }
       });
 
       if (!student) {
         return res.status(404).json({ error: "Student not found" });
       }
 
-      // Prepare update data for student
-      const studentData = {
-        name,
-        email,
-      };
-
       const updateStudentPromise = prisma.student.update({
         where: { id: studentId },
-        data: studentData,
+        data: { name, email }
       });
 
       let updatePasswordPromise = null;
@@ -174,15 +156,15 @@ export default async function handler(req, res) {
         const hashedPassword = await bcrypt.hash(password, 10);
         updatePasswordPromise = prisma.user.update({
           where: { id: student.userId },
-          data: { password: hashedPassword },
+          data: { password: hashedPassword }
         });
       }
 
       try {
         const [updatedStudent] = await Promise.all([
           updateStudentPromise,
-          updatePasswordPromise,
-        ]);
+          updatePasswordPromise
+        ].filter(Boolean));
 
         return res.json(updatedStudent);
       } catch (err) {
@@ -191,7 +173,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // ✅ DELETE /api/students/17
+    // ✅ DELETE /api/students/:id – Delete student
     if (slug.length === 1 && method === "DELETE") {
       const studentId = parseInt(slug[0], 10);
 
@@ -208,17 +190,11 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: "Student not found" });
       }
 
-      // Option: Delete both student and user
       try {
-        await prisma.student.delete({
-          where: { id: studentId }
-        });
+        await prisma.student.delete({ where: { id: studentId } });
+        await prisma.user.delete({ where: { id: student.userId } });
 
-        await prisma.user.delete({
-          where: { id: student.userId }
-        });
-
-        return res.status(204).end(); // No content
+        return res.status(204).end();
       } catch (err) {
         console.error("Delete error:", err);
         return res.status(500).json({ error: "Failed to delete student" });
