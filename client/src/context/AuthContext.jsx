@@ -16,53 +16,18 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        // Use different endpoints based on user role stored in token or make a generic /me endpoint
-        // For now, let's try to get user info from a generic endpoint
-        let res;
-        
-        try {
-          // Try the students endpoint first (for students)
-          res = await axios.get("/api/students/me", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          
-          const student = res.data;
-          setUser({
-            id: student.userId || student.id,
-            email: student.email,
-            role: student.user?.role || "STUDENT",
-            studentId: student.id,
-            name: student.name,
-          });
-        } catch (studentErr) {
-          if (studentErr.response?.status === 404) {
-            // If students/me fails, try a generic user endpoint for admins
-            try {
-              res = await axios.get("/api/auth/me", {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              
-              const user = res.data;
-              setUser({
-                id: user.id,
-                email: user.email,
-                role: user.role,
-                studentId: user.studentId || null,
-                name: user.name,
-              });
-            } catch (authErr) {
-              throw studentErr; // Throw the original error if both fail
-            }
-          } else {
-            throw studentErr;
-          }
+        // Since both endpoints return 404, skip the API call for now
+        // and rely on the user data from login
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+          console.log("Using stored user data:", JSON.parse(storedUser));
         }
-        
-        console.log("Fetched user:", user);
       } catch (err) {
         console.error("Fetch user error:", err.response?.status, err.message);
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
+          localStorage.removeItem("user");
           setToken(null);
           setUser(null);
         }
@@ -91,9 +56,12 @@ export const AuthProvider = ({ children }) => {
         studentId: user.studentId,
       };
       
+      // Store user data in localStorage to persist across refreshes
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
       setUser(normalizedUser);
+      
       console.log("Login user:", normalizedUser);
-      console.log("Login successful, navigating to", user.role === 'ADMIN' ? '/dashboard' : '/membership');
+      // REMOVE THE NAVIGATION LOG - let the component handle navigation
       
       return true;
     } catch (err) {
@@ -104,6 +72,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setToken(null);
     setUser(null);
     setLoading(false);
