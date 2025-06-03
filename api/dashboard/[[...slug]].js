@@ -2,103 +2,405 @@ import prisma from "../../utils/db";
 import { authenticate, authorizeRole } from "../../utils/auth";
 
 export default async function handler(req, res) {
-  const { method } = req;
+  const { method, query } = req;
+  
+  // Extract slug from query params (Next.js dynamic routing)
+  let { slug = [] } = query;
+  let routePath = Array.isArray(slug) ? slug.join('/') : (typeof slug === 'string' ? slug : '');
 
-  // Parse full URL
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = url.pathname;
+  // Fallback: Parse slug from req.url if query.slug is empty
+  const urlPath = req.url.split('?')[0]; // Remove query string
+  const pathSegments = urlPath.split('/').filter(segment => segment && segment !== 'api' && segment !== 'dashboard');
+  if (!routePath && pathSegments.length > 0) {
+    routePath = pathSegments.join('/');
+    slug = pathSegments;
+    console.log("FALLBACK: Parsed slug from URL:", slug);
+  }
 
   console.log("DASHBOARD HANDLER HIT");
-  console.log("PATHNAME:", pathname);
+  console.log("REQUEST URL:", req.url);
+  console.log("RAW PATH:", urlPath);
+  console.log("QUERY:", JSON.stringify(query));
+  console.log("SLUG:", slug);
+  console.log("ROUTE PATH:", routePath);
   console.log("METHOD:", method);
+  console.log("HEADERS:", JSON.stringify(req.headers, null, 2));
+
+  // Validate slug
+  if (slug && !Array.isArray(slug) && typeof slug !== 'string') {
+    console.error("Invalid slug format:", slug);
+    return res.status(400).json({ error: "Invalid route format" });
+  }
 
   try {
+    // Test database connection
+    await prisma.$connect();
+    
+    // Authentication and authorization
     const user = await authenticate(req);
     await authorizeRole("ADMIN", user);
 
-    // ✅ GET /api/dashboard
-    if (method === "GET" && pathname === "/api/dashboard") {
-      const totalStudents = await prisma.student.count();
-      const activeMemberships = await prisma.membership.count({
-        where: {
-          endDate: { gt: new Date() },
-        },
-      });
-      const overdueCount = await prisma.student.count({
-        where: {
-          memberships: {
-            some: {
-              endDate: {
-                lt: new Date(),
-              },
-            },
-          },
-        },
-      });
-
-      return res.status(200).json({
-        totalStudents,
-        activeMemberships,
-        overdueCount,
-      });
+    // Route handling based on method and path
+    if (method === "GET") {
+      return await handleGetRoutes(routePath, user, res);
     }
 
-    // ✅ GET /api/dashboard/overdue
-    if (method === "GET" && pathname === "/api/dashboard/overdue") {
-      const overdueStudents = await prisma.student.findMany({
-        where: {
-          memberships: {
-            some: {
-              endDate: {
-                lt: new Date(),
-              },
-            },
-          },
-        },
-        include: {
-          memberships: true,
-        },
-      });
-
-      return res.status(200).json(overdueStudents);
+    if (method === "POST") {
+      return await handlePostRoutes(routePath, req, res, user);
     }
 
-    // ✅ GET /api/dashboard/stats
-    if (method === "GET" && pathname === "/api/dashboard/stats") {
-      const [totalStudents, active, overdue] = await Promise.all([
-        prisma.student.count(),
-        prisma.membership.count({ where: { endDate: { gt: new Date() } } }),
-        prisma.student.count({
-          where: {
-            memberships: {
-              some: {
-                endDate: {
-                  lt: new Date(),
-                },
-              },
-            },
-          },
-        }),
-      ]);
+    return res.status(405).json({ error: "Method not allowed" });
 
-      return res.status(200).json({
-        totalStudents,
-        activeMemberships: active,
-        overdueMemberships: overdue,
-      });
-    }
-
-    // 🚫 Unsupported route
-    return res.status(404).json({ error: "Route not found" });
   } catch (err) {
-    if (err.message === "Authentication required") {
-      return res.status(401).json({ error: "Authentication required" });
+    return handleError(err, res);
+  } finally {
+    if (process.env.NODE_ENV === 'production') {
+      await prisma.$disconnect();
     }
-    if (err.message === "Unauthorized") {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
-
-    console.error("Unhandled Error:", err);
-    return res.status(500).json({ error: "Internal server error" });
   }
+}
+
+async function handleGetRoutes(routePath, user, res) {
+  console.log("Handling GET route:", routePath);
+  switch (routePath) {
+    case '':
+      return await getDashboardOverview(user, res);
+    
+    case 'overdue':
+      return await getOverdueStudents(res);
+    
+    case 'stats':
+      return await getDetailedStats(res);
+    
+    case 'recent':
+      return await getRecentActivity(res);
+    
+    case 'revenue':
+      return await getRevenueStats(res);
+    
+    default:
+      console.error("Unknown route path:", routePath);
+      return res.status(404).json({ 
+        error: "Route not found",
+        routePath,
+        availableRoutes: ['/', '/overdue', '/stats', '/recent', '/revenue']
+      });
+  }
+}
+
+async function getDashboardOverview(user, res) {
+  try {
+    console.log("Getting dashboard overview...");
+    
+    const totalStudents = await prisma.student.count().catch(err => {
+      console.error("Error counting students:", err);
+      return 0;
+    });
+    
+    console.log("Total students:", totalStudents);
+    
+    const activeStudents = await prisma.student.count({
+      where: {
+        memberships: {
+          some: {
+            endDate: { gt: new Date() }
+          }
+        }
+      }
+    }).catch(err => {
+      console.error("Error counting active students:", err);
+      return 0;
+    });
+    
+    console.log("Active students:", activeStudents);
+    
+    const totalMemberships = await prisma.membership.count().catch(err => {
+      console.error("Error counting memberships:", err);
+      return 0;
+    });
+    
+    const activeMemberships = await prisma.membership.count({
+      where: {
+        endDate: { gt: new Date() }
+      }
+    }).catch(err => {
+      console.error("Error counting active memberships:", err);
+      return 0;
+    });
+    
+    const totalRevenueData = await prisma.payment.aggregate({ 
+      _sum: { amount: true } 
+    }).catch(err => {
+      console.error("Error aggregating total revenue:", err);
+      return { _sum: { amount: 0 } };
+    });
+    
+    const currentDate = new Date();
+    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    
+    const thisMonthRevenueData = await prisma.payment.aggregate({
+      _sum: { amount: true },
+      where: {
+        paidAt: {
+          gte: startOfMonth,
+          lt: new Date()
+        }
+      }
+    }).catch(err => {
+      console.error("Error aggregating this month revenue:", err);
+      return { _sum: { amount: 0 } };
+    });
+    
+    const overdueCount = await prisma.student.count({
+      where: {
+        memberships: {
+          some: {
+            endDate: { lt: new Date() }
+          }
+        }
+      }
+    }).catch(err => {
+      console.error("Error counting overdue students:", err);
+      return 0;
+    });
+
+    const inactiveStudents = Math.max(0, totalStudents - activeStudents);
+    const expiredMemberships = Math.max(0, totalMemberships - activeMemberships);
+    const totalRevenue = totalRevenueData?._sum?.amount || 0;
+    const thisMonthRevenue = thisMonthRevenueData?._sum?.amount || 0;
+
+    const summary = {
+      message: "Admin Dashboard Overview",
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      },
+      summary: {
+        totalStudents: totalStudents || 0,
+        activeStudents: activeStudents || 0,
+        inactiveStudents,
+        totalMemberships: totalMemberships || 0,
+        activeMemberships: activeMemberships || 0,
+        expiredMemberships,
+        totalRevenue: parseFloat((totalRevenue || 0).toFixed(2)),
+        thisMonthRevenue: parseFloat((thisMonthRevenue || 0).toFixed(2)),
+        pendingPayments: overdueCount || 0
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    console.log("Dashboard overview summary:", summary);
+    return res.status(200).json(summary);
+  } catch (error) {
+    console.error("Error getting dashboard overview:", error);
+    throw error;
+  }
+}
+
+async function getOverdueStudents(res) {
+  try {
+    console.log('getting students overdue!');
+    const overdueStudents = await prisma.student.findMany({
+      where: {
+        memberships: {
+          some: {
+            endDate: {
+              lt: new Date(),
+            },
+          },
+        },
+      },
+      include: {
+        memberships: {
+          where: {
+            endDate: { lt: new Date() }
+          },
+          orderBy: {
+            endDate: 'desc'
+          }
+        },
+      },
+    }).catch(err => {
+      console.error("Error finding overdue students:", err);
+      return [];
+    });
+
+    return res.status(200).json({
+      count: overdueStudents?.length || 0,
+      students: overdueStudents || []
+    });
+  } catch (error) {
+    console.error("Error getting overdue students:", error);
+    throw error;
+  }
+}
+
+async function getDetailedStats(res) {
+  try {
+    const totalStudents = await prisma.student.count().catch(() => 0);
+    const active = await prisma.membership.count({ 
+      where: { endDate: { gt: new Date() } } 
+    }).catch(() => 0);
+    const expired = await prisma.membership.count({ 
+      where: { endDate: { lt: new Date() } } 
+    }).catch(() => 0);
+
+    const total = active + expired;
+
+    return res.status(200).json({
+      students: {
+        total: totalStudents || 0
+      },
+      memberships: {
+        total: total || 0,
+        active: active || 0,
+        expired: expired || 0,
+        activePercentage: total > 0 ? ((active / total) * 100).toFixed(1) + "%" : "0%",
+        expiredPercentage: total > 0 ? ((expired / total) * 100).toFixed(1) + "%" : "0%"
+      }
+    });
+  } catch (error) {
+    console.error("Error getting detailed stats:", error);
+    throw error;
+  }
+}
+
+async function getRecentActivity(res) {
+  try {
+    const [recentStudents, recentPayments, recentMemberships] = await Promise.allSettled([
+      prisma.student.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          createdAt: true
+        }
+      }),
+      prisma.payment.findMany({
+        take: 5,
+        orderBy: { paidAt: 'desc' },
+        include: {
+          student: {
+            select: {
+              firstName: true,
+              lastName: true
+            }
+          }
+        }
+      }),
+      prisma.membership.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          student: {
+            select: {
+              firstName: true,
+              lastName: true
+            }
+          }
+        }
+      })
+    ]);
+
+    return res.status(200).json({
+      recentStudents: recentStudents.status === 'fulfilled' ? recentStudents.value : [],
+      recentPayments: recentPayments.status === 'fulfilled' ? recentPayments.value : [],
+      recentMemberships: recentMemberships.status === 'fulfilled' ? recentMemberships.value : []
+    });
+  } catch (error) {
+    console.error("Error getting recent activity:", error);
+    throw error;
+  }
+}
+
+async function getRevenueStats(res) {
+  try {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+
+    const [totalRevenue, thisMonthRevenue, thisYearRevenue, lastMonthRevenue] = await Promise.allSettled([
+      prisma.payment.aggregate({ _sum: { amount: true } }),
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: {
+          paidAt: {
+            gte: new Date(currentYear, currentMonth, 1),
+            lt: new Date(currentYear, currentMonth + 1, 1)
+          }
+        }
+      }),
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: {
+          paidAt: {
+            gte: new Date(currentYear, 0, 1),
+            lt: new Date(currentYear + 1, 0, 1)
+          }
+        }
+      }),
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: {
+          paidAt: {
+            gte: new Date(currentYear, currentMonth - 1, 1),
+            lt: new Date(currentYear, currentMonth, 1)
+          }
+        }
+      })
+    ]);
+
+    const total = totalRevenue.status === 'fulfilled' ? totalRevenue.value?._sum?.amount || 0 : 0;
+    const thisMonth = thisMonthRevenue.status === 'fulfilled' ? thisMonthRevenue.value?._sum?.amount || 0 : 0;
+    const thisYear = thisYearRevenue.status === 'fulfilled' ? thisYearRevenue.value?._sum?.amount || 0 : 0;
+    const lastMonth = lastMonthRevenue.status === 'fulfilled' ? lastMonthRevenue.value?._sum?.amount || 0 : 0;
+
+    const monthlyGrowth = lastMonth > 0 ? 
+      (((thisMonth - lastMonth) / lastMonth) * 100).toFixed(1) : 
+      thisMonth > 0 ? "100" : "0";
+
+    return res.status(200).json({
+      total: parseFloat(total.toFixed(2)),
+      thisMonth: parseFloat(thisMonth.toFixed(2)),
+      thisYear: parseFloat(thisYear.toFixed(2)),
+      lastMonth: parseFloat(lastMonth.toFixed(2)),
+      monthlyGrowthPercentage: monthlyGrowth + "%"
+    });
+  } catch (error) {
+    console.error("Error getting revenue stats:", error);
+    throw error;
+  }
+}
+
+async function handlePostRoutes(routePath, req, res, user) {
+  return res.status(501).json({ error: "POST operations not implemented yet" });
+}
+
+function handleError(err, res) {
+  console.error("Dashboard API Error:", err);
+
+  if (err.message === "Authentication required") {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  
+  if (err.message === "Unauthorized" || err.message.includes("Forbidden")) {
+    return res.status(403).json({ error: "Unauthorized: Admin access required" });
+  }
+
+  if (err.code === 'P1001' || err.message.includes('database')) {
+    return res.status(503).json({ 
+      error: "Database connection error",
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  return res.status(500).json({ 
+    error: "Internal server error",
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    timestamp: new Date().toISOString()
+  });
 }

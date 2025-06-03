@@ -16,29 +16,18 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        const res = await axios.get("/api/students/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        // Normalize user object to ensure role is at top level
-        const student = res.data;
-        setUser({
-          id: student.userId || student.id,
-          email: student.email,
-          role: student.user?.role || "STUDENT", // Extract role from nested user
-          studentId: student.id,
-          name: student.name,
-        });
-        console.log("Normalized user:", {
-          id: student.userId || student.id,
-          email: student.email,
-          role: student.user?.role || "STUDENT",
-          studentId: student.id,
-          name: student.name,
-        });
+        // Since both endpoints return 404, skip the API call for now
+        // and rely on the user data from login
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+          console.log("Using stored user data:", JSON.parse(storedUser));
+        }
       } catch (err) {
         console.error("Fetch user error:", err.response?.status, err.message);
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
+          localStorage.removeItem("user");
           setToken(null);
           setUser(null);
         }
@@ -52,34 +41,38 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log("Attempting login with:", { email });
       const res = await axios.post("/api/auth/login", { email, password });
       const { accessToken, user } = res.data;
+      
       localStorage.setItem("token", accessToken);
       setToken(accessToken);
+      
       // Normalize user object from login
-      setUser({
+      const normalizedUser = {
         id: user.id,
         email: user.email,
         role: user.role,
         studentId: user.studentId,
-      });
-      console.log("Login user:", {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        studentId: user.studentId,
-      });
+      };
+      
+      // Store user data in localStorage to persist across refreshes
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
+      setUser(normalizedUser);
+      
+      console.log("Login user:", normalizedUser);
+      // REMOVE THE NAVIGATION LOG - let the component handle navigation
+      
       return true;
     } catch (err) {
       console.error("Login error:", err.response?.status, err.message);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setToken(null);
     setUser(null);
     setLoading(false);

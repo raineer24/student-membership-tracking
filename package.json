@@ -2,7 +2,7 @@
   "name": "student-membership-tracking",
   "version": "1.0.0",
   "main": "index.js",
-"scripts": {
+  "scripts": {
     "dev": "vercel dev",
     "build": "cd client && npm run build",
     "start": "cd client && npm run preview",
@@ -16,6 +16,8 @@
   "description": "",
   "dependencies": {
     "@prisma/client": "^6.7.0",
+    "@tailwindcss/postcss": "^4.1.8",
+    "@tailwindcss/vite": "^4.1.8",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
@@ -27,7 +29,10 @@
     "zod": "^3.24.4"
   },
   "devDependencies": {
+    "autoprefixer": "^10.4.21",
     "nodemon": "^3.1.10",
-    "prisma": "^6.7.0"
+    "postcss": "^8.5.4",
+    "prisma": "^6.7.0",
+    "tailwindcss": "^4.1.8"
   }
 }

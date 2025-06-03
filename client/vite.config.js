@@ -9,7 +9,10 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'dist',  // Output to client/dist
-    emptyOutDir: true  // Clear the output directory
+    outDir: 'dist',
+    emptyOutDir: true
+  },
+  css: {
+    postcss: './postcss.config.js'
   }
 });

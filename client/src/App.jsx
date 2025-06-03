@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import MembershipPage from "./pages/MembershipPage";
+import DashboardPage from "./components/DashboardPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Custom Redirect Component
@@ -15,18 +16,33 @@ const HomeRedirect = () => {
     if (loading) return;
 
     if (!user) {
-      console.log("Redirecting to /login");
+      console.log("Redirecting to /login - no user");
       navigate("/login", { replace: true });
     } else if (user.role === "STUDENT") {
-      console.log("Redirecting to /membership");
+      console.log("Redirecting to /membership - student role");
       navigate("/membership", { replace: true });
+    } else if (user.role === "ADMIN") {
+      console.log("Redirecting to /dashboard - admin role");
+      navigate("/dashboard", { replace: true });
     } else {
-      console.log("Redirecting to /login (unexpected role)");
+      console.log("Redirecting to /login - unexpected role:", user.role);
       navigate("/login", { replace: true });
     }
   }, [user, loading, navigate]);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        Loading...
+      </div>
+    );
+  }
+  
   return null;
 };
 
@@ -41,6 +57,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["STUDENT"]}>
               <MembershipPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <DashboardPage />
             </ProtectedRoute>
           }
         />
