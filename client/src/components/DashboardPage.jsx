@@ -177,7 +177,7 @@ const DashboardOverview = ({ data }) => {
       </div>
       {/* Data TimeStamp */}
       <div className="text-center text-sm text-gray-500">
-        Last updated: {new date(timestamp).toLocaleString()}
+        Last updated: {new Date(timestamp).toLocaleString()}
       </div>
     </div>
   );
