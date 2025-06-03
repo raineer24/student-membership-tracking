@@ -5,16 +5,35 @@ export default async function handler(req, res) {
   const { method, query } = req;
   
   // Extract slug from query params (Next.js dynamic routing)
-  const { slug = [] } = query;
-  const routePath = Array.isArray(slug) ? slug.join('/') : slug || '';
+  let { slug = [] } = query;
+  let routePath = Array.isArray(slug) ? slug.join('/') : (typeof slug === 'string' ? slug : '');
+
+  // Fallback: Parse slug from req.url if query.slug is empty
+  const urlPath = req.url.split('?')[0]; // Remove query string
+  const pathSegments = urlPath.split('/').filter(segment => segment && segment !== 'api' && segment !== 'dashboard');
+  if (!routePath && pathSegments.length > 0) {
+    routePath = pathSegments.join('/');
+    slug = pathSegments;
+    console.log("FALLBACK: Parsed slug from URL:", slug);
+  }
 
   console.log("DASHBOARD HANDLER HIT");
+  console.log("REQUEST URL:", req.url);
+  console.log("RAW PATH:", urlPath);
+  console.log("QUERY:", JSON.stringify(query));
+  console.log("SLUG:", slug);
   console.log("ROUTE PATH:", routePath);
   console.log("METHOD:", method);
-  console.log("FULL QUERY:", query);
+  console.log("HEADERS:", JSON.stringify(req.headers, null, 2));
+
+  // Validate slug
+  if (slug && !Array.isArray(slug) && typeof slug !== 'string') {
+    console.error("Invalid slug format:", slug);
+    return res.status(400).json({ error: "Invalid route format" });
+  }
 
   try {
-    // Test database connection first
+    // Test database connection
     await prisma.$connect();
     
     // Authentication and authorization
@@ -26,7 +45,6 @@ export default async function handler(req, res) {
       return await handleGetRoutes(routePath, user, res);
     }
 
-    // Add other HTTP methods as needed
     if (method === "POST") {
       return await handlePostRoutes(routePath, req, res, user);
     }
@@ -36,7 +54,6 @@ export default async function handler(req, res) {
   } catch (err) {
     return handleError(err, res);
   } finally {
-    // Don't disconnect in development to avoid connection issues
     if (process.env.NODE_ENV === 'production') {
       await prisma.$disconnect();
     }
@@ -44,30 +61,28 @@ export default async function handler(req, res) {
 }
 
 async function handleGetRoutes(routePath, user, res) {
+  console.log("Handling GET route:", routePath);
   switch (routePath) {
     case '':
-      // GET /api/dashboard
       return await getDashboardOverview(user, res);
     
     case 'overdue':
-      // GET /api/dashboard/overdue
       return await getOverdueStudents(res);
     
     case 'stats':
-      // GET /api/dashboard/stats
       return await getDetailedStats(res);
     
     case 'recent':
-      // GET /api/dashboard/recent
       return await getRecentActivity(res);
     
     case 'revenue':
-      // GET /api/dashboard/revenue
       return await getRevenueStats(res);
     
     default:
+      console.error("Unknown route path:", routePath);
       return res.status(404).json({ 
         error: "Route not found",
+        routePath,
         availableRoutes: ['/', '/overdue', '/stats', '/recent', '/revenue']
       });
   }
@@ -77,7 +92,6 @@ async function getDashboardOverview(user, res) {
   try {
     console.log("Getting dashboard overview...");
     
-    // Execute queries sequentially with better error handling
     const totalStudents = await prisma.student.count().catch(err => {
       console.error("Error counting students:", err);
       return 0;
@@ -150,7 +164,6 @@ async function getDashboardOverview(user, res) {
       return 0;
     });
 
-    // Safe calculations with null checks
     const inactiveStudents = Math.max(0, totalStudents - activeStudents);
     const expiredMemberships = Math.max(0, totalMemberships - activeMemberships);
     const totalRevenue = totalRevenueData?._sum?.amount || 0;
@@ -179,7 +192,6 @@ async function getDashboardOverview(user, res) {
 
     console.log("Dashboard overview summary:", summary);
     return res.status(200).json(summary);
-    
   } catch (error) {
     console.error("Error getting dashboard overview:", error);
     throw error;
@@ -187,9 +199,8 @@ async function getDashboardOverview(user, res) {
 }
 
 async function getOverdueStudents(res) {
- 
   try {
-      console.log('getting students overdue!');
+    console.log('getting students overdue!');
     const overdueStudents = await prisma.student.findMany({
       where: {
         memberships: {
@@ -366,7 +377,6 @@ async function getRevenueStats(res) {
 }
 
 async function handlePostRoutes(routePath, req, res, user) {
-  // Add POST route handlers as needed
   return res.status(501).json({ error: "POST operations not implemented yet" });
 }
 
@@ -381,7 +391,6 @@ function handleError(err, res) {
     return res.status(403).json({ error: "Unauthorized: Admin access required" });
   }
 
-  // Database connection errors
   if (err.code === 'P1001' || err.message.includes('database')) {
     return res.status(503).json({ 
       error: "Database connection error",
