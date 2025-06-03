@@ -69,8 +69,8 @@ export default function DashboardPage() {
       </header>
 
       {/* Navigation Tabs */}
-      <nav className="bg-white">
-        <div className="max-w-7xl">
+      <nav className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex">
             {[
               { id: "overview", label: "Overview" },
@@ -145,7 +145,7 @@ const DashboardOverview = ({ data }) => {
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
-      <div className="grid">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statsCard.map((card, index) => (
           <StatsCard key={index} {...card} />
         ))}
@@ -153,8 +153,8 @@ const DashboardOverview = ({ data }) => {
 
       {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg">Quick Actions</h3>
-        <div className="grid">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <ActionButton
             icon="👤"
             title="Add Student"
@@ -170,13 +170,13 @@ const DashboardOverview = ({ data }) => {
           <ActionButton
             icon="📊"
             title="Generate Report"
-            description="Export dashboasrd data"
+            description="Export dashboard data"
             onClick={() => console.log("Generate Report")}
           />
         </div>
       </div>
       {/* Data TimeStamp */}
-      <div className="text-center">
+      <div className="text-center text-sm text-gray-500">
         Last updated: {new date(timestamp).toLocaleString()}
       </div>
     </div>
@@ -184,3 +184,38 @@ const DashboardOverview = ({ data }) => {
 };
 
 // Stats Card component
+const StatsCard = ({ title, value, subtitle, icon, color}) =>{
+    const colorClasses = {
+        blue: 'bg-blue-50 border-blue-200',
+        green: 'bg-green-50 border-green-200',
+        yellow: 'bg-yellow-50 border-yellow-200',
+        red: 'bg-red-50 border-red-200',
+    };
+
+    return (
+        <div className={`${colorClasses[color]} border rounded-lg p-6`}>
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="text-sm font-medium text-gray-600">{title}</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+                    <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+                </div>
+                <div className="text-3xl">{icon}</div>
+            </div>
+        </div>
+    )
+}
+
+// Action Button Component
+const ActionButton = ({icon, title, description, onClick}) => (
+    <button
+        onClick={onClick}
+        className="text-left p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+    >
+        <div className="text-2xl mb-2">{icon}</div>
+        <h4 className="font-medium text-gray-900">{title}</h4>
+        <p className="text-sm text-gray-500">{description}</p>
+    </button>
+)
+
+// Students Tab Component
