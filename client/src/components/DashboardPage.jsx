@@ -119,33 +119,68 @@ const DashboardOverview = ({ data }) => {
       icon: "👥",
       color: "blue",
     },
-     {
+    {
       title: "Memberships",
       value: summary.totalMemberships,
       subtitle: `${summary.activeMemberships} active • ${summary.expiredMemberships} expired`,
       icon: "👥",
       color: "green",
     },
-     {
+    {
       title: "Total Revenue",
       value: `$${summary.totalRevenue}`,
       subtitle: `$${summary.thisMonthRevenue} this month`,
-      icon: '💰',
+      icon: "💰",
       color: "yellow",
     },
-     {
+    {
       title: "Pending Payments",
       value: summary.pendingPayments,
-      subtitle: 'Students with overdue memberships',
-      icon: '⚠️',
+      subtitle: "Students with overdue memberships",
+      icon: "⚠️",
       color: "red",
     },
   ];
 
   return (
-    <div className="space-y-6"></div>
-  )
-};
+    <div className="space-y-6">
+      {/* Stats Grid */}
+      <div className="grid">
+        {statsCard.map((card, index) => (
+          <StatsCard key={index} {...card} />
+        ))}
+      </div>
 
+      {/* Quick Actions */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg">Quick Actions</h3>
+        <div className="grid">
+          <ActionButton
+            icon="👤"
+            title="Add Student"
+            description="Register new student"
+            onClick={() => console.log("Add Student")}
+          />
+          <ActionButton
+            icon="💳" 
+            title="Process Payment"
+            description="Record new payment"
+            onClick={() => console.log("Process payment")}
+          />
+          <ActionButton
+            icon="📊"
+            title="Generate Report"
+            description="Export dashboasrd data"
+            onClick={() => console.log("Generate Report")}
+          />
+        </div>
+      </div>
+      {/* Data TimeStamp */}
+      <div className="text-center">
+        Last updated: {new date(timestamp).toLocaleString()}
+      </div>
+    </div>
+  );
+};
 
 // Stats Card component
