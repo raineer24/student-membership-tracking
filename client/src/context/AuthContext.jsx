@@ -16,25 +16,49 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        const res = await axios.get("/api/students/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        // Normalize user object to ensure role is at top level
-        const student = res.data;
-        setUser({
-          id: student.userId || student.id,
-          email: student.email,
-          role: student.user?.role || "STUDENT", // Extract role from nested user
-          studentId: student.id,
-          name: student.name,
-        });
-        console.log("Normalized user:", {
-          id: student.userId || student.id,
-          email: student.email,
-          role: student.user?.role || "STUDENT",
-          studentId: student.id,
-          name: student.name,
-        });
+        // Use different endpoints based on user role stored in token or make a generic /me endpoint
+        // For now, let's try to get user info from a generic endpoint
+        let res;
+        
+        try {
+          // Try the students endpoint first (for students)
+          res = await axios.get("/api/students/me", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          const student = res.data;
+          setUser({
+            id: student.userId || student.id,
+            email: student.email,
+            role: student.user?.role || "STUDENT",
+            studentId: student.id,
+            name: student.name,
+          });
+        } catch (studentErr) {
+          if (studentErr.response?.status === 404) {
+            // If students/me fails, try a generic user endpoint for admins
+            try {
+              res = await axios.get("/api/auth/me", {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              
+              const user = res.data;
+              setUser({
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                studentId: user.studentId || null,
+                name: user.name,
+              });
+            } catch (authErr) {
+              throw studentErr; // Throw the original error if both fail
+            }
+          } else {
+            throw studentErr;
+          }
+        }
+        
+        console.log("Fetched user:", user);
       } catch (err) {
         console.error("Fetch user error:", err.response?.status, err.message);
         if (err.response?.status === 401) {
@@ -52,29 +76,29 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log("Attempting login with:", { email });
       const res = await axios.post("/api/auth/login", { email, password });
       const { accessToken, user } = res.data;
+      
       localStorage.setItem("token", accessToken);
       setToken(accessToken);
+      
       // Normalize user object from login
-      setUser({
+      const normalizedUser = {
         id: user.id,
         email: user.email,
         role: user.role,
         studentId: user.studentId,
-      });
-      console.log("Login user:", {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        studentId: user.studentId,
-      });
+      };
+      
+      setUser(normalizedUser);
+      console.log("Login user:", normalizedUser);
+      console.log("Login successful, navigating to", user.role === 'ADMIN' ? '/dashboard' : '/membership');
+      
       return true;
     } catch (err) {
       console.error("Login error:", err.response?.status, err.message);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
