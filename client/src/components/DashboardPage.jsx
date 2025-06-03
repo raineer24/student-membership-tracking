@@ -42,26 +42,61 @@ export default function DashboardPage() {
 
   const refreshData = () => {
     fetchDashboardData();
-  }
+  };
 
-  if(loading) return <LoadingSpinner message="Loading dasboard..." />
-  if(error) return <ErrorMessage message={error} onRetry={refreshData} />
-  if(!dashboardData) return <ErrorMessage message='No dashboard data available ' />
-  
+  if (loading) return <LoadingSpinner message="Loading dasboard..." />;
+  if (error) return <ErrorMessage message={error} onRetry={refreshData} />;
+  if (!dashboardData)
+    return <ErrorMessage message="No dashboard data available " />;
+
   return (
     <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white shadow-sm">
-            <div className="max-w-7xl mx-auto px-4">
-                <div className="flex justify-between items-center py-6">
-                    <div>
-                        <h1 className="text-3x1 font-bold text-gray-900">Admin Dashboard</h1>
-                        <p className="text-gray-600 mt-1">Welcome back, {user?.email}</p>
-                    </div>
-                    <button className="bg-blue-600">refresh data</button>
-                </div>
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Admin Dashboard
+              </h1>
+              <p className="text-gray-600 mt-1">Welcome back, {user?.email}</p>
             </div>
-        </header>
+            <button className="bg-blue-600 text-white px-4 rounded-lg hover:bg-blue-700 transition-colors">
+              refresh data
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Navigation Tabs */}
+      <nav className="bg-white">
+        <div className="max-w-7xl">
+          <div className="flex">
+            {[
+              { id: "overview", label: "Overview" },
+              { id: "students", label: "Students" },
+              { id: "revenue", label: "Revenue" },
+              { id: "activity", label: "Recent Activity" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === tab.id
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
     </div>
-  )
-}
+  );
+};
+
+//Dashboard overview component
