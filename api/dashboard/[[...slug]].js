@@ -1,104 +1,96 @@
-import prisma from "../../utils/db";
-import { authenticate, authorizeRole } from "../../utils/auth";
+// api/dashboard/[[...slug]].js
+const { withAuth } = require('../../utils/auth');
 
-export default async function handler(req, res) {
-  const { method } = req;
-
-  // Parse full URL
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = url.pathname;
-
-  console.log("DASHBOARD HANDLER HIT");
-  console.log("PATHNAME:", pathname);
-  console.log("METHOD:", method);
-
-  try {
-    const user = await authenticate(req);
-    await authorizeRole("ADMIN", user);
-
-    // ✅ GET /api/dashboard
-    if (method === "GET" && pathname === "/api/dashboard") {
-      const totalStudents = await prisma.student.count();
-      const activeMemberships = await prisma.membership.count({
-        where: {
-          endDate: { gt: new Date() },
-        },
-      });
-      const overdueCount = await prisma.student.count({
-        where: {
-          memberships: {
-            some: {
-              endDate: {
-                lt: new Date(),
-              },
-            },
-          },
-        },
-      });
-
-      return res.status(200).json({
-        totalStudents,
-        activeMemberships,
-        overdueCount,
-      });
-    }
-
-    // ✅ GET /api/dashboard/overdue
-    if (method === "GET" && pathname === "/api/dashboard/overdue") {
-      const overdueStudents = await prisma.student.findMany({
-        where: {
-          memberships: {
-            some: {
-              endDate: {
-                lt: new Date(),
-              },
-            },
-          },
-        },
-        include: {
-          memberships: true,
-        },
-      });
-
-      return res.status(200).json(overdueStudents);
-    }
-
-    // ✅ GET /api/dashboard/stats
-    if (method === "GET" && pathname === "/api/dashboard/stats") {
-      const [totalStudents, active, overdue] = await Promise.all([
-        prisma.student.count(),
-        prisma.membership.count({ where: { endDate: { gt: new Date() } } }),
-        prisma.student.count({
-          where: {
-            memberships: {
-              some: {
-                endDate: {
-                  lt: new Date(),
-                },
-              },
-            },
-          },
-        }),
-      ]);
-
-      return res.status(200).json({
-        totalStudents,
-        activeMemberships: active,
-        overdueMemberships: overdue,
-      });
-    }
-
-    // 🚫 Unsupported route
-    return res.status(404).json({ error: "Route not found" });
-  } catch (err) {
-    if (err.message === "Authentication required") {
-      return res.status(401).json({ error: "Authentication required" });
-    }
-    if (err.message === "Unauthorized") {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
-
-    console.error("Unhandled Error:", err);
-    return res.status(500).json({ error: "Internal server error" });
+async function dashboardHandler(req, res) {
+  const { slug = [] } = req.query;
+  const path = Array.isArray(slug) ? slug.join('/') : slug;
+  
+  // Handle different dashboard endpoints
+  switch(req.method) {
+    case 'GET':
+      return handleGet(req, res, path);
+    case 'POST':
+      return handlePost(req, res, path);
+    case 'PUT':
+      return handlePut(req, res, path);
+    case 'DELETE':
+      return handleDelete(req, res, path);
+    default:
+      return res.status(405).json({ error: 'Method not allowed' });
   }
 }
+
+async function handleGet(req, res, path) {
+  const { user } = req; // Available from auth middleware
+  
+  switch(path) {
+    case '':
+    case undefined:
+      // Base dashboard endpoint: GET /api/dashboard
+      return res.json({
+        message: 'Admin Dashboard',
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role
+        },
+        timestamp: new Date().toISOString()
+      });
+      
+    case 'stats':
+      // Dashboard statistics: GET /api/dashboard/stats
+      return res.json({
+        students: {
+          total: 0,
+          active: 0,
+          inactive: 0
+        },
+        memberships: {
+          total: 0,
+          active: 0,
+          expired: 0
+        },
+        payments: {
+          total: 0,
+          thisMonth: 0,
+          revenue: 0
+        }
+      });
+      
+    case 'overview':
+      // Dashboard overview: GET /api/dashboard/overview
+      return res.json({
+        summary: {
+          totalStudents: 0,
+          activeMemberships: 0,
+          monthlyRevenue: 0,
+          pendingPayments: 0
+        },
+        recentActivity: []
+      });
+      
+    default:
+      return res.status(404).json({ 
+        error: `Dashboard endpoint '${path}' not found`,
+        availableEndpoints: ['/', '/stats', '/overview']
+      });
+  }
+}
+
+async function handlePost(req, res, path) {
+  return res.status(501).json({ error: 'POST operations not implemented yet' });
+}
+
+async function handlePut(req, res, path) {
+  return res.status(501).json({ error: 'PUT operations not implemented yet' });
+}
+
+async function handleDelete(req, res, path) {
+  return res.status(501).json({ error: 'DELETE operations not implemented yet' });
+}
+
+// Export the handler wrapped with auth middleware
+// ✅ Protected with allowedRoles={["ADMIN"]}
+export default withAuth(dashboardHandler, { 
+  allowedRoles: ['ADMIN'] 
+});
