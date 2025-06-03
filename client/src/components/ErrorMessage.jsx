@@ -8,3 +8,5 @@ const ErrorMessage = ({ message, onRetry }) => {
     )}
   </div>;
 };
+
+export default ErrorMessage;

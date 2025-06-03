@@ -12,7 +12,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
-  });
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
@@ -49,15 +49,16 @@ export default function DashboardPage() {
   if(!dashboardData) return <ErrorMessage message='No dashboard data available ' />
   
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <header>
-            <div className="max-w-7xl">
-                <div className="flex">
+        <header className="bg-white shadow-sm">
+            <div className="max-w-7xl mx-auto px-4">
+                <div className="flex justify-between items-center py-6">
                     <div>
-                        <h1 className="text-3x1">Admin Dashboard</h1>
-                        <p className="text-gray-600">Welcome back, {user?.email}</p>
+                        <h1 className="text-3x1 font-bold text-gray-900">Admin Dashboard</h1>
+                        <p className="text-gray-600 mt-1">Welcome back, {user?.email}</p>
                     </div>
+                    <button className="bg-blue-600">refresh data</button>
                 </div>
             </div>
         </header>
