@@ -26,12 +26,13 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "node-cron": "^4.0.0",
-    "postcss": "^8.5.4",
-    "tailwindcss": "^4.1.8",
     "zod": "^3.24.4"
   },
   "devDependencies": {
+    "autoprefixer": "^10.4.21",
     "nodemon": "^3.1.10",
-    "prisma": "^6.7.0"
+    "postcss": "^8.5.4",
+    "prisma": "^6.7.0",
+    "tailwindcss": "^4.1.8"
   }
 }
