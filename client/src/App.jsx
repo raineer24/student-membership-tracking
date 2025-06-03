@@ -1,9 +1,11 @@
+// app.jsx
+
 import React, { useEffect } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import MembershipPage from "./pages/MembershipPage";
-import DashboardPage from "./components/DashboardPage";
+import DashboardPage from "./pages/DashboardPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Custom Redirect Component
@@ -21,7 +23,7 @@ const HomeRedirect = () => {
     } else if (user.role === "STUDENT") {
       console.log("Redirecting to /membership");
       navigate("/membership", { replace: true });
-       } else if (user.role === "ADMIN") {
+    } else if (user.role === "ADMIN") {
       console.log("Redirecting to /dashboard");
       navigate("/dashboard", { replace: true });
     } else {
@@ -52,7 +54,7 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute allowedRoles={["ADMIN"]}>
-              <MembershipPage />
+              <DashboardPage />
             </ProtectedRoute>
           }
         />
