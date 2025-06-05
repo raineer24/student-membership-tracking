@@ -15,7 +15,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@prisma/client": "^6.7.0",
+    "@prisma/client": "^6.9.0",
     "@tailwindcss/postcss": "^4.1.8",
     "@tailwindcss/vite": "^4.1.8",
     "bcryptjs": "^3.0.2",
@@ -32,7 +32,7 @@
     "autoprefixer": "^10.4.21",
     "nodemon": "^3.1.10",
     "postcss": "^8.5.4",
-    "prisma": "^6.7.0",
+    "prisma": "^6.9.0",
     "tailwindcss": "^4.1.8"
   }
 }
