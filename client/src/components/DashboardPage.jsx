@@ -9,7 +9,7 @@ export default function DashboardPage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Student filtering and search state
   const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,102 +19,151 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
- const fetchDashboardData = async () => {
-  try {
-    setLoading(true);
-    setError(null);
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    const [dashboardRes, studentsRes] = await Promise.all([
-      fetch("/api/dashboard", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }),
-      fetch("/api/students", { // Make sure this endpoint exists and returns data
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
-    ]);
+      const [dashboardRes, studentsRes] = await Promise.all([
+        fetch("/api/dashboard", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }),
+        fetch("/api/students", {
+          // Make sure this endpoint exists and returns data
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }),
+      ]);
 
-    if (!dashboardRes.ok || !studentsRes.ok) {
-      throw new Error(`Dashboard: ${dashboardRes.status}, Students: ${studentsRes.status}`);
+      if (!dashboardRes.ok || !studentsRes.ok) {
+        throw new Error(
+          `Dashboard: ${dashboardRes.status}, Students: ${studentsRes.status}`
+        );
+      }
+
+      const [dashboardData, studentsData] = await Promise.all([
+        dashboardRes.json(),
+        studentsRes.json(),
+      ]);
+
+      console.log("Dashboard Data:", dashboardData);
+      console.log("Students Data:", studentsData); // DEBUG: Check structure
+
+      setDashboardData(dashboardData);
+
+      // Handle different possible response structures
+      const students =
+        studentsData.students || studentsData.data || studentsData || [];
+      console.log("Processed Students:", students); // DEBUG: Check processed data
+
+      setStudents(students);
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
-
-    const [dashboardData, studentsData] = await Promise.all([
-      dashboardRes.json(),
-      studentsRes.json()
-    ]);
-
-    console.log("Dashboard Data:", dashboardData);
-    console.log("Students Data:", studentsData); // DEBUG: Check structure
-
-    setDashboardData(dashboardData);
-    
-    // Handle different possible response structures
-    const students = studentsData.students || studentsData.data || studentsData || [];
-    console.log("Processed Students:", students); // DEBUG: Check processed data
-    
-    setStudents(students);
-  } catch (error) {
-    console.error("Failed to fetch dashboard data:", error);
-    setError(error.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Memoized filtered students for performance
-const filteredStudents = useMemo(() => {
-  console.log("Filtering - Original students:", students);
-  console.log("Active tab:", activeTab, "Search term:", searchTerm);
-  
-  let filtered = students;
+  const filteredStudents = useMemo(() => {
+    console.log("Filtering - Original students:", students);
+    console.log(
+      "Active tab:",
+      activeTab,
+      "Search term:",
+      searchTerm,
+      "Selected filter:",
+      selectedFilter
+    );
 
-  // Filter by tab - Updated to work with your membership data
-  if (activeTab === "active") {
-    filtered = filtered.filter(student => {
-      // Check if student has active memberships
-      const hasActiveMembership = student.memberships && 
-        student.memberships.some(membership => {
-          const endDate = new Date(membership.endDate);
-          const now = new Date();
-          return endDate > now; // membership hasn't expired
-        });
-      return hasActiveMembership;
-    });
-  } else if (activeTab === "inactive") {
-    filtered = filtered.filter(student => {
-      // No memberships or all memberships expired
-      const hasActiveMembership = student.memberships && 
-        student.memberships.some(membership => {
-          const endDate = new Date(membership.endDate);
-          const now = new Date();
-          return endDate > now;
-        });
-      return !hasActiveMembership;
-    });
-  }
+    let filtered = students;
 
-  // Filter by search term - Updated for your API structure
-  if (searchTerm) {
-    filtered = filtered.filter(student => {
-      const name = (student.name || "").toLowerCase();
-      const email = (student.email || "").toLowerCase();
-      const searchLower = searchTerm.toLowerCase();
-      
-      const matches = name.includes(searchLower) || email.includes(searchLower);
-      console.log(`Search "${searchTerm}" - Student: ${name}, Email: ${email}, Matches: ${matches}`);
-      
-      return matches;
-    });
-  }
+    // Filter by tab - Updated to work with your membership data
+    if (activeTab === "active") {
+      filtered = filtered.filter((student) => {
+        // Check if student has active memberships
+        const hasActiveMembership =
+          student.memberships &&
+          student.memberships.some((membership) => {
+            const endDate = new Date(membership.endDate);
+            const now = new Date();
+            return endDate > now; // membership hasn't expired
+          });
+        return hasActiveMembership;
+      });
+    } else if (activeTab === "inactive") {
+      filtered = filtered.filter((student) => {
+        // No memberships or all memberships expired
+        const hasActiveMembership =
+          student.memberships &&
+          student.memberships.some((membership) => {
+            const endDate = new Date(membership.endDate);
+            const now = new Date();
+            return endDate > now;
+          });
+        return !hasActiveMembership;
+      });
+    }
 
-  console.log("Filtered students result:", filtered);
-  return filtered;
-}, [students, activeTab, searchTerm]);
+    // Filter by membership type (NEW - this was missing!)
+    if (selectedFilter !== "all") {
+      filtered = filtered.filter((student) => {
+        if (!student.memberships || student.memberships.length === 0) {
+          return selectedFilter === "expired"; // Students with no memberships are considered expired
+        }
+
+        const now = new Date();
+
+        if (selectedFilter === "monthly") {
+          return student.memberships.some(
+            (membership) =>
+              membership.membershipType &&
+              membership.membershipType.toLowerCase().includes("monthly")
+          );
+        } else if (selectedFilter === "yearly") {
+          return student.memberships.some(
+            (membership) =>
+              membership.membershipType &&
+              membership.membershipType.toLowerCase().includes("yearly")
+          );
+        } else if (selectedFilter === "expired") {
+          // Check if all memberships are expired
+          return student.memberships.every((membership) => {
+            const endDate = new Date(membership.endDate);
+            return endDate <= now;
+          });
+        }
+
+        return true;
+      });
+    }
+
+    // Filter by search term - Updated for your API structure
+    if (searchTerm) {
+      filtered = filtered.filter((student) => {
+        const name = (student.name || "").toLowerCase();
+        const email = (student.email || "").toLowerCase();
+        const searchLower = searchTerm.toLowerCase();
+
+        const matches =
+          name.includes(searchLower) || email.includes(searchLower);
+        console.log(
+          `Search "${searchTerm}" - Student: ${name}, Email: ${email}, Matches: ${matches}`
+        );
+
+        return matches;
+      });
+    }
+
+    console.log("Filtered students result:", filtered);
+    return filtered;
+  }, [students, activeTab, searchTerm, selectedFilter]);
 
   const refreshData = () => {
     fetchDashboardData();
@@ -122,7 +171,8 @@ const filteredStudents = useMemo(() => {
 
   if (loading) return <LoadingSpinner message="Loading dashboard..." />;
   if (error) return <ErrorMessage message={error} onRetry={refreshData} />;
-  if (!dashboardData) return <ErrorMessage message="No dashboard data available" />;
+  if (!dashboardData)
+    return <ErrorMessage message="No dashboard data available" />;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -136,7 +186,7 @@ const filteredStudents = useMemo(() => {
               </h1>
               <p className="text-gray-600 mt-1">Welcome back, {user?.email}</p>
             </div>
-            <button 
+            <button
               onClick={refreshData}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
@@ -154,8 +204,8 @@ const filteredStudents = useMemo(() => {
         {/* Student Management Section */}
         <div className="mt-8 bg-white rounded-lg shadow">
           {/* Tabs */}
-          <StudentTabs 
-            activeTab={activeTab} 
+          <StudentTabs
+            activeTab={activeTab}
             setActiveTab={setActiveTab}
             students={students}
           />
@@ -166,13 +216,11 @@ const filteredStudents = useMemo(() => {
             setSearchTerm={setSearchTerm}
             selectedFilter={selectedFilter}
             setSelectedFilter={setSelectedFilter}
+            students={students} // Add this prop
           />
 
           {/* Students Table */}
-          <StudentsTable 
-            students={filteredStudents}
-            loading={loading}
-          />
+          <StudentsTable students={filteredStudents} loading={loading} />
 
           {/* Quick Actions */}
           <QuickActions />
@@ -207,7 +255,7 @@ const SummaryCards = ({ data }) => {
       color: "green",
     },
     {
-      title: "Inactive", 
+      title: "Inactive",
       value: data.inactiveStudents || 0,
       subtitle: "Not currently enrolled",
       icon: "⏸️",
@@ -267,8 +315,8 @@ const StudentTabs = ({ activeTab, setActiveTab, students }) => {
   // Helper function to determine if student is active
   const isStudentActive = (student) => {
     if (!student.memberships || student.memberships.length === 0) return false;
-    
-    return student.memberships.some(membership => {
+
+    return student.memberships.some((membership) => {
       const endDate = new Date(membership.endDate);
       const now = new Date();
       return endDate > now;
@@ -279,20 +327,20 @@ const StudentTabs = ({ activeTab, setActiveTab, students }) => {
   const inactiveCount = students.length - activeCount;
 
   const tabs = [
-    { 
-      id: "all", 
-      label: "All", 
-      count: students.length 
+    {
+      id: "all",
+      label: "All",
+      count: students.length,
     },
-    { 
-      id: "active", 
-      label: "Active", 
-      count: activeCount
+    {
+      id: "active",
+      label: "Active",
+      count: activeCount,
     },
-    { 
-      id: "inactive", 
-      label: "Inactive", 
-      count: inactiveCount
+    {
+      id: "inactive",
+      label: "Inactive",
+      count: inactiveCount,
     },
   ];
 
@@ -320,7 +368,51 @@ const StudentTabs = ({ activeTab, setActiveTab, students }) => {
 };
 
 // Search and Filters Component
-const SearchAndFilters = ({ searchTerm, setSearchTerm, selectedFilter, setSelectedFilter }) => {
+const SearchAndFilters = ({
+  searchTerm,
+  setSearchTerm,
+  selectedFilter,
+  setSelectedFilter,
+  students,
+}) => {
+  // Calculate counts for each filter option
+  const filterCounts = useMemo(() => {
+    const now = new Date();
+    let monthlyCount = 0;
+    let yearlyCount = 0;
+    let expiredCount = 0;
+
+    students.forEach((student) => {
+      if (!student.memberships || student.memberships.length === 0) {
+        expiredCount++;
+        return;
+      }
+
+      let hasMonthly = false;
+      let hasYearly = false;
+      let allExpired = true;
+
+      student.memberships.forEach((membership) => {
+        const endDate = new Date(membership.endDate);
+        if (endDate > now) {
+          allExpired = false;
+        }
+
+        if (membership.membershipType) {
+          const type = membership.membershipType.toLowerCase();
+          if (type.includes("monthly")) hasMonthly = true;
+          if (type.includes("yearly")) hasYearly = true;
+        }
+      });
+
+      if (hasMonthly) monthlyCount++;
+      if (hasYearly) yearlyCount++;
+      if (allExpired) expiredCount++;
+    });
+
+    return { monthlyCount, yearlyCount, expiredCount };
+  }, [students]);
+
   return (
     <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -340,20 +432,34 @@ const SearchAndFilters = ({ searchTerm, setSearchTerm, selectedFilter, setSelect
           </div>
         </div>
 
-        {/* Filter Dropdown */}
+        {/* Filter Dropdown with counts */}
         <div className="sm:w-48">
           <select
             value={selectedFilter}
-            onChange={(e) => setSelectedFilter(e.target.value)}
+            onChange={(e) => {
+              console.log("Filter changed to:", e.target.value);
+              setSelectedFilter(e.target.value);
+            }}
             className="block w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="all">All Memberships</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
-            <option value="expired">Expired</option>
+            <option value="all">All Memberships ({students.length})</option>
+            <option value="monthly">
+              Monthly ({filterCounts.monthlyCount})
+            </option>
+            <option value="yearly">Yearly ({filterCounts.yearlyCount})</option>
+            <option value="expired">
+              Expired ({filterCounts.expiredCount})
+            </option>
           </select>
         </div>
       </div>
+
+      {/* Debug info - remove after testing */}
+      {selectedFilter !== "all" && (
+        <div className="mt-2 text-xs text-gray-500">
+          Active filter: {selectedFilter}
+        </div>
+      )}
     </div>
   );
 };
@@ -425,7 +531,7 @@ const StudentRow = ({ student }) => {
     let hasActive = false;
     let hasOverdue = false;
 
-    student.memberships.forEach(membership => {
+    student.memberships.forEach((membership) => {
       const endDate = new Date(membership.endDate);
       if (endDate > now) {
         hasActive = true;
@@ -449,11 +555,13 @@ const StudentRow = ({ student }) => {
       inactive: { bg: "bg-gray-100", text: "text-gray-800", label: "Inactive" },
       overdue: { bg: "bg-red-100", text: "text-red-800", label: "Overdue" },
     };
-    
+
     const config = statusConfig[status] || statusConfig.inactive;
-    
+
     return (
-      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${config.bg} ${config.text}`}>
+      <span
+        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${config.bg} ${config.text}`}
+      >
         {config.label}
       </span>
     );
@@ -472,7 +580,7 @@ const StudentRow = ({ student }) => {
   // Get the most recent membership for due date
   const getLatestMembership = (memberships) => {
     if (!memberships || memberships.length === 0) return null;
-    
+
     return memberships.reduce((latest, current) => {
       const currentDate = new Date(current.endDate);
       const latestDate = new Date(latest.endDate);
@@ -491,7 +599,9 @@ const StudentRow = ({ student }) => {
             <div className="text-sm font-medium text-gray-900">
               {student.name || "Unknown"}
             </div>
-            <div className="text-sm text-gray-500">{student.email || "No email"}</div>
+            <div className="text-sm text-gray-500">
+              {student.email || "No email"}
+            </div>
           </div>
         </div>
       </td>
@@ -505,19 +615,19 @@ const StudentRow = ({ student }) => {
         {formatDate(latestMembership?.endDate)}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-        <button 
+        <button
           onClick={() => console.log("View student:", student.id)}
           className="text-blue-600 hover:text-blue-900 transition-colors"
         >
           View
         </button>
-        <button 
+        <button
           onClick={() => console.log("Edit student:", student.id)}
           className="text-indigo-600 hover:text-indigo-900 transition-colors"
         >
           Edit
         </button>
-        <button 
+        <button
           onClick={() => console.log("Contact student:", student.email)}
           className="text-green-600 hover:text-green-900 transition-colors"
         >
