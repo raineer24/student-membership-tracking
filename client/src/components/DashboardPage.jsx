@@ -153,7 +153,9 @@ const DashboardOverview = ({ data }) => {
 
       {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Quick Actions
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <ActionButton
             icon="👤"
@@ -162,7 +164,7 @@ const DashboardOverview = ({ data }) => {
             onClick={() => console.log("Add Student")}
           />
           <ActionButton
-            icon="💳" 
+            icon="💳"
             title="Process Payment"
             description="Record new payment"
             onClick={() => console.log("Process payment")}
@@ -184,38 +186,164 @@ const DashboardOverview = ({ data }) => {
 };
 
 // Stats Card component
-const StatsCard = ({ title, value, subtitle, icon, color}) =>{
-    const colorClasses = {
-        blue: 'bg-blue-50 border-blue-200',
-        green: 'bg-green-50 border-green-200',
-        yellow: 'bg-yellow-50 border-yellow-200',
-        red: 'bg-red-50 border-red-200',
-    };
+const StatsCard = ({ title, value, subtitle, icon, color }) => {
+  const colorClasses = {
+    blue: "bg-blue-50 border-blue-200",
+    green: "bg-green-50 border-green-200",
+    yellow: "bg-yellow-50 border-yellow-200",
+    red: "bg-red-50 border-red-200",
+  };
 
-    return (
-        <div className={`${colorClasses[color]} border rounded-lg p-6`}>
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="text-sm font-medium text-gray-600">{title}</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
-                    <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
-                </div>
-                <div className="text-3xl">{icon}</div>
-            </div>
+  return (
+    <div className={`${colorClasses[color]} border rounded-lg p-6`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+          <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
         </div>
-    )
-}
+        <div className="text-3xl">{icon}</div>
+      </div>
+    </div>
+  );
+};
 
 // Action Button Component
-const ActionButton = ({icon, title, description, onClick}) => (
-    <button
-        onClick={onClick}
-        className="text-left p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-    >
-        <div className="text-2xl mb-2">{icon}</div>
-        <h4 className="font-medium text-gray-900">{title}</h4>
-        <p className="text-sm text-gray-500">{description}</p>
-    </button>
-)
+const ActionButton = ({ icon, title, description, onClick }) => (
+  <button
+    onClick={onClick}
+    className="text-left p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+  >
+    <div className="text-2xl mb-2">{icon}</div>
+    <h4 className="font-medium text-gray-900">{title}</h4>
+    <p className="text-sm text-gray-500">{description}</p>
+  </button>
+);
 
 // Students Tab Component
+const StudentsTab = ({ token }) => {
+  const [overdueStudents, setOverdueStudents] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStudentsData();
+  }, []);
+
+  const fetchStudentsData = async () => {
+    try {
+      const [overdueRes, statsRes] = await Promise.all([
+        fetch("/api/dashboard/overdue", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch("/api/dashboard/stats", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      const overdueData = await overdueRes.json();
+      const statsData = await statsRes.json();
+
+      setOverdueStudents(overdueData.students || []);
+      setStats(statsData);
+    } catch (error) {
+      console.error("Error fetching students data", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <LoadingSpinner />;
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Summary */}
+      {stats && (
+        <div className="grid">
+          <div className="bg-white">
+            <div className="text-lg">Student Statistics</div>
+            <div className="text-3xl">{stats.students.total}</div>
+            <p className="text-gray-600">Total Students</p>
+          </div>
+
+          <div className="bg-white">
+            <h3 className="text-lg">Membership Statistics</h3>
+            <div className="space-y-2">
+              <div className="flex">
+                <span>Active:</span>
+                <span className="font-semibold">
+                  {stats.memberships.active} (
+                  {stats.memberships.activePercentage})
+                </span>
+              </div>
+              <div className="flex">
+                <span>Expired:</span>
+                <span className="font-semibold">
+                  {stats.memberships.expired} (
+                  {stats.memberships.expiredPercentage})
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overdue Students */}
+      <div className="bg-white rounded-lg">
+        <div className="px-6 py-4">
+          <div className="text-lg font-semibold">
+            Overdue Students ({overdueStudents.length})
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          {overdueStudents.length > 0 ? (
+            <table className="min-w-full divide-y">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 text-left text-xs font-medium text-gray-500 uppercase">
+                    Name
+                  </th>
+                  <th className="px-6 text-left text-xs font-medium text-gray-500 uppercase">
+                    Email
+                  </th>
+                  <th className="px-6 text-left text-xs font-medium text-gray-500 uppercase">
+                    Expired Date
+                  </th>
+                  <th className="px-6 text-left text-xs font-medium text-gray-500 uppercase">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {overdueStudents.map((student) => (
+                  <tr key={student.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {student.firstName} {student.lastName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {student.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {student.memberships[0] &&
+                        new Date(
+                          student.memberships[0].endDate
+                        ).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button className="text-blue-600 hover:text-blue-800">
+                        Send Reminder
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="px-6">No overdue students found</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+// Revenue Tab Component

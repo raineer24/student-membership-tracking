@@ -1,0 +1,11 @@
+{
+  "providers": [
+    {
+      "title": "Claude 3 Sonnet (OpenRouter)",
+      "provider": "openrouter",
+      "apiKey": "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",
+      "model": "anthropic/claude-3-sonnet",
+      "apiBase": "https://openrouter.ai/api/v1"
+    }
+  ]
+}
