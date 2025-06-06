@@ -17,6 +17,7 @@
   ],
   "routes": [
     { "src": "/api/auth/login", "dest": "/api/auth/login.js", "methods": ["POST"] },
+    { "src": "/api/auth/register", "dest": "/api/auth/register.js", "methods": ["POST"] },
     { "src": "/api/dashboard(?:/(.*))?", "dest": "/api/dashboard/[[...slug]].js" },
     { "src": "/api/students(?:/(.*))?", "dest": "/api/students/[[...slug]].js" },
     { "src": "/api/memberships(?:/(.*))?", "dest": "/api/memberships/[[...slug]].js" },
