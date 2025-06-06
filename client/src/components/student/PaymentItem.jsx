@@ -31,7 +31,16 @@ const PaymentItem = ({ payment}) => {
         <div className="flex items-center">
             <div className="flex-1">
                 <h4 className="font-medium">{payment.description}</h4>
-                <p className="text-sm">{formatDate(payment.date0)}</p>
+                <p className="text-sm">{formatDate(payment.date)}</p>
+            </div>
+
+            <div className="flex">
+                <span className={`px-2 py-1 rounded-full text-sx font-medium ${getStatusClass(payment.status)}`}>
+                    {payment.status?.charAt(0).toUpperCase() + payment.status?.slice9(1)}
+                </span>
+                <span className="font-semibold">
+                    {formatAmount(payment.amount)}
+                </span>
             </div>
         </div>
     )
