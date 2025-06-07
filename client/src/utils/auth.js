@@ -34,9 +34,17 @@ export const validateAuth = (requiredRole = null) => {
 };
 
 export const getCurrentUser = () => {
+  const storedUser = localStorage.getItem("user");
+  if (storedUser) {
+    try {
+      return JSON.parse(storedUser);
+    } catch (error) {
+      console.error("Error parsing stored user", error);
+    }
+  }
+
   const token = localStorage.getItem("token");
   if (!token) return null;
-
   try {
     return JSON.parse(atob(token.split(".")[1]));
   } catch (error) {
@@ -51,4 +59,23 @@ export const getAuthHeaders = () => {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
   };
+};
+
+// Role checking utility for components
+export const hasRole = (requiredRole) => {
+  const user = getCurrentUser();
+  return user && user.role === requiredRole;
+};
+
+// Check if user is authenticated
+export const isAuthenticated = () => {
+  const token = localStorage.getItem("token");
+  if (!token) return false;
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.exp > Date.now() / 1000;
+  } catch (error) {
+    return false;
+  }
 };
