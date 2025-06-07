@@ -87,30 +87,39 @@ const StudentDashboard = () => {
 
   // Show error state
   if (error) {
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="bg-white">
-          <div className="text-red-500 mb-4">
-            <svg
-              className="h-12 w-12 mx-auto"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-white rounded-lg shadow p-6 max-w-md">
+            <div className="text-red-500 mb-4">
+              <svg
+                className="h-12 w-12 mx-auto"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Something went wrong
+            </h3>
+            <p className="text-red-600">{error}</p>
+            <button
+              onClick={initializeDashboard}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z"
-              />
-            </svg>
+              Try Again
+            </button>
           </div>
-          <h3 className="text-lg">Something went wrong</h3>
-          <p className="text-red-600">{error}</p>
-          <button className="px-4">Try Again</button>
         </div>
       </div>
-    </div>;
+    );
   }
 
   // Main dashboard render
@@ -118,11 +127,11 @@ const StudentDashboard = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <DashboardHeader student={data.student} />
-        <MembershipCard membership={data.membership}/>
-        <PaymentHistory payments={data.payments}/>
-        <QuickActions 
-        onLogout={handleLogout}
-        onUpdateProfile={handleUpdateProfile}
+        <MembershipCard membership={data.membership} />
+        <PaymentHistory payments={data.payments} />
+        <QuickActions
+          onLogout={handleLogout}
+          onUpdateProfile={handleUpdateProfile}
         />
       </div>
     </div>

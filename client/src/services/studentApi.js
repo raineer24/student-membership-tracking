@@ -60,7 +60,7 @@ class StudentApiService {
       //Since there's no student specific payment endpoint yet,
       //we'll need to add this endpoint or use the student profile data
       const studentProfile = await this.getStudentProfile();
-      return studentProfile.paypents || [];
+      return studentProfile.payments || [];
     } catch (error) {
       console.error("Failed to fetch payment history:", error);
       return []; // Return empty array instead of throwing
@@ -79,7 +79,7 @@ class StudentApiService {
       const payments = student.payments || [];
 
       return {
-        students: {
+        student: {
           id: student.id,
           name: student.name,
           email: student.email,

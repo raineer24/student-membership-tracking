@@ -30,30 +30,21 @@ const StatusBadge = (status) => {
 };
 
 const MembershipCard = ({ membership }) => {
-  if (!membership) {
+ if (!membership) {
     return (
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Membership Status</h2>
         <div className="text-center py-8">
           <div className="text-gray-400 mb-4">
-            <svg
-              className="h-12 w-12 mx-auto"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
+            <svg className="h-16 w-16 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z"/>
             </svg>
           </div>
-          <p className="text-gray-500 text-lg">No active membership found</p>
-          <p className="text-gray-400 text-sm mt-2">
-            Contact support to activate your membership
-          </p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Membership</h3>
+          <p className="text-gray-600 mb-4">You don't have an active membership yet.</p>
+          <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+            Contact Admin for Membership
+          </button>
         </div>
       </div>
     );
