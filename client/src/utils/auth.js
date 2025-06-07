@@ -7,11 +7,12 @@ export const validateAuth = (requiredRole = null) => {
   }
 
   try {
-    const payload = json.parse(atob(token.split(".")[1]));
+    const payload = JSON.parse(atob(token.split(".")[1]));
 
     // Check if token is expired
     if (payload.exp && payload.exp < Date.now() / 1000) {
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
       window.location.href = "/login";
       return false;
     }
@@ -37,8 +38,17 @@ export const getCurrentUser = () => {
   if (!token) return null;
 
   try {
-    return JSON.parsejson.parse(atob(token.split(".")[1]));
+    return JSON.parse(atob(token.split(".")[1]));
   } catch (error) {
     return null;
   }
+};
+
+export const getAuthHeaders = () => {
+  const token = localStorage.getItem("token");
+
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
 };
