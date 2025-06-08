@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
+import { PaymentModal} from '../components/PaymentModal';
 
 export default function DashboardPage() {
   const { user, token } = useAuth();
@@ -9,6 +10,9 @@ export default function DashboardPage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   // Student filtering and search state
   const [activeTab, setActiveTab] = useState("all");
@@ -70,6 +74,21 @@ export default function DashboardPage() {
     }
   };
 
+  const handleProcessPayment = (student) => {
+    setSelectedStudent(student);
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = (paymentResult) => {
+    console.log("Payment successfull:", paymentResult);
+    // Refresh dashboard data to show updated information
+    fetchDashboardData();
+    // Show success message (you can add a toast notification here)
+    alert(
+      `Payment of $${paymentResult.payment.amount} processed successfully!`
+    );
+  };
+
   // Memoized filtered students for performance
   const filteredStudents = useMemo(() => {
     console.log("Filtering - Original students:", students);
@@ -109,9 +128,9 @@ export default function DashboardPage() {
           });
         return !hasActiveMembership;
       });
-    }
+    } else if (activeTab === 'overdue') {}
 
-    // Filter by membership type (NEW - this was missing!)
+    // Filter by membership type 
     if (selectedFilter !== "all") {
       filtered = filtered.filter((student) => {
         if (!student.memberships || student.memberships.length === 0) {
@@ -129,8 +148,7 @@ export default function DashboardPage() {
         } else if (selectedFilter === "yearly") {
           return student.memberships.some(
             (membership) =>
-              membership.membershipType &&
-              membership.membershipType.toLowerCase().includes("yearly")
+              membership.type === 'YEARLY' && new Date(membership.endDate) > now
           );
         } else if (selectedFilter === "expired") {
           // Check if all memberships are expired
@@ -149,15 +167,14 @@ export default function DashboardPage() {
       filtered = filtered.filter((student) => {
         const name = (student.name || "").toLowerCase();
         const email = (student.email || "").toLowerCase();
+        const phone = (student.phone || "").toLowerCase();
         const searchLower = searchTerm.toLowerCase();
 
-        const matches =
-          name.includes(searchLower) || email.includes(searchLower);
-        console.log(
-          `Search "${searchTerm}" - Student: ${name}, Email: ${email}, Matches: ${matches}`
+        return (
+          name.includes(searchLower) ||
+          email.includes(searchLower) ||
+          phone.includes(searchLower)
         );
-
-        return matches;
       });
     }
 
@@ -220,10 +237,13 @@ export default function DashboardPage() {
           />
 
           {/* Students Table */}
-          <StudentsTable students={filteredStudents} loading={loading} />
+          <StudentsTable students={filteredStudents}
+           loading={loading} 
+           onProcessPayment={handleProcessPayment}
+           />
 
           {/* Quick Actions */}
-          <QuickActions />
+          <QuickActions onProcessPayment={() => setPaymentModalOpen(true)} />
         </div>
 
         {/* Data Timestamp */}
@@ -231,6 +251,16 @@ export default function DashboardPage() {
           Last updated: {new Date(dashboardData.timestamp).toLocaleString()}
         </div>
       </main>
+
+      <PaymentModal 
+        isOpen={paymentModalOpen}
+        onClose={() => {
+          setPaymentModalOpen(false);
+          setSelectedStudent(null);
+        }}
+        student={selectedStudent}
+        onPaymentSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 }
@@ -323,7 +353,15 @@ const StudentTabs = ({ activeTab, setActiveTab, students }) => {
     });
   };
 
+  const isStudentOverdue = (student) => {
+    if (!studfent.memberships || student.memberships.length === 0) return false;
+    const now = new Date();
+    const daysSinceExpired = (now - endDate) / (1000 * 60 * 60 * 24);
+    return daysSinceExpired > 0 && daysSinceExpired <=30;
+  }
+
   const activeCount = students.filter(isStudentActive).length;
+  const overdueCount = students.filter(isStudentActive).length;
   const inactiveCount = students.length - activeCount;
 
   const tabs = [
@@ -336,6 +374,11 @@ const StudentTabs = ({ activeTab, setActiveTab, students }) => {
       id: "active",
       label: "Active",
       count: activeCount,
+    },
+     {
+      id: "overdue",
+      label: "Overdue",
+      count: overdueCount,
     },
     {
       id: "inactive",
@@ -465,7 +508,7 @@ const SearchAndFilters = ({
 };
 
 // Students Table Component
-const StudentsTable = ({ students, loading }) => {
+const StudentsTable = ({ students, loading, onProcessPayment }) => {
   if (loading) {
     return (
       <div className="px-6 py-8">
@@ -488,7 +531,7 @@ const StudentsTable = ({ students, loading }) => {
         <thead className="bg-gray-50">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Name
+              Student
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Status
@@ -506,7 +549,9 @@ const StudentsTable = ({ students, loading }) => {
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {students.map((student) => (
-            <StudentRow key={student.id} student={student} />
+            <StudentRow key={student.id} student={student} 
+            onProcessPayment={onProcessPayment}
+            />
           ))}
         </tbody>
       </table>
@@ -515,7 +560,7 @@ const StudentsTable = ({ students, loading }) => {
 };
 
 // Student Row Component
-const StudentRow = ({ student }) => {
+const StudentRow = ({ student, onProcessPayment }) => {
   if (!student) {
     console.warn("StudentRow received null/undefined student");
     return null;
@@ -602,6 +647,11 @@ const StudentRow = ({ student }) => {
             <div className="text-sm text-gray-500">
               {student.email || "No email"}
             </div>
+            {student.phone &&(
+              <div className="text-xs text-gray-400">
+                {student.phone}
+              </div>
+            )}
           </div>
         </div>
       </td>
@@ -615,6 +665,12 @@ const StudentRow = ({ student }) => {
         {formatDate(latestMembership?.endDate)}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+         <button
+          onClick={() => onProcessPayment(student)}
+          className="text-blue-600 hover:text-blue-900 transition-colors"
+        >
+          View
+        </button>
         <button
           onClick={() => console.log("View student:", student.id)}
           className="text-blue-600 hover:text-blue-900 transition-colors"
@@ -639,7 +695,7 @@ const StudentRow = ({ student }) => {
 };
 
 // Quick Actions Component
-const QuickActions = () => {
+const QuickActions = ({onProcessPayment}) => {
   return (
     <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
       <div className="flex flex-col sm:flex-row gap-3">
@@ -647,7 +703,9 @@ const QuickActions = () => {
           <span className="mr-2">👤</span>
           Add Student
         </button>
-        <button className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+        <button 
+        onClick={onProcessPayment}
+        className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
           <span className="mr-2">💳</span>
           Process Payment
         </button>
