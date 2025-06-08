@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  // output   = "../node_modules/@prisma/client"
 }
 
 datasource db {
@@ -8,21 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum MembershipType {
-  MONTHLY
-  YEARLY
-}
-
-
 model User {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
   password  String
-  role      String   @default("student")
-  studentId Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  role      String   @default("student")
+  studentId Int?
   student   Student?
 }
 
@@ -37,20 +30,25 @@ model Student {
 }
 
 model Membership {
-  id        Int      @id @default(autoincrement())
-  studentId Int
-  type      MembershipType @default(MONTHLY)
+  id        Int            @id @default(autoincrement())
   startDate DateTime
   endDate   DateTime
-  isActive  Boolean  @default(true)
-  overdue   Boolean  @default(false)
-  student   Student  @relation(fields: [studentId], references: [id])
+  overdue   Boolean        @default(false)
+  studentId Int
+  isActive  Boolean        @default(true)
+  type      MembershipType @default(MONTHLY)
+  student   Student        @relation(fields: [studentId], references: [id])
 }
 
 model Payment {
   id        Int      @id @default(autoincrement())
-  studentId Int
   amount    Float
   paidAt    DateTime @default(now())
+  studentId Int
   student   Student  @relation(fields: [studentId], references: [id])
+}
+
+enum MembershipType {
+  MONTHLY
+  YEARLY
 }
