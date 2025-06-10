@@ -36,7 +36,7 @@ const PaymentItem = ({ payment}) => {
 
             <div className="flex">
                 <span className={`px-2 py-1 rounded-full text-sx font-medium ${getStatusClass(payment.status)}`}>
-                    {payment.status?.charAt(0).toUpperCase() + payment.status?.slice9(1)}
+                    {payment.status?.charAt(0).toUpperCase() + payment.status?.slice(1)}
                 </span>
                 <span className="font-semibold">
                     {formatAmount(payment.amount)}

@@ -16,7 +16,9 @@ const StatusBadge = (status) => {
       case "expiring-soon":
         return "Expiring soon";
       default:
-        return status?.charAt(0).toUpperCase() + status?.slice(1) || "Unknown";
+        return status && typeof status === "string"
+          ? status.charAt(0).toUpperCase() + status.slice(1)
+          : "Unknown";
     }
   };
 
@@ -30,18 +32,26 @@ const StatusBadge = (status) => {
 };
 
 const MembershipCard = ({ membership }) => {
- if (!membership) {
+  if (!membership) {
     return (
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Membership Status</h2>
         <div className="text-center py-8">
           <div className="text-gray-400 mb-4">
-            <svg className="h-16 w-16 mx-auto" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z"/>
+            <svg
+              className="h-16 w-16 mx-auto"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Membership</h3>
-          <p className="text-gray-600 mb-4">You don't have an active membership yet.</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No Active Membership
+          </h3>
+          <p className="text-gray-600 mb-4">
+            You don't have an active membership yet.
+          </p>
           <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
             Contact Admin for Membership
           </button>
