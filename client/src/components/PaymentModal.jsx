@@ -114,7 +114,7 @@ const PaymentModal = ({
         payment: responseData,
         student: student,
         membershipExtended: formData.extendMembership,
-        amount: parseFloat(formData.amount),
+        amount: parseFloat(formData.amount), // ✅ Include amount directly
         method: formData.method,
       });
 

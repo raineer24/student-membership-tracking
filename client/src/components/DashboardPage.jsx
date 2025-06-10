@@ -82,9 +82,18 @@ export default function DashboardPage() {
     console.log("Payment successful:", paymentResult);
     // Refresh dashboard data to show updated information
     fetchDashboardData();
-    // Show success message
+    
+    // Extract amount from multiple possible sources
+    const amount = paymentResult.amount || 
+                  paymentResult.payment?.amount || 
+                  paymentResult.data?.amount ||
+                  "0";
+    
+    const studentName = paymentResult.student?.name || "Student";
+    
+    // Show success message with proper data
     alert(
-      `Payment of $${paymentResult.payment.amount} processed successfully for ${paymentResult.student.name}!`
+      `Payment of ${amount} processed successfully for ${studentName}!`
     );
   };
 
