@@ -23,6 +23,7 @@ model Student {
   id          Int          @id @default(autoincrement())
   name        String
   email       String       @unique
+  phone       String?
   userId      Int          @unique
   memberships Membership[]
   payments    Payment[]
@@ -40,15 +41,41 @@ model Membership {
   student   Student        @relation(fields: [studentId], references: [id])
 }
 
+
 model Payment {
-  id        Int      @id @default(autoincrement())
-  amount    Float
-  paidAt    DateTime @default(now())
-  studentId Int
-  student   Student  @relation(fields: [studentId], references: [id])
+  id          Int           @id @default(autoincrement())
+  amount      Float
+  method      PaymentMethod @default(CASH)
+  description String?
+  status      PaymentStatus @default(COMPLETED)
+  paidAt      DateTime      @default(now())
+  studentId   Int
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  student     Student       @relation(fields: [studentId], references: [id])
 }
 
 enum MembershipType {
   MONTHLY
   YEARLY
+}
+
+
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  ONLINE
+  CHECK
+  OTHER
+}
+
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
 }

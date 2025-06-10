@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
+import PaymentModal from '../components/PaymentModal';
 
 export default function DashboardPage() {
   const { user, token } = useAuth();
@@ -9,6 +10,9 @@ export default function DashboardPage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   // Student filtering and search state
   const [activeTab, setActiveTab] = useState("all");
@@ -32,7 +36,6 @@ export default function DashboardPage() {
           },
         }),
         fetch("/api/students", {
-          // Make sure this endpoint exists and returns data
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -52,14 +55,14 @@ export default function DashboardPage() {
       ]);
 
       console.log("Dashboard Data:", dashboardData);
-      console.log("Students Data:", studentsData); // DEBUG: Check structure
+      console.log("Students Data:", studentsData);
 
       setDashboardData(dashboardData);
 
       // Handle different possible response structures
       const students =
         studentsData.students || studentsData.data || studentsData || [];
-      console.log("Processed Students:", students); // DEBUG: Check processed data
+      console.log("Processed Students:", students);
 
       setStudents(students);
     } catch (error) {
@@ -68,6 +71,41 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleProcessPayment = (student) => {
+    setSelectedStudent(student);
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = (paymentResult) => {
+    console.log("Payment successful:", paymentResult);
+    // Refresh dashboard data to show updated information
+    fetchDashboardData();
+    // Show success message
+    alert(
+      `Payment of $${paymentResult.payment.amount} processed successfully for ${paymentResult.student.name}!`
+    );
+  };
+
+  // Helper functions for student status
+  const isStudentActive = (student) => {
+    if (!student.memberships || student.memberships.length === 0) return false;
+    return student.memberships.some((membership) => {
+      const endDate = new Date(membership.endDate);
+      const now = new Date();
+      return endDate > now;
+    });
+  };
+
+  const isStudentOverdue = (student) => {
+    if (!student.memberships || student.memberships.length === 0) return false;
+    const now = new Date();
+    return student.memberships.some((membership) => {
+      const endDate = new Date(membership.endDate);
+      const daysSinceExpired = (now - endDate) / (1000 * 60 * 60 * 24);
+      return daysSinceExpired > 0 && daysSinceExpired <= 30;
+    });
   };
 
   // Memoized filtered students for performance
@@ -84,38 +122,22 @@ export default function DashboardPage() {
 
     let filtered = students;
 
-    // Filter by tab - Updated to work with your membership data
+    // Filter by tab
     if (activeTab === "active") {
-      filtered = filtered.filter((student) => {
-        // Check if student has active memberships
-        const hasActiveMembership =
-          student.memberships &&
-          student.memberships.some((membership) => {
-            const endDate = new Date(membership.endDate);
-            const now = new Date();
-            return endDate > now; // membership hasn't expired
-          });
-        return hasActiveMembership;
-      });
+      filtered = filtered.filter(isStudentActive);
     } else if (activeTab === "inactive") {
-      filtered = filtered.filter((student) => {
-        // No memberships or all memberships expired
-        const hasActiveMembership =
-          student.memberships &&
-          student.memberships.some((membership) => {
-            const endDate = new Date(membership.endDate);
-            const now = new Date();
-            return endDate > now;
-          });
-        return !hasActiveMembership;
-      });
+      filtered = filtered.filter((student) => 
+        !isStudentActive(student) && !isStudentOverdue(student)
+      );
+    } else if (activeTab === "overdue") {
+      filtered = filtered.filter(isStudentOverdue);
     }
 
-    // Filter by membership type (NEW - this was missing!)
+    // Filter by membership type
     if (selectedFilter !== "all") {
       filtered = filtered.filter((student) => {
         if (!student.memberships || student.memberships.length === 0) {
-          return selectedFilter === "expired"; // Students with no memberships are considered expired
+          return selectedFilter === "expired";
         }
 
         const now = new Date();
@@ -123,17 +145,18 @@ export default function DashboardPage() {
         if (selectedFilter === "monthly") {
           return student.memberships.some(
             (membership) =>
-              membership.membershipType &&
-              membership.membershipType.toLowerCase().includes("monthly")
+              (membership.membershipType && 
+               membership.membershipType.toLowerCase().includes("monthly")) ||
+              (membership.type && membership.type === "MONTHLY")
           );
         } else if (selectedFilter === "yearly") {
           return student.memberships.some(
             (membership) =>
-              membership.membershipType &&
-              membership.membershipType.toLowerCase().includes("yearly")
+              (membership.membershipType && 
+               membership.membershipType.toLowerCase().includes("yearly")) ||
+              (membership.type && membership.type === "YEARLY")
           );
         } else if (selectedFilter === "expired") {
-          // Check if all memberships are expired
           return student.memberships.every((membership) => {
             const endDate = new Date(membership.endDate);
             return endDate <= now;
@@ -144,20 +167,19 @@ export default function DashboardPage() {
       });
     }
 
-    // Filter by search term - Updated for your API structure
+    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter((student) => {
         const name = (student.name || "").toLowerCase();
         const email = (student.email || "").toLowerCase();
+        const phone = (student.phone || "").toLowerCase();
         const searchLower = searchTerm.toLowerCase();
 
-        const matches =
-          name.includes(searchLower) || email.includes(searchLower);
-        console.log(
-          `Search "${searchTerm}" - Student: ${name}, Email: ${email}, Matches: ${matches}`
+        return (
+          name.includes(searchLower) ||
+          email.includes(searchLower) ||
+          phone.includes(searchLower)
         );
-
-        return matches;
       });
     }
 
@@ -216,14 +238,18 @@ export default function DashboardPage() {
             setSearchTerm={setSearchTerm}
             selectedFilter={selectedFilter}
             setSelectedFilter={setSelectedFilter}
-            students={students} // Add this prop
+            students={students}
           />
 
           {/* Students Table */}
-          <StudentsTable students={filteredStudents} loading={loading} />
+          <StudentsTable 
+            students={filteredStudents}
+            loading={loading} 
+            onProcessPayment={handleProcessPayment}
+          />
 
           {/* Quick Actions */}
-          <QuickActions />
+          <QuickActions onProcessPayment={() => setPaymentModalOpen(true)} />
         </div>
 
         {/* Data Timestamp */}
@@ -231,14 +257,23 @@ export default function DashboardPage() {
           Last updated: {new Date(dashboardData.timestamp).toLocaleString()}
         </div>
       </main>
+
+      {/* Payment Modal */}
+      <PaymentModal 
+        isOpen={paymentModalOpen}
+        onClose={() => {
+          setPaymentModalOpen(false);
+          setSelectedStudent(null);
+        }}
+        student={selectedStudent}
+        onPaymentSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 }
 
 // Summary Cards Component
 const SummaryCards = ({ data }) => {
-  // You might need to calculate these from your students array
-  // since your API structure might be different
   const cards = [
     {
       title: "Total Students",
@@ -315,7 +350,6 @@ const StudentTabs = ({ activeTab, setActiveTab, students }) => {
   // Helper function to determine if student is active
   const isStudentActive = (student) => {
     if (!student.memberships || student.memberships.length === 0) return false;
-
     return student.memberships.some((membership) => {
       const endDate = new Date(membership.endDate);
       const now = new Date();
@@ -323,8 +357,20 @@ const StudentTabs = ({ activeTab, setActiveTab, students }) => {
     });
   };
 
+  // Helper function to determine if student is overdue
+  const isStudentOverdue = (student) => {
+    if (!student.memberships || student.memberships.length === 0) return false;
+    const now = new Date();
+    return student.memberships.some((membership) => {
+      const endDate = new Date(membership.endDate);
+      const daysSinceExpired = (now - endDate) / (1000 * 60 * 60 * 24);
+      return daysSinceExpired > 0 && daysSinceExpired <= 30;
+    });
+  };
+
   const activeCount = students.filter(isStudentActive).length;
-  const inactiveCount = students.length - activeCount;
+  const overdueCount = students.filter(isStudentOverdue).length;
+  const inactiveCount = Math.max(0, students.length - activeCount - overdueCount);
 
   const tabs = [
     {
@@ -336,6 +382,11 @@ const StudentTabs = ({ activeTab, setActiveTab, students }) => {
       id: "active",
       label: "Active",
       count: activeCount,
+    },
+    {
+      id: "overdue",
+      label: "Overdue",
+      count: overdueCount,
     },
     {
       id: "inactive",
@@ -402,6 +453,9 @@ const SearchAndFilters = ({
           const type = membership.membershipType.toLowerCase();
           if (type.includes("monthly")) hasMonthly = true;
           if (type.includes("yearly")) hasYearly = true;
+        } else if (membership.type) {
+          if (membership.type === "MONTHLY") hasMonthly = true;
+          if (membership.type === "YEARLY") hasYearly = true;
         }
       });
 
@@ -424,7 +478,7 @@ const SearchAndFilters = ({
             </div>
             <input
               type="text"
-              placeholder="Search students by name or email..."
+              placeholder="Search students by name, email, or phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -465,7 +519,7 @@ const SearchAndFilters = ({
 };
 
 // Students Table Component
-const StudentsTable = ({ students, loading }) => {
+const StudentsTable = ({ students, loading, onProcessPayment }) => {
   if (loading) {
     return (
       <div className="px-6 py-8">
@@ -488,7 +542,7 @@ const StudentsTable = ({ students, loading }) => {
         <thead className="bg-gray-50">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Name
+              Student
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Status
@@ -506,7 +560,11 @@ const StudentsTable = ({ students, loading }) => {
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {students.map((student) => (
-            <StudentRow key={student.id} student={student} />
+            <StudentRow 
+              key={student.id} 
+              student={student} 
+              onProcessPayment={onProcessPayment}
+            />
           ))}
         </tbody>
       </table>
@@ -515,7 +573,7 @@ const StudentsTable = ({ students, loading }) => {
 };
 
 // Student Row Component
-const StudentRow = ({ student }) => {
+const StudentRow = ({ student, onProcessPayment }) => {
   if (!student) {
     console.warn("StudentRow received null/undefined student");
     return null;
@@ -602,6 +660,11 @@ const StudentRow = ({ student }) => {
             <div className="text-sm text-gray-500">
               {student.email || "No email"}
             </div>
+            {student.phone && (
+              <div className="text-xs text-gray-400">
+                {student.phone}
+              </div>
+            )}
           </div>
         </div>
       </td>
@@ -609,12 +672,18 @@ const StudentRow = ({ student }) => {
         {getStatusBadge(studentStatus)}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        {latestMembership?.membershipType || "No Membership"}
+        {latestMembership?.type || latestMembership?.membershipType || "No Membership"}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
         {formatDate(latestMembership?.endDate)}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+        <button
+          onClick={() => onProcessPayment(student)}
+          className="text-green-600 hover:text-green-900 transition-colors font-medium"
+        >
+          💳 Payment
+        </button>
         <button
           onClick={() => console.log("View student:", student.id)}
           className="text-blue-600 hover:text-blue-900 transition-colors"
@@ -629,7 +698,7 @@ const StudentRow = ({ student }) => {
         </button>
         <button
           onClick={() => console.log("Contact student:", student.email)}
-          className="text-green-600 hover:text-green-900 transition-colors"
+          className="text-purple-600 hover:text-purple-900 transition-colors"
         >
           Contact
         </button>
@@ -639,7 +708,7 @@ const StudentRow = ({ student }) => {
 };
 
 // Quick Actions Component
-const QuickActions = () => {
+const QuickActions = ({ onProcessPayment }) => {
   return (
     <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
       <div className="flex flex-col sm:flex-row gap-3">
@@ -647,7 +716,10 @@ const QuickActions = () => {
           <span className="mr-2">👤</span>
           Add Student
         </button>
-        <button className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+        <button 
+          onClick={onProcessPayment}
+          className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
           <span className="mr-2">💳</span>
           Process Payment
         </button>
