@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
 import PaymentModal from "../components/PaymentModal";
-import AddStudentModal from "./AddStudentModal";
+import AddStudentModal from "../components/AddStudentModal";
 import LogoutButton from "../components/LogoutButton";
 
 export default function DashboardPage() {
@@ -100,8 +100,9 @@ export default function DashboardPage() {
   };
 
   const handleStudentAdded = (newStudent) => {
-    alert(`Student ${newStudent.name} added successfully!`)
+    alert(`Student ${newStudent.name} added successfully!`);
     fetchDashboardData();
+    setAddStudentModalOpen(false); // Close the modal
   };
 
   // Helper functions for student status
@@ -224,13 +225,15 @@ export default function DashboardPage() {
               </h1>
               <p className="text-gray-600 mt-1">Welcome back, {user?.email}</p>
             </div>
-            <button
-              onClick={refreshData}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Refresh Data
-            </button>
-            <LogoutButton />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={refreshData}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Refresh Data
+              </button>
+              <LogoutButton />
+            </div>
           </div>
         </div>
       </header>
@@ -265,17 +268,19 @@ export default function DashboardPage() {
             onProcessPayment={handleProcessPayment}
           />
 
-          <div className="px-6">
-            <div className="flex">
-              <button onClick={() => setAddStudentModalOpen(true)}
+          <div className="px-6 py-4 border-t border-gray-200">
+            <div className="flex gap-3">
+              <button
+                onClick={() => setAddStudentModalOpen(true)}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
+              >
                 👤 Add Student
               </button>
-               <button onClick={() => setPaymentModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                 💳 Process Payment
+              <button
+                onClick={() => setPaymentModalOpen(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                💳 Process Payment
               </button>
             </div>
           </div>
@@ -298,12 +303,10 @@ export default function DashboardPage() {
         onPaymentSuccess={handlePaymentSuccess}
       />
 
-      <AddStudentModal 
+      <AddStudentModal
         isOpen={addStudentModalOpen}
-        onClose={() => {
-          setAddStudentModalOpen(false);
-          onStudentAdded={handleStudentAdded}
-        }}
+        onClose={() => setAddStudentModalOpen(false)}
+        onStudentAdded={handleStudentAdded} // ✅ Correct - as a prop
       />
     </div>
   );
@@ -746,4 +749,3 @@ const StudentRow = ({ student, onProcessPayment }) => {
     </tr>
   );
 };
-

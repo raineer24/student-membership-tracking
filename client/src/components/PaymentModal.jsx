@@ -68,7 +68,8 @@ const PaymentModal = ({
 
     if (formData.extendMembership) {
       const requiredAmount = membershipPrices[formData.membershipType];
-      if (amount !== requiredAmount) {
+      const enteredAmount = parseFloat(formData.amount);
+      if (enteredAmount !== requiredAmount) {
         setError(`${formData.membershipType} membership must be exactly ₱${requiredAmount}`);
         return false;
       }

@@ -1,6 +1,7 @@
 import { useAuth } from '../context/AuthContext';
 
 const LogoutButton = () => {
+    const { logout } = useAuth();
     const handeLogout = () => {
         if (confirm('Are you sure you want to logout?')) {
             logout();
