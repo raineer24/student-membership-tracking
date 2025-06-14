@@ -92,35 +92,36 @@ export default async function handler(req, res) {
       return res.json(student);
     }
 
-    // ✅ POST /api/students – Create new student
-    if (slug.length === 0 && method === "POST") {
-      const { name, email, password } = req.body;
+// ✅ POST /api/students – Create new student (FIXED VERSION)
+if (slug.length === 0 && method === "POST") {
+  const { name, email, password, phone } = req.body; // Added phone extraction
 
-      if (!name || !email || !password) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-      const user = await prisma.user.create({
-        data: {
-          name,
-          email,
-          password: hashedPassword,
-          role: "STUDENT",
-        },
-      });
+  const user = await prisma.user.create({
+    data: {
+      name,
+      email,
+      password: hashedPassword,
+      role: "STUDENT",
+    },
+  });
 
-      const student = await prisma.student.create({
-        data: {
-          name,
-          email,
-          userId: user.id,
-        },
-      });
+  const student = await prisma.student.create({
+    data: {
+      name,
+      email,
+      phone: phone || null, // Added phone field with null fallback
+      userId: user.id,
+    },
+  });
 
-      return res.status(201).json(student);
-    }
+  return res.status(201).json(student);
+}
 
     // ✅ PUT /api/students/:id – Update student
     if (slug.length === 1 && method === "PUT") {
