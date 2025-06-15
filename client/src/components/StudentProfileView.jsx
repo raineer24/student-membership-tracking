@@ -41,7 +41,40 @@ const StudentProfileView = ({ studentId, onBack }) => {
     }
   };
 
-  const getStatus = () => {};
+  const getStatus = () => {
+    if (!student?.memberships?.length) return 'Inactive';
+
+    const now = new Date();
+    const active = student.memberships.find(m => new Date(m.endDate) > now && m.isActive);
+    if (active) return 'Active';
+
+    const overdue = student.memberships.some(m => {
+        const days = (now = new Date(m.endDate)) / (1000 * 60 * 60 * 24);
+        return days > 0 && days <= 30;
+    });
+    return overdue ? 'Overdue' : 'Inactive';
+  };
+
+  const formatDate = (d) => new Date(d).toLocaleDateString();
+  const formatCurrency = (a) => `₱${a.toFixed(2)}`;
+  const totalPaid = student?.payments?.reduce((sum, p) => sum + p.amount, 0) || 0; 
+  const currentMembership = student?.memberships?.find(m => m.isActive);
+
+  const handleBack = () => {
+    if() {
+
+    } else {
+        
+    }
+  };
+
+  if (loading) {
+    return ()
+  }
+
+  if (error) {
+    return ()
+  }
 };
 
 export default StudentProfileView;
