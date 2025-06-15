@@ -66,6 +66,15 @@ const PaymentModal = ({
       return false;
     }
 
+    if (formData.extendMembership) {
+      const requiredAmount = membershipPrices[formData.membershipType];
+      const enteredAmount = parseFloat(formData.amount);
+      if (enteredAmount !== requiredAmount) {
+        setError(`${formData.membershipType} membership must be exactly ₱${requiredAmount}`);
+        return false;
+      }
+    }
+
     return true;
   };
 
@@ -186,20 +195,20 @@ const PaymentModal = ({
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {/* Quick Membership Buttons */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Quick Select
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Quick Select (Exact Amount)
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => handleMembershipTypeChange("MONTHLY")}
-                className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
+                className={`p-3 rounded-lg border text-sm ${
                   formData.membershipType === "MONTHLY"
                     ? "bg-blue-50 border-blue-500 text-blue-700"
-                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                    : "bg-white border-gray-30 hover:bg-gray-50"
                 }`}
               >
                 📅 Monthly
@@ -211,7 +220,7 @@ const PaymentModal = ({
               <button
                 type="button"
                 onClick={() => handleMembershipTypeChange("YEARLY")}
-                className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
+                className={`p-3 rounded-lg border text-sm ${
                   formData.membershipType === "YEARLY"
                     ? "bg-blue-50 border-blue-500 text-blue-700"
                     : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
@@ -226,10 +235,10 @@ const PaymentModal = ({
             </div>
           </div>
 
-          {/* Amount */}
+          {/* Amount Input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Amount ($) <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium mb-1">
+              Amount (₱) * <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
@@ -239,7 +248,7 @@ const PaymentModal = ({
               value={formData.amount}
               onChange={handleInputChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
               placeholder="Enter amount"
             />
           </div>

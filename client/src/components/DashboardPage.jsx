@@ -2,7 +2,9 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
-import PaymentModal from '../components/PaymentModal';
+import PaymentModal from "../components/PaymentModal";
+import AddStudentModal from "../components/AddStudentModal";
+import LogoutButton from "../components/LogoutButton";
 
 export default function DashboardPage() {
   const { user, token } = useAuth();
@@ -12,6 +14,7 @@ export default function DashboardPage() {
   const [error, setError] = useState(null);
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [addStudentModalOpen, setAddStudentModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
   // Student filtering and search state
@@ -82,19 +85,24 @@ export default function DashboardPage() {
     console.log("Payment successful:", paymentResult);
     // Refresh dashboard data to show updated information
     fetchDashboardData();
-    
+
     // Extract amount from multiple possible sources
-    const amount = paymentResult.amount || 
-                  paymentResult.payment?.amount || 
-                  paymentResult.data?.amount ||
-                  "0";
-    
+    const amount =
+      paymentResult.amount ||
+      paymentResult.payment?.amount ||
+      paymentResult.data?.amount ||
+      "0";
+
     const studentName = paymentResult.student?.name || "Student";
-    
+
     // Show success message with proper data
-    alert(
-      `Payment of ${amount} processed successfully for ${studentName}!`
-    );
+    alert(`Payment of ${amount} processed successfully for ${studentName}!`);
+  };
+
+  const handleStudentAdded = (newStudent) => {
+    alert(`Student ${newStudent.name} added successfully!`);
+    fetchDashboardData();
+    setAddStudentModalOpen(false); // Close the modal
   };
 
   // Helper functions for student status
@@ -135,8 +143,8 @@ export default function DashboardPage() {
     if (activeTab === "active") {
       filtered = filtered.filter(isStudentActive);
     } else if (activeTab === "inactive") {
-      filtered = filtered.filter((student) => 
-        !isStudentActive(student) && !isStudentOverdue(student)
+      filtered = filtered.filter(
+        (student) => !isStudentActive(student) && !isStudentOverdue(student)
       );
     } else if (activeTab === "overdue") {
       filtered = filtered.filter(isStudentOverdue);
@@ -154,15 +162,15 @@ export default function DashboardPage() {
         if (selectedFilter === "monthly") {
           return student.memberships.some(
             (membership) =>
-              (membership.membershipType && 
-               membership.membershipType.toLowerCase().includes("monthly")) ||
+              (membership.membershipType &&
+                membership.membershipType.toLowerCase().includes("monthly")) ||
               (membership.type && membership.type === "MONTHLY")
           );
         } else if (selectedFilter === "yearly") {
           return student.memberships.some(
             (membership) =>
-              (membership.membershipType && 
-               membership.membershipType.toLowerCase().includes("yearly")) ||
+              (membership.membershipType &&
+                membership.membershipType.toLowerCase().includes("yearly")) ||
               (membership.type && membership.type === "YEARLY")
           );
         } else if (selectedFilter === "expired") {
@@ -217,12 +225,15 @@ export default function DashboardPage() {
               </h1>
               <p className="text-gray-600 mt-1">Welcome back, {user?.email}</p>
             </div>
-            <button
-              onClick={refreshData}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Refresh Data
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={refreshData}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Refresh Data
+              </button>
+              <LogoutButton />
+            </div>
           </div>
         </div>
       </header>
@@ -251,14 +262,28 @@ export default function DashboardPage() {
           />
 
           {/* Students Table */}
-          <StudentsTable 
+          <StudentsTable
             students={filteredStudents}
-            loading={loading} 
+            loading={loading}
             onProcessPayment={handleProcessPayment}
           />
 
-          {/* Quick Actions */}
-          <QuickActions onProcessPayment={() => setPaymentModalOpen(true)} />
+          <div className="px-6 py-4 border-t border-gray-200">
+            <div className="flex gap-3">
+              <button
+                onClick={() => setAddStudentModalOpen(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                👤 Add Student
+              </button>
+              <button
+                onClick={() => setPaymentModalOpen(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                💳 Process Payment
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Data Timestamp */}
@@ -268,7 +293,7 @@ export default function DashboardPage() {
       </main>
 
       {/* Payment Modal */}
-      <PaymentModal 
+      <PaymentModal
         isOpen={paymentModalOpen}
         onClose={() => {
           setPaymentModalOpen(false);
@@ -276,6 +301,12 @@ export default function DashboardPage() {
         }}
         student={selectedStudent}
         onPaymentSuccess={handlePaymentSuccess}
+      />
+
+      <AddStudentModal
+        isOpen={addStudentModalOpen}
+        onClose={() => setAddStudentModalOpen(false)}
+        onStudentAdded={handleStudentAdded} // ✅ Correct - as a prop
       />
     </div>
   );
@@ -379,7 +410,10 @@ const StudentTabs = ({ activeTab, setActiveTab, students }) => {
 
   const activeCount = students.filter(isStudentActive).length;
   const overdueCount = students.filter(isStudentOverdue).length;
-  const inactiveCount = Math.max(0, students.length - activeCount - overdueCount);
+  const inactiveCount = Math.max(
+    0,
+    students.length - activeCount - overdueCount
+  );
 
   const tabs = [
     {
@@ -569,9 +603,9 @@ const StudentsTable = ({ students, loading, onProcessPayment }) => {
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {students.map((student) => (
-            <StudentRow 
-              key={student.id} 
-              student={student} 
+            <StudentRow
+              key={student.id}
+              student={student}
               onProcessPayment={onProcessPayment}
             />
           ))}
@@ -670,9 +704,7 @@ const StudentRow = ({ student, onProcessPayment }) => {
               {student.email || "No email"}
             </div>
             {student.phone && (
-              <div className="text-xs text-gray-400">
-                {student.phone}
-              </div>
+              <div className="text-xs text-gray-400">{student.phone}</div>
             )}
           </div>
         </div>
@@ -681,7 +713,9 @@ const StudentRow = ({ student, onProcessPayment }) => {
         {getStatusBadge(studentStatus)}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-        {latestMembership?.type || latestMembership?.membershipType || "No Membership"}
+        {latestMembership?.type ||
+          latestMembership?.membershipType ||
+          "No Membership"}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
         {formatDate(latestMembership?.endDate)}
@@ -713,26 +747,5 @@ const StudentRow = ({ student, onProcessPayment }) => {
         </button>
       </td>
     </tr>
-  );
-};
-
-// Quick Actions Component
-const QuickActions = ({ onProcessPayment }) => {
-  return (
-    <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          <span className="mr-2">👤</span>
-          Add Student
-        </button>
-        <button 
-          onClick={onProcessPayment}
-          className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          <span className="mr-2">💳</span>
-          Process Payment
-        </button>
-      </div>
-    </div>
   );
 };
