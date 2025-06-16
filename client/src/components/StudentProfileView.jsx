@@ -61,20 +61,60 @@ const StudentProfileView = ({ studentId, onBack }) => {
   const currentMembership = student?.memberships?.find(m => m.isActive);
 
   const handleBack = () => {
-    if() {
-
+    if(onBack) {
+        onBack();
     } else {
-        
+        // Default back navigation
+        window.history.back();
     }
   };
 
   if (loading) {
-    return ()
+    return (
+        <div className="p-4 max-w-4xl mx-auto text-sm text-gray-800">
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+        </div>
+    )
   }
 
   if (error) {
-    return ()
+    return (
+      <div className="p-4 max-w-4xl mx-auto text-sm text-gray-800">
+        <div className="text-center text-red-600 bg-red-50 p-4 rounded">
+          {error}
+          <button
+            onClick={fetchStudentData}
+            className="ml-4 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
   }
+
+  if (!student) {
+    return (
+      <div className="p-4 max-w-4xl mx-auto text-sm text-gray-800">
+        <div className="text-center text-gray-600">
+          Student not found
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4">
+        {/* Back to  Dashboard */ }
+         {/* Student Name Heading */ }
+          {/* Header */ }
+           {/* Tabs */ }
+            {/* Tab Content */ }
+             {/* Summary */ }
+    </div>
+  )
 };
 
 export default StudentProfileView;
