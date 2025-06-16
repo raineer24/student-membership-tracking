@@ -49,7 +49,7 @@ const StudentProfileView = ({ studentId, onBack }) => {
     if (active) return 'Active';
 
     const overdue = student.memberships.some(m => {
-        const days = (now = new Date(m.endDate)) / (1000 * 60 * 60 * 24);
+        const days = (now - new Date(m.endDate)) / (1000 * 60 * 60 * 24);
         return days > 0 && days <= 30;
     });
     return overdue ? 'Overdue' : 'Inactive';
