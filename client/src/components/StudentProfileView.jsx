@@ -106,10 +106,29 @@ const StudentProfileView = ({ studentId, onBack }) => {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-4 max-w-4xl mx-auto text-sm text-gray-800">
         {/* Back to  Dashboard */ }
+        <button 
+          onClick={handleBack}
+          className="mb-4 text-blue-600 hover:text-blue-600 flex items-center"
+        >
+          ← Back to Dashboard
+        </button>
+
          {/* Student Name Heading */ }
+         <h1 className="text-2xl font-bold text-gray-900 mb-6">{student.name}</h1>
+         
           {/* Header */ }
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <p className="text-gray-500">{student.email}</p>
+              <p className="text-gray-400">Status: {getStatus()}</p>
+            </div>
+            <div className="space-x-2">
+                <button className="text-sm bg-green-500 text-white px-3 py-1 rounded">Process Payment</button>
+                <button className="text-sm bg-green-500 text-white px-3 py-1 rounded">Edit</button>
+            </div>
+          </div>
            {/* Tabs */ }
             {/* Tab Content */ }
              {/* Summary */ }
