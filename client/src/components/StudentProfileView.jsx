@@ -164,7 +164,7 @@ const StudentProfileView = ({ studentId, onBack }) => {
             <div>Student ID: {student.id}</div>
           </div>
           <div>
-            <p className="font-medium">Current Membership</p>
+            <p className="font-medium mb-1">Current Membership</p>
             {currentMembership ? (
               <>
                 <div>Type: {currentMembership.type}</div>
@@ -256,6 +256,22 @@ const StudentProfileView = ({ studentId, onBack }) => {
         </div>
       )}
       {/* Summary */}
+      <div className="mt-8 p-4 bg-gray-50 rounded text-sm text-gray-700">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="font-medium">Payment Summary</p>
+            <p>Total Paid: {formatCurrency(totalPaid)}</p>
+            <p>Payment Records: {student.payments?.length || 0}</p>
+            <p></p>
+          </div>
+          <div>
+            <p className="font-medium">Membership Summary</p>
+            <p>Total Memberships: {student.memberships?.length || 0}</p>
+            <p>Current Status: {getStatus()}</p>
+            
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
