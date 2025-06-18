@@ -124,55 +124,59 @@ if (slug.length === 0 && method === "POST") {
 }
 
     // ✅ PUT /api/students/:id – Update student
-    if (slug.length === 1 && method === "PUT") {
-      const studentId = parseInt(slug[0], 10);
+if (slug.length === 1 && method === "PUT") {
+  const studentId = parseInt(slug[0], 10);
 
-      if (isNaN(studentId)) {
-        return res.status(400).json({ error: "Invalid student ID" });
-      }
+  if (isNaN(studentId)) {
+    return res.status(400).json({ error: "Invalid student ID" });
+  }
 
-      const { name, email, password } = req.body;
+  const { name, email, password, phone } = req.body; // Added phone extraction
 
-      if (!name || !email) {
-        return res.status(400).json({ error: "Name and email are required" });
-      }
+  if (!name || !email) {
+    return res.status(400).json({ error: "Name and email are required" });
+  }
 
-      const student = await prisma.student.findUnique({
-        where: { id: studentId },
-        include: { user: true }
-      });
+  const student = await prisma.student.findUnique({
+    where: { id: studentId },
+    include: { user: true }
+  });
 
-      if (!student) {
-        return res.status(404).json({ error: "Student not found" });
-      }
+  if (!student) {
+    return res.status(404).json({ error: "Student not found" });
+  }
 
-      const updateStudentPromise = prisma.student.update({
-        where: { id: studentId },
-        data: { name, email }
-      });
-
-      let updatePasswordPromise = null;
-
-      if (password) {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        updatePasswordPromise = prisma.user.update({
-          where: { id: student.userId },
-          data: { password: hashedPassword }
-        });
-      }
-
-      try {
-        const [updatedStudent] = await Promise.all([
-          updateStudentPromise,
-          updatePasswordPromise
-        ].filter(Boolean));
-
-        return res.json(updatedStudent);
-      } catch (err) {
-        console.error("Error updating:", err);
-        return res.status(500).json({ error: "Failed to update student" });
-      }
+  const updateStudentPromise = prisma.student.update({
+    where: { id: studentId },
+    data: { 
+      name, 
+      email,
+      phone: phone || null // Added phone field handling
     }
+  });
+
+  let updatePasswordPromise = null;
+
+  if (password) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    updatePasswordPromise = prisma.user.update({
+      where: { id: student.userId },
+      data: { password: hashedPassword }
+    });
+  }
+
+  try {
+    const [updatedStudent] = await Promise.all([
+      updateStudentPromise,
+      updatePasswordPromise
+    ].filter(Boolean));
+
+    return res.json(updatedStudent);
+  } catch (err) {
+    console.error("Error updating:", err);
+    return res.status(500).json({ error: "Failed to update student" });
+  }
+}
 
     // ✅ DELETE /api/students/:id – Delete student
     if (slug.length === 1 && method === "DELETE") {

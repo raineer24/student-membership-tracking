@@ -5,6 +5,7 @@ import ErrorMessage from "../components/ErrorMessage";
 import PaymentModal from "../components/PaymentModal";
 import AddStudentModal from "../components/AddStudentModal";
 import LogoutButton from "../components/LogoutButton";
+import StudentProfileView from "../components/StudentProfileView";
 
 export default function DashboardPage() {
   const { user, token } = useAuth();
@@ -13,6 +14,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // View state management
+  const [activeView, setActiveView] = useState("dashboard"); // "dashboard" | "profile"
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
+
+  // Modal states
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [addStudentModalOpen, setAddStudentModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -74,6 +80,17 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // View handlers
+  const handleViewStudent = (student) => {
+    setSelectedStudentId(student.id);
+    setActiveView("profile");
+  };
+
+  const handleBackToDashboard = () => {
+    setActiveView("dashboard");
+    setSelectedStudentId(null);
   };
 
   const handleProcessPayment = (student) => {
@@ -143,75 +160,47 @@ export default function DashboardPage() {
     if (activeTab === "active") {
       filtered = filtered.filter(isStudentActive);
     } else if (activeTab === "inactive") {
-      filtered = filtered.filter(
-        (student) => !isStudentActive(student) && !isStudentOverdue(student)
-      );
+      filtered = filtered.filter(student => !isStudentActive(student) && !isStudentOverdue(student));
     } else if (activeTab === "overdue") {
       filtered = filtered.filter(isStudentOverdue);
     }
 
-    // Filter by membership type
-    if (selectedFilter !== "all") {
-      filtered = filtered.filter((student) => {
-        if (!student.memberships || student.memberships.length === 0) {
-          return selectedFilter === "expired";
-        }
-
-        const now = new Date();
-
-        if (selectedFilter === "monthly") {
-          return student.memberships.some(
-            (membership) =>
-              (membership.membershipType &&
-                membership.membershipType.toLowerCase().includes("monthly")) ||
-              (membership.type && membership.type === "MONTHLY")
-          );
-        } else if (selectedFilter === "yearly") {
-          return student.memberships.some(
-            (membership) =>
-              (membership.membershipType &&
-                membership.membershipType.toLowerCase().includes("yearly")) ||
-              (membership.type && membership.type === "YEARLY")
-          );
-        } else if (selectedFilter === "expired") {
-          return student.memberships.every((membership) => {
-            const endDate = new Date(membership.endDate);
-            return endDate <= now;
-          });
-        }
-
-        return true;
-      });
-    }
-
     // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter((student) => {
-        const name = (student.name || "").toLowerCase();
-        const email = (student.email || "").toLowerCase();
-        const phone = (student.phone || "").toLowerCase();
-        const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(student =>
+        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
 
-        return (
-          name.includes(searchLower) ||
-          email.includes(searchLower) ||
-          phone.includes(searchLower)
-        );
+    // Filter by membership type
+    if (selectedFilter !== "all") {
+      filtered = filtered.filter(student => {
+        const latestMembership = student.memberships?.[0];
+        if (selectedFilter === "expired") {
+          return latestMembership && new Date(latestMembership.endDate) < new Date();
+        }
+        return latestMembership?.type?.toLowerCase() === selectedFilter;
       });
     }
 
-    console.log("Filtered students result:", filtered);
     return filtered;
   }, [students, activeTab, searchTerm, selectedFilter]);
 
-  const refreshData = () => {
-    fetchDashboardData();
-  };
+  // Conditional rendering based on activeView
+  if (activeView === "profile" && selectedStudentId) {
+    return (
+      <StudentProfileView
+        studentId={selectedStudentId}
+        onBack={handleBackToDashboard}
+      />
+    );
+  }
 
+  // Show loading or error states
   if (loading) return <LoadingSpinner message="Loading dashboard..." />;
-  if (error) return <ErrorMessage message={error} onRetry={refreshData} />;
-  if (!dashboardData)
-    return <ErrorMessage message="No dashboard data available" />;
+  if (error) return <ErrorMessage message={error} onRetry={fetchDashboardData} />;
+  if (!dashboardData) return <div>No data available</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -227,7 +216,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={refreshData}
+                onClick={fetchDashboardData}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Refresh Data
@@ -266,6 +255,7 @@ export default function DashboardPage() {
             students={filteredStudents}
             loading={loading}
             onProcessPayment={handleProcessPayment}
+            onViewStudent={handleViewStudent}
           />
 
           <div className="px-6 py-4 border-t border-gray-200">
@@ -292,7 +282,7 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* Payment Modal */}
+      {/* Modals */}
       <PaymentModal
         isOpen={paymentModalOpen}
         onClose={() => {
@@ -306,7 +296,7 @@ export default function DashboardPage() {
       <AddStudentModal
         isOpen={addStudentModalOpen}
         onClose={() => setAddStudentModalOpen(false)}
-        onStudentAdded={handleStudentAdded} // ✅ Correct - as a prop
+        onStudentAdded={handleStudentAdded}
       />
     </div>
   );
@@ -469,68 +459,39 @@ const SearchAndFilters = ({
   setSelectedFilter,
   students,
 }) => {
-  // Calculate counts for each filter option
+  // Calculate filter counts
   const filterCounts = useMemo(() => {
-    const now = new Date();
-    let monthlyCount = 0;
-    let yearlyCount = 0;
-    let expiredCount = 0;
-
-    students.forEach((student) => {
-      if (!student.memberships || student.memberships.length === 0) {
-        expiredCount++;
-        return;
-      }
-
-      let hasMonthly = false;
-      let hasYearly = false;
-      let allExpired = true;
-
-      student.memberships.forEach((membership) => {
-        const endDate = new Date(membership.endDate);
-        if (endDate > now) {
-          allExpired = false;
-        }
-
-        if (membership.membershipType) {
-          const type = membership.membershipType.toLowerCase();
-          if (type.includes("monthly")) hasMonthly = true;
-          if (type.includes("yearly")) hasYearly = true;
-        } else if (membership.type) {
-          if (membership.type === "MONTHLY") hasMonthly = true;
-          if (membership.type === "YEARLY") hasYearly = true;
-        }
-      });
-
-      if (hasMonthly) monthlyCount++;
-      if (hasYearly) yearlyCount++;
-      if (allExpired) expiredCount++;
-    });
+    const monthlyCount = students.filter(student => 
+      student.memberships?.some(m => m.type?.toLowerCase() === 'monthly')
+    ).length;
+    
+    const yearlyCount = students.filter(student => 
+      student.memberships?.some(m => m.type?.toLowerCase() === 'yearly')
+    ).length;
+    
+    const expiredCount = students.filter(student => 
+      student.memberships?.some(m => new Date(m.endDate) < new Date())
+    ).length;
 
     return { monthlyCount, yearlyCount, expiredCount };
   }, [students]);
 
   return (
-    <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+    <div className="px-6 py-4 border-b border-gray-200">
       <div className="flex flex-col sm:flex-row gap-4">
-        {/* Search Bar */}
+        {/* Search Input */}
         <div className="flex-1">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-gray-400">🔍</span>
-            </div>
-            <input
-              type="text"
-              placeholder="Search students by name, email, or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
+          <input
+            type="text"
+            placeholder="Search students by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          />
         </div>
 
-        {/* Filter Dropdown with counts */}
-        <div className="sm:w-48">
+        {/* Filter Dropdown */}
+        <div className="w-full sm:w-64">
           <select
             value={selectedFilter}
             onChange={(e) => {
@@ -562,7 +523,7 @@ const SearchAndFilters = ({
 };
 
 // Students Table Component
-const StudentsTable = ({ students, loading, onProcessPayment }) => {
+const StudentsTable = ({ students, loading, onProcessPayment, onViewStudent }) => {
   if (loading) {
     return (
       <div className="px-6 py-8">
@@ -607,6 +568,7 @@ const StudentsTable = ({ students, loading, onProcessPayment }) => {
               key={student.id}
               student={student}
               onProcessPayment={onProcessPayment}
+              onViewStudent={onViewStudent}
             />
           ))}
         </tbody>
@@ -615,8 +577,8 @@ const StudentsTable = ({ students, loading, onProcessPayment }) => {
   );
 };
 
-// Student Row Component
-const StudentRow = ({ student, onProcessPayment }) => {
+// Student Row Component - UPDATED TO REMOVE CONSOLE.LOG
+const StudentRow = ({ student, onProcessPayment, onViewStudent }) => {
   if (!student) {
     console.warn("StudentRow received null/undefined student");
     return null;
@@ -689,6 +651,21 @@ const StudentRow = ({ student, onProcessPayment }) => {
     });
   };
 
+  // Default handlers for actions that don't have props yet
+  const handleEditStudent = () => {
+    // Placeholder for edit functionality
+    alert(`Edit functionality for ${student.name} is not implemented yet.`);
+  };
+
+  const handleContactStudent = () => {
+    // Placeholder for contact functionality
+    if (student.email) {
+      window.location.href = `mailto:${student.email}`;
+    } else {
+      alert(`No email address available for ${student.name}.`);
+    }
+  };
+
   const studentStatus = getStudentStatus(student);
   const latestMembership = getLatestMembership(student.memberships);
 
@@ -724,24 +701,28 @@ const StudentRow = ({ student, onProcessPayment }) => {
         <button
           onClick={() => onProcessPayment(student)}
           className="text-green-600 hover:text-green-900 transition-colors font-medium"
+          title="Process Payment"
         >
           💳 Payment
         </button>
         <button
-          onClick={() => console.log("View student:", student.id)}
+          onClick={() => onViewStudent(student)}
           className="text-blue-600 hover:text-blue-900 transition-colors"
+          title="View Student Profile"
         >
           View
         </button>
         <button
-          onClick={() => console.log("Edit student:", student.id)}
+          onClick={handleEditStudent}
           className="text-indigo-600 hover:text-indigo-900 transition-colors"
+          title="Edit Student"
         >
           Edit
         </button>
         <button
-          onClick={() => console.log("Contact student:", student.email)}
+          onClick={handleContactStudent}
           className="text-purple-600 hover:text-purple-900 transition-colors"
+          title="Contact Student"
         >
           Contact
         </button>
