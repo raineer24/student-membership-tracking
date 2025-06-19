@@ -6,6 +6,8 @@ import PaymentModal from "../components/PaymentModal";
 import AddStudentModal from "../components/AddStudentModal";
 import LogoutButton from "../components/LogoutButton";
 import StudentProfileView from "../components/StudentProfileView";
+import StudentEditForm from "./StudentEditForm";
+import { useToast } from "../hooks/useToast";
 
 export default function DashboardPage() {
   const { user, token } = useAuth();
@@ -13,10 +15,14 @@ export default function DashboardPage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [studentToEdit, setStudentToEdit] = useState(null);
 
   // View state management
   const [activeView, setActiveView] = useState("dashboard"); // "dashboard" | "profile"
   const [selectedStudentId, setSelectedStudentId] = useState(null);
+
+ const { showSuccess, showError} = useToast();
 
   // Modal states
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -91,7 +97,46 @@ export default function DashboardPage() {
   const handleBackToDashboard = () => {
     setActiveView("dashboard");
     setSelectedStudentId(null);
+    setEditMode(false);
+    setStudentToEdit(null);
   };
+
+  const handleEditStudent = (student) => {
+    setStudentToEdit(student);
+    setEditMode(true);
+  }
+
+  const handleSaveStudent = async (updatedStudent) => {
+    try {
+       const response = await fetch(`/api/students/${updatedStudent.id}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedStudent),
+        });
+
+        if (response.ok) {
+          setStudents(prev =>
+            prev.map(s => s.id === updatedStudent.id ? updatedStudent : s )
+          );
+
+          setEditMode(false);
+          setStudentToEdit(null);
+        } else {
+          throw new Error('Failed to update student');
+        }
+    } catch (error) {
+      console.error('Error updating student:', error);
+      throw error;
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditMode(false);
+    setStudentToEdit(null);
+  }
 
   const handleProcessPayment = (student) => {
     setSelectedStudent(student);
@@ -113,11 +158,12 @@ export default function DashboardPage() {
     const studentName = paymentResult.student?.name || "Student";
 
     // Show success message with proper data
-    alert(`Payment of ${amount} processed successfully for ${studentName}!`);
+       showSuccess(`Payment of ${amount} processed successfully for ${studentName}!`)
+   
   };
 
   const handleStudentAdded = (newStudent) => {
-    alert(`Student ${newStudent.name} added successfully!`);
+    showSuccess(`Student ${newStudent.name} added successfully!`)
     fetchDashboardData();
     setAddStudentModalOpen(false); // Close the modal
   };
@@ -160,25 +206,30 @@ export default function DashboardPage() {
     if (activeTab === "active") {
       filtered = filtered.filter(isStudentActive);
     } else if (activeTab === "inactive") {
-      filtered = filtered.filter(student => !isStudentActive(student) && !isStudentOverdue(student));
+      filtered = filtered.filter(
+        (student) => !isStudentActive(student) && !isStudentOverdue(student)
+      );
     } else if (activeTab === "overdue") {
       filtered = filtered.filter(isStudentOverdue);
     }
 
     // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter(student =>
-        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (student) =>
+          student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          student.email?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Filter by membership type
     if (selectedFilter !== "all") {
-      filtered = filtered.filter(student => {
+      filtered = filtered.filter((student) => {
         const latestMembership = student.memberships?.[0];
         if (selectedFilter === "expired") {
-          return latestMembership && new Date(latestMembership.endDate) < new Date();
+          return (
+            latestMembership && new Date(latestMembership.endDate) < new Date()
+          );
         }
         return latestMembership?.type?.toLowerCase() === selectedFilter;
       });
@@ -189,17 +240,33 @@ export default function DashboardPage() {
 
   // Conditional rendering based on activeView
   if (activeView === "profile" && selectedStudentId) {
+    if(editMode && studentToEdit) {
+      return (
+        <StudentEditForm
+          student={studentToEdit}
+          onSave={handleSaveStudent}
+          onCancel={handleCancelEdit}
+        />
+      )
+    }
     return (
       <StudentProfileView
         studentId={selectedStudentId}
         onBack={handleBackToDashboard}
+        onEdit={() => {
+          const student = students.find(s => s.id === selectedStudentId);
+          if(student) {
+            handleEditStudent(student);
+          }
+        }}
       />
     );
   }
 
   // Show loading or error states
   if (loading) return <LoadingSpinner message="Loading dashboard..." />;
-  if (error) return <ErrorMessage message={error} onRetry={fetchDashboardData} />;
+  if (error)
+    return <ErrorMessage message={error} onRetry={fetchDashboardData} />;
   if (!dashboardData) return <div>No data available</div>;
 
   return (
@@ -256,6 +323,7 @@ export default function DashboardPage() {
             loading={loading}
             onProcessPayment={handleProcessPayment}
             onViewStudent={handleViewStudent}
+            onEditStudent={handleEditStudent}
           />
 
           <div className="px-6 py-4 border-t border-gray-200">
@@ -461,16 +529,16 @@ const SearchAndFilters = ({
 }) => {
   // Calculate filter counts
   const filterCounts = useMemo(() => {
-    const monthlyCount = students.filter(student => 
-      student.memberships?.some(m => m.type?.toLowerCase() === 'monthly')
+    const monthlyCount = students.filter((student) =>
+      student.memberships?.some((m) => m.type?.toLowerCase() === "monthly")
     ).length;
-    
-    const yearlyCount = students.filter(student => 
-      student.memberships?.some(m => m.type?.toLowerCase() === 'yearly')
+
+    const yearlyCount = students.filter((student) =>
+      student.memberships?.some((m) => m.type?.toLowerCase() === "yearly")
     ).length;
-    
-    const expiredCount = students.filter(student => 
-      student.memberships?.some(m => new Date(m.endDate) < new Date())
+
+    const expiredCount = students.filter((student) =>
+      student.memberships?.some((m) => new Date(m.endDate) < new Date())
     ).length;
 
     return { monthlyCount, yearlyCount, expiredCount };
@@ -523,7 +591,13 @@ const SearchAndFilters = ({
 };
 
 // Students Table Component
-const StudentsTable = ({ students, loading, onProcessPayment, onViewStudent }) => {
+const StudentsTable = ({
+  students,
+  loading,
+  onProcessPayment,
+  onViewStudent,
+  onEditStudent
+}) => {
   if (loading) {
     return (
       <div className="px-6 py-8">
@@ -569,6 +643,7 @@ const StudentsTable = ({ students, loading, onProcessPayment, onViewStudent }) =
               student={student}
               onProcessPayment={onProcessPayment}
               onViewStudent={onViewStudent}
+              onEditStudent={onEditStudent}
             />
           ))}
         </tbody>
@@ -578,7 +653,7 @@ const StudentsTable = ({ students, loading, onProcessPayment, onViewStudent }) =
 };
 
 // Student Row Component - UPDATED TO REMOVE CONSOLE.LOG
-const StudentRow = ({ student, onProcessPayment, onViewStudent }) => {
+const StudentRow = ({ student, onProcessPayment, onViewStudent, onEditStudent }) => {
   if (!student) {
     console.warn("StudentRow received null/undefined student");
     return null;
@@ -651,11 +726,7 @@ const StudentRow = ({ student, onProcessPayment, onViewStudent }) => {
     });
   };
 
-  // Default handlers for actions that don't have props yet
-  const handleEditStudent = () => {
-    // Placeholder for edit functionality
-    alert(`Edit functionality for ${student.name} is not implemented yet.`);
-  };
+
 
   const handleContactStudent = () => {
     // Placeholder for contact functionality
@@ -711,13 +782,6 @@ const StudentRow = ({ student, onProcessPayment, onViewStudent }) => {
           title="View Student Profile"
         >
           View
-        </button>
-        <button
-          onClick={handleEditStudent}
-          className="text-indigo-600 hover:text-indigo-900 transition-colors"
-          title="Edit Student"
-        >
-          Edit
         </button>
         <button
           onClick={handleContactStudent}
