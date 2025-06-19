@@ -107,16 +107,25 @@ export default function DashboardPage() {
 
   const handleSaveStudent = async (updatedStudent) => {
     try {
-       const response = await fetch("/api/students", {
+       const response = await fetch(`/api/students/${updatedStudent.id}`, {
+          method: 'PUT',
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          body: JSON.stringify(updatedStudent),
         });
 
         if (response.ok) {
+          setStudents(prev =>
+            prev.map(s => s.id === updatedStudent.id ? updatedStudent : s )
+          );
 
-        } else {}
+          setEditMode(false);
+          setStudentToEdit(null);
+        } else {
+          throw new Error('Failed to update student');
+        }
     } catch (error) {
       console.error('Error updating student:', error);
       throw error;
