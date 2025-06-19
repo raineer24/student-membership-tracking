@@ -2,16 +2,14 @@ import React, { useEffect } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
-import StudentDashboard from "./pages/StudentDashboard"; // Student's personal dashboard
-import MembershipPage from "./pages/MembershipPage"; // Admin membership management
-import DashboardPage from "./components/DashboardPage"; // Admin main dashboard
+import StudentDashboard from "./pages/StudentDashboard";
+import MembershipPage from "./pages/MembershipPage";
+import DashboardPage from "./components/DashboardPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { useToast } from "./hooks/useToast";
+import { useToast, ToastProvider } from "./hooks/useToast.jsx";
 import SimpleToast from "./components/SimpleToast";
 
-// Custom Redirect Component
 const HomeRedirect = () => {
-  const { toast, hideToast } = useToast();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -54,13 +52,15 @@ const HomeRedirect = () => {
 
 const AppContent = () => {
   const { toast, hideToast } = useToast();
-
+  
+  console.log("AppContent render - toast state:", toast);
+  console.log("AppContent render - toast exists?", !!toast);
+  
   return (
     <div>
       <Routes>
         <Route path="/login" element={<Login />} />
 
-        {/* Student Routes */}
         <Route
           path="/student-dashboard"
           element={
@@ -70,7 +70,6 @@ const AppContent = () => {
           }
         />
 
-        {/* Admin Routes */}
         <Route
           path="/admin-dashboard"
           element={
@@ -88,7 +87,6 @@ const AppContent = () => {
           }
         />
 
-        {/* Legacy route redirects for backward compatibility */}
         <Route
           path="/membership"
           element={
@@ -110,23 +108,29 @@ const AppContent = () => {
         <Route path="*" element={<div>404 Not Found</div>} />
       </Routes>
 
+      {/* ENHANCED: Toast rendering with debugging */}
       {toast && (
-        <SimpleToast
-          message={toast.message}
-          type={toast.type}
-          onClose={hideToast}
-        />
+        <>
+          {console.log("Rendering toast:", toast)}
+          <SimpleToast
+            message={toast.message}
+            type={toast.type}
+            onClose={hideToast}
+          />
+        </>
       )}
     </div>
   );
 };
 
-// Main App Component
+// ENHANCED: Wrap with ToastProvider
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ToastProvider>
   );
 }
 
