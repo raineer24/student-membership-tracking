@@ -7,7 +7,7 @@ import MembershipPage from "./pages/MembershipPage"; // Admin membership managem
 import DashboardPage from "./components/DashboardPage"; // Admin main dashboard
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useToast } from "./hooks/useToast";
-import { SimpleToast } from "./components/SimpleToast";
+import SimpleToast from "./components/SimpleToast";
 
 // Custom Redirect Component
 const HomeRedirect = () => {
@@ -52,64 +52,64 @@ const HomeRedirect = () => {
   return null;
 };
 
-// Main App Component
-function App() {
+const AppContent = () => {
+  const { toast, hideToast } = useToast();
+
   return (
     <div>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+      <Routes>
+        <Route path="/login" element={<Login />} />
 
-          {/* Student Routes */}
-          <Route
-            path="/student-dashboard"
-            element={
-              <ProtectedRoute allowedRoles={["STUDENT"]}>
-                <StudentDashboard />
-              </ProtectedRoute>
-            }
-          />
+        {/* Student Routes */}
+        <Route
+          path="/student-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["STUDENT"]}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-          {/* Admin Routes */}
-          <Route
-            path="/admin-dashboard"
-            element={
-              <ProtectedRoute allowedRoles={["ADMIN"]}>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/memberships"
-            element={
-              <ProtectedRoute allowedRoles={["ADMIN"]}>
-                <MembershipPage />
-              </ProtectedRoute>
-            }
-          />
+        {/* Admin Routes */}
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/memberships"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <MembershipPage />
+            </ProtectedRoute>
+          }
+        />
 
-          {/* Legacy route redirects for backward compatibility */}
-          <Route
-            path="/membership"
-            element={
-              <ProtectedRoute allowedRoles={["STUDENT"]}>
-                <StudentDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute allowedRoles={["ADMIN"]}>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
+        {/* Legacy route redirects for backward compatibility */}
+        <Route
+          path="/membership"
+          element={
+            <ProtectedRoute allowedRoles={["STUDENT"]}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route path="/" element={<HomeRedirect />} />
-          <Route path="*" element={<div>404 Not Found</div>} />
-        </Routes>
-      </AuthProvider>
+        <Route path="/" element={<HomeRedirect />} />
+        <Route path="*" element={<div>404 Not Found</div>} />
+      </Routes>
+
       {toast && (
         <SimpleToast
           message={toast.message}
@@ -118,6 +118,15 @@ function App() {
         />
       )}
     </div>
+  );
+};
+
+// Main App Component
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
