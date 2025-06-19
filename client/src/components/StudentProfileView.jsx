@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
-const StudentProfileView = ({ studentId, onBack }) => {
+
+const StudentProfileView = ({ studentId, onBack, onEdit }) => {
   const [tab, setTab] = useState("overview");
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -129,7 +130,9 @@ const StudentProfileView = ({ studentId, onBack }) => {
           <button className="text-sm bg-green-500 text-white px-3 py-1 rounded">
             Process Payment
           </button>
-          <button className="text-sm bg-green-500 text-white px-3 py-1 rounded">
+          <button 
+            onClick={onEdit}
+          className="text-sm bg-green-500 text-white px-3 py-1 rounded">
             Edit
           </button>
         </div>

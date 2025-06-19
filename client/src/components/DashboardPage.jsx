@@ -6,6 +6,7 @@ import PaymentModal from "../components/PaymentModal";
 import AddStudentModal from "../components/AddStudentModal";
 import LogoutButton from "../components/LogoutButton";
 import StudentProfileView from "../components/StudentProfileView";
+import StudentEditForm from "./StudentEditForm";
 
 export default function DashboardPage() {
   const { user, token } = useAuth();
@@ -13,10 +14,14 @@ export default function DashboardPage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [studentToEdit, setStudentToEdit] = useState(null);
 
   // View state management
   const [activeView, setActiveView] = useState("dashboard"); // "dashboard" | "profile"
   const [selectedStudentId, setSelectedStudentId] = useState(null);
+
+
 
   // Modal states
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -91,7 +96,32 @@ export default function DashboardPage() {
   const handleBackToDashboard = () => {
     setActiveView("dashboard");
     setSelectedStudentId(null);
+    setEditMode(false);
+    setStudentToEdit(null);
   };
+
+  const handleEditStudent = (student) => {
+    setStudentToEdit(student);
+    setEditMode(true);
+  }
+
+  const handleSaveStudent = async (updatedStudent) => {
+    try {
+       const response = await fetch("/api/students", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.ok) {
+
+        } else {}
+    } catch (error) {
+      console.error('Error updating student:', error);
+      throw error;
+    }
+  }
 
   const handleProcessPayment = (student) => {
     setSelectedStudent(student);
@@ -160,25 +190,30 @@ export default function DashboardPage() {
     if (activeTab === "active") {
       filtered = filtered.filter(isStudentActive);
     } else if (activeTab === "inactive") {
-      filtered = filtered.filter(student => !isStudentActive(student) && !isStudentOverdue(student));
+      filtered = filtered.filter(
+        (student) => !isStudentActive(student) && !isStudentOverdue(student)
+      );
     } else if (activeTab === "overdue") {
       filtered = filtered.filter(isStudentOverdue);
     }
 
     // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter(student =>
-        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (student) =>
+          student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          student.email?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Filter by membership type
     if (selectedFilter !== "all") {
-      filtered = filtered.filter(student => {
+      filtered = filtered.filter((student) => {
         const latestMembership = student.memberships?.[0];
         if (selectedFilter === "expired") {
-          return latestMembership && new Date(latestMembership.endDate) < new Date();
+          return (
+            latestMembership && new Date(latestMembership.endDate) < new Date()
+          );
         }
         return latestMembership?.type?.toLowerCase() === selectedFilter;
       });
@@ -189,17 +224,33 @@ export default function DashboardPage() {
 
   // Conditional rendering based on activeView
   if (activeView === "profile" && selectedStudentId) {
+    if(editMode && studentToEdit) {
+      return (
+        <StudentEditForm
+          student={studentToEdit}
+          onSave={handleSaveStudent}
+          onCancel={handleCancelEdit}
+        />
+      )
+    }
     return (
       <StudentProfileView
         studentId={selectedStudentId}
         onBack={handleBackToDashboard}
+        onEdit={() => {
+          const student = students.find(s => s.id === selectedStudentId);
+          if(student) {
+            handleEditStudent(student);
+          }
+        }}
       />
     );
   }
 
   // Show loading or error states
   if (loading) return <LoadingSpinner message="Loading dashboard..." />;
-  if (error) return <ErrorMessage message={error} onRetry={fetchDashboardData} />;
+  if (error)
+    return <ErrorMessage message={error} onRetry={fetchDashboardData} />;
   if (!dashboardData) return <div>No data available</div>;
 
   return (
@@ -461,16 +512,16 @@ const SearchAndFilters = ({
 }) => {
   // Calculate filter counts
   const filterCounts = useMemo(() => {
-    const monthlyCount = students.filter(student => 
-      student.memberships?.some(m => m.type?.toLowerCase() === 'monthly')
+    const monthlyCount = students.filter((student) =>
+      student.memberships?.some((m) => m.type?.toLowerCase() === "monthly")
     ).length;
-    
-    const yearlyCount = students.filter(student => 
-      student.memberships?.some(m => m.type?.toLowerCase() === 'yearly')
+
+    const yearlyCount = students.filter((student) =>
+      student.memberships?.some((m) => m.type?.toLowerCase() === "yearly")
     ).length;
-    
-    const expiredCount = students.filter(student => 
-      student.memberships?.some(m => new Date(m.endDate) < new Date())
+
+    const expiredCount = students.filter((student) =>
+      student.memberships?.some((m) => new Date(m.endDate) < new Date())
     ).length;
 
     return { monthlyCount, yearlyCount, expiredCount };
@@ -523,7 +574,12 @@ const SearchAndFilters = ({
 };
 
 // Students Table Component
-const StudentsTable = ({ students, loading, onProcessPayment, onViewStudent }) => {
+const StudentsTable = ({
+  students,
+  loading,
+  onProcessPayment,
+  onViewStudent,
+}) => {
   if (loading) {
     return (
       <div className="px-6 py-8">
