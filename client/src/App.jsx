@@ -6,9 +6,12 @@ import StudentDashboard from "./pages/StudentDashboard"; // Student's personal d
 import MembershipPage from "./pages/MembershipPage"; // Admin membership management
 import DashboardPage from "./components/DashboardPage"; // Admin main dashboard
 import ProtectedRoute from "./components/ProtectedRoute";
+import { useToast } from "./hooks/useToast";
+import { SimpleToast } from "./components/SimpleToast";
 
 // Custom Redirect Component
 const HomeRedirect = () => {
+  const { toast, hideToast } = useToast();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -33,77 +36,88 @@ const HomeRedirect = () => {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
-      }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
         Loading...
       </div>
     );
   }
-  
+
   return null;
 };
 
 // Main App Component
 function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        
-        {/* Student Routes */}
-        <Route
-          path="/student-dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["STUDENT"]}>
-              <StudentDashboard />
-            </ProtectedRoute>
-          }
+    <div>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+
+          {/* Student Routes */}
+          <Route
+            path="/student-dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT"]}>
+                <StudentDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin Routes */}
+          <Route
+            path="/admin-dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/memberships"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <MembershipPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Legacy route redirects for backward compatibility */}
+          <Route
+            path="/membership"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT"]}>
+                <StudentDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="/" element={<HomeRedirect />} />
+          <Route path="*" element={<div>404 Not Found</div>} />
+        </Routes>
+      </AuthProvider>
+      {toast && (
+        <SimpleToast
+          message={toast.message}
+          type={toast.type}
+          onClose={hideToast}
         />
-        
-        {/* Admin Routes */}
-        <Route
-          path="/admin-dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN"]}>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/memberships"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN"]}>
-              <MembershipPage />
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* Legacy route redirects for backward compatibility */}
-        <Route
-          path="/membership"
-          element={
-            <ProtectedRoute allowedRoles={["STUDENT"]}>
-              <StudentDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["ADMIN"]}>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        
-        <Route path="/" element={<HomeRedirect />} />
-        <Route path="*" element={<div>404 Not Found</div>} />
-      </Routes>
-    </AuthProvider>
+      )}
+    </div>
   );
 }
 

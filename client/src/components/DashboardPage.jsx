@@ -7,6 +7,7 @@ import AddStudentModal from "../components/AddStudentModal";
 import LogoutButton from "../components/LogoutButton";
 import StudentProfileView from "../components/StudentProfileView";
 import StudentEditForm from "./StudentEditForm";
+import { useToast } from "../hooks/useToast";
 
 export default function DashboardPage() {
   const { user, token } = useAuth();
@@ -21,7 +22,7 @@ export default function DashboardPage() {
   const [activeView, setActiveView] = useState("dashboard"); // "dashboard" | "profile"
   const [selectedStudentId, setSelectedStudentId] = useState(null);
 
-
+ const { showSuccess, showError} = useToast();
 
   // Modal states
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -157,11 +158,12 @@ export default function DashboardPage() {
     const studentName = paymentResult.student?.name || "Student";
 
     // Show success message with proper data
-    alert(`Payment of ${amount} processed successfully for ${studentName}!`);
+       showSuccess(`Payment of ${amount} processed successfully for ${studentName}!`)
+   
   };
 
   const handleStudentAdded = (newStudent) => {
-    alert(`Student ${newStudent.name} added successfully!`);
+    showSuccess(`Student ${newStudent.name} added successfully!`)
     fetchDashboardData();
     setAddStudentModalOpen(false); // Close the modal
   };

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Save, X } from "lucide-react";
+import { useToast } from '../hooks/useToast';
 
 const StudentEditForm = ({ student, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -10,6 +11,7 @@ const StudentEditForm = ({ student, onSave, onCancel }) => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const { showSuccess, showError} = useState(false);
 
   const validatePhoneNumber = (phone) => {
     if (!phone) return true;
@@ -50,8 +52,10 @@ const StudentEditForm = ({ student, onSave, onCancel }) => {
     try {
       const updatedStudent = { ...student, ...formData };
       await onSave(updatedStudent);
+      showSuccess(`${updatedStudent.name} updated Successfully`)
     } catch (error) {
       console.error("Error updating student:", error);
+       showError('Failed to  update student. Please try again.')
       setErrors({ submit: "Failed to  update student. Please try again." });
     } finally {
       setLoading(false);
