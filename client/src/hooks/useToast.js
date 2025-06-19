@@ -4,7 +4,7 @@ export const useToast = () => {
     const [toast, setToast] = useState(null);
 
     const showSuccess = (message) => {
-        setToast({message, type: 'sucess', id: Date.now()});
+        setToast({message, type: 'success', id: Date.now()});
 
         
     }
