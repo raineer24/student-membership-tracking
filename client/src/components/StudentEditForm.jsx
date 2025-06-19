@@ -11,7 +11,7 @@ const StudentEditForm = ({ student, onSave, onCancel }) => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const { showSuccess, showError} = useState(false);
+  const { showSuccess, showError} = useToast();
 
   const validatePhoneNumber = (phone) => {
     if (!phone) return true;

@@ -6,7 +6,7 @@ const SimpleToast = ({ message, type = "success", onClose }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setVisible(false);
-      setTimeout(onClose, 3000);
+      setTimeout(onClose, 300);
     }, 3000);
 
     return () => clearTimeout(timer);
