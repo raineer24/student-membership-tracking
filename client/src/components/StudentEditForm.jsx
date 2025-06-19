@@ -107,6 +107,24 @@ const StudentEditForm = ({ student, onSave, onCancel }) => {
                         placeholder="Enter student's full name"
                         disabled={loading}
                     />
+                    {errors.name && (
+                        <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+                    )}
+                </div>
+
+                 <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email Address *
+                    </label>
+                    <input type="text" 
+                        value={formData.email}
+                        onChange={(e) => handleFieldChange('email', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            errors.email ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                        placeholder="student@example.com"
+                        disabled={loading}
+                    />
                     {errors.email && (
                         <p className="text-red-500 text-xs mt-1">{errors.email}</p>
                     )}
@@ -114,20 +132,41 @@ const StudentEditForm = ({ student, onSave, onCancel }) => {
 
                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Full Name *
+                        Phone Number
                     </label>
-                    <input type="text" 
-                        value={formData.name}
-                        onChange={(e) => handleFieldChange('name', e.target.value)}
+                    <input type="tel" 
+                        value={formData.phone}
+                        onChange={(e) => handleFieldChange('email', e.target.value)}
                         className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                            errors.name ? 'border-red-300' : 'border-gray-300'
+                            errors.phone ? 'border-red-300' : 'border-gray-300'
                         }`}
-                        placeholder="Enter student's full name"
+                        placeholder="+63-917-123-4567 or 09171234567"
                         disabled={loading}
                     />
                     {errors.email && (
-                        <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                        <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
                     )}
+                    <p className="text-xs text-gray-500 mt-1">
+                        Optional. Philippine format: +63-xxx-xxx-xxxx or 09xxxxxxxxx
+                    </p>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                    <button
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                        <Save className='h-4 w-4 mr-2'/>
+                        {loading ? 'Saving...' : 'Save Changes'}
+                    </button>
+                    <button
+                        onClick={onCancel}
+                        disabled={loading}
+                        className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                    >
+                        Cancel
+                    </button>
                 </div>
 
 
@@ -136,3 +175,5 @@ const StudentEditForm = ({ student, onSave, onCancel }) => {
     </div>
   )
 };
+
+export default StudentEditForm;
