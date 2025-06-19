@@ -316,6 +316,7 @@ export default function DashboardPage() {
             loading={loading}
             onProcessPayment={handleProcessPayment}
             onViewStudent={handleViewStudent}
+            onEditStudent={handleEditStudent}
           />
 
           <div className="px-6 py-4 border-t border-gray-200">
@@ -588,6 +589,7 @@ const StudentsTable = ({
   loading,
   onProcessPayment,
   onViewStudent,
+  onEditStudent
 }) => {
   if (loading) {
     return (
@@ -634,6 +636,7 @@ const StudentsTable = ({
               student={student}
               onProcessPayment={onProcessPayment}
               onViewStudent={onViewStudent}
+              onEditStudent={onEditStudent}
             />
           ))}
         </tbody>
@@ -643,7 +646,7 @@ const StudentsTable = ({
 };
 
 // Student Row Component - UPDATED TO REMOVE CONSOLE.LOG
-const StudentRow = ({ student, onProcessPayment, onViewStudent }) => {
+const StudentRow = ({ student, onProcessPayment, onViewStudent, onEditStudent }) => {
   if (!student) {
     console.warn("StudentRow received null/undefined student");
     return null;
@@ -716,11 +719,7 @@ const StudentRow = ({ student, onProcessPayment, onViewStudent }) => {
     });
   };
 
-  // Default handlers for actions that don't have props yet
-  const handleEditStudent = () => {
-    // Placeholder for edit functionality
-    alert(`Edit functionality for ${student.name} is not implemented yet.`);
-  };
+
 
   const handleContactStudent = () => {
     // Placeholder for contact functionality
@@ -778,7 +777,7 @@ const StudentRow = ({ student, onProcessPayment, onViewStudent }) => {
           View
         </button>
         <button
-          onClick={handleEditStudent}
+          onClick={() => onEditStudent(student)}
           className="text-indigo-600 hover:text-indigo-900 transition-colors"
           title="Edit Student"
         >
