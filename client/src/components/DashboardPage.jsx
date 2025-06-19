@@ -130,6 +130,11 @@ export default function DashboardPage() {
       console.error('Error updating student:', error);
       throw error;
     }
+  };
+
+  const handleCancelEdit = () => {
+    setEditMode(false);
+    setStudentToEdit(null);
   }
 
   const handleProcessPayment = (student) => {
@@ -775,13 +780,6 @@ const StudentRow = ({ student, onProcessPayment, onViewStudent, onEditStudent })
           title="View Student Profile"
         >
           View
-        </button>
-        <button
-          onClick={() => onEditStudent(student)}
-          className="text-indigo-600 hover:text-indigo-900 transition-colors"
-          title="Edit Student"
-        >
-          Edit
         </button>
         <button
           onClick={handleContactStudent}

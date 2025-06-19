@@ -136,14 +136,14 @@ const StudentEditForm = ({ student, onSave, onCancel }) => {
                     </label>
                     <input type="tel" 
                         value={formData.phone}
-                        onChange={(e) => handleFieldChange('email', e.target.value)}
+                        onChange={(e) => handleFieldChange('phone', e.target.value)}
                         className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                             errors.phone ? 'border-red-300' : 'border-gray-300'
                         }`}
                         placeholder="+63-917-123-4567 or 09171234567"
                         disabled={loading}
                     />
-                    {errors.email && (
+                    {errors.phone && (
                         <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
                     )}
                     <p className="text-xs text-gray-500 mt-1">
