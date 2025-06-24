@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
@@ -50,6 +50,13 @@ const Login = () => {
       height: '100vh',
       backgroundColor: '#f5f5f5'
     }}>
+      <div style={{
+        background: 'white',
+        borderRadius: '8px',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+        width: '100%',
+        maxWidth: '400px'
+      }}>
       <form onSubmit={handleSubmit} style={{
         background: 'white',
         padding: '2rem',
@@ -124,6 +131,34 @@ const Login = () => {
           {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
+
+       <div style={{
+          padding: '1rem 2rem 2rem 2rem',
+          borderTop: '1px solid #eee',
+          textAlign: 'center'
+        }}>
+          <p style={{ 
+            margin: '0 0 0.5rem 0', 
+            color: '#666', 
+            fontSize: '14px' 
+          }}>
+            Don't have an account?
+          </p>
+          <Link 
+            to="/register" 
+            style={{
+              color: '#007bff',
+              textDecoration: 'none',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+            onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+            onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+          >
+            Create new account
+          </Link>
+        </div>
+      </div>
     </div>
   );
 };
