@@ -26,9 +26,9 @@ const Register = () => {
     if (!formData.lastName.trim()) return "Last name is required";
     if (!formData.email.trim()) return "Email is required";
     if (!formData.email.includes("@")) return "Invalid email";
-    if (!formData.password.length < 6)
+    if (formData.password.length < 6)
       return "Password must be at least 6 characters";
-    if (!formData.password !== formData.confirmPassword)
+    if (formData.password !== formData.confirmPassword)
       return "Passwords don't match";
     if (!formData.phone.trim() && formData.role === "student") {
       const cleaned = formData.phone.replace(/[\s\-\(\)]/g, "");
@@ -114,13 +114,13 @@ const Register = () => {
           </div>
         )}
 
-        <form className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">
               Account Type
             </label>
             <select
-              name=""
+              name="role"
               value={formData.role}
               onChange={handleChange}
               className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
@@ -173,7 +173,6 @@ const Register = () => {
                 value={formData.phone}
                 onChange={handleChange}
                 className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                required
               />
               <p className="text-xs text-gray-500 mt-1">Format: +639XXXXXXXXX or 09XXXXXXXXX</p>
             </div>
@@ -196,7 +195,7 @@ const Register = () => {
               name="confirmPassword"
               type="password"
               placeholder="Confirm Password *"
-              value={formData.password}
+              value={formData.confirmPassword}
               onChange={handleChange}
               className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 ${
                 formData.confirmPassword && formData.password !== formData.confirmPassword
