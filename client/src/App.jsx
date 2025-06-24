@@ -8,6 +8,7 @@ import DashboardPage from "./components/DashboardPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useToast, ToastProvider } from "./hooks/useToast.jsx";
 import SimpleToast from "./components/SimpleToast";
+import Register from './pages/Register.jsx';
 
 const HomeRedirect = () => {
   const { user, loading } = useAuth();
@@ -60,7 +61,8 @@ const AppContent = () => {
     <div>
       <Routes>
         <Route path="/login" element={<Login />} />
-
+        
+        <Route path="/register" element={<Register />} />
         <Route
           path="/student-dashboard"
           element={

@@ -8,7 +8,8 @@ const AddStudentModal = ({ isOpen, onClose, onStudentAdded }) => {
 
   // Simple form state - basic student info
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     password: "",
@@ -24,7 +25,12 @@ const AddStudentModal = ({ isOpen, onClose, onStudentAdded }) => {
 
   const validateForm = () => {
     if (!formData.name.trim()) {
-      setError("Name is required");
+      setError("First name is required");
+      return false;
+    }
+
+     if (!formData.name.trim()) {
+      setError("Last name is required");
       return false;
     }
 
@@ -35,6 +41,16 @@ const AddStudentModal = ({ isOpen, onClose, onStudentAdded }) => {
     if (!formData.password || formData.password.length < 6) {
       setError("Password must be at least 6 characters");
       return false;
+    }
+
+     // Basic phone validation for Philippine numbers (if provided)
+    if (formData.phone.trim()) {
+      const cleaned = formData.phone.replace(/[\s\-\(\)]/g, '');
+      const isValid = /^\+639\d{9}$/.test(cleaned) || /^09\d{9}$/.test(cleaned) || /^639\d{9}$/.test(cleaned);
+      if (!isValid) {
+        setError("Please enter a valid Philippine mobile number");
+        return false;
+      }
     }
 
     return true;
@@ -49,13 +65,21 @@ const AddStudentModal = ({ isOpen, onClose, onStudentAdded }) => {
     setError(null);
 
     try {
+
+      const requestData = {
+        name: `${formData.firstname.trim()} ${formData.lastName.trim()}`,
+        email: formData.email.trim(),
+        phone: formData.phone.trim() || undefined,
+        password: formData.password,
+        role: 'student',
+      }
       const response = await fetch("/api/students", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(requestData),
       });
 
       if (!response.ok) {
@@ -68,7 +92,7 @@ const AddStudentModal = ({ isOpen, onClose, onStudentAdded }) => {
       //Success callback
       onStudentAdded(newStudent);
 
-      setFormData({ name: "", email: "", phone: "", password: "" });
+      setFormData({ firstNamename: "", lastName: "", email: "", phone: "", password: "" });
       onClose();
     } catch (error) {
       setError(error.message);
@@ -78,7 +102,7 @@ const AddStudentModal = ({ isOpen, onClose, onStudentAdded }) => {
   };
 
   const handleClose = () => {
-    setFormData({ name: "", email: "", phone: "", password: "" });
+    setFormData({ firstName:"", lastName: "", email: "", phone: "", password: "" });
     setError(null);
     onClose();
   };
@@ -105,17 +129,31 @@ const AddStudentModal = ({ isOpen, onClose, onStudentAdded }) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Name */}
+          {/* First Name */}
           <div>
-            <label className="block text-sm font-medium mb-1">Name *</label>
+            <label className="block text-sm font-medium mb-1">First Name *</label>
             <input
               type="text"
-              name="name"
-              value={formData.name}
+              name="firstname"
+              value={formData.firstName}
               onChange={handleChange}
               required
               className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-              placeholder="Student name"
+              placeholder="Juan"
+            />
+          </div>
+
+           {/* Last Name */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Last Name *</label>
+            <input
+              type="text"
+              name="lastname"
+              value={formData.lastName}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+              placeholder="Dela Cruz"
             />
           </div>
 
@@ -143,6 +181,7 @@ const AddStudentModal = ({ isOpen, onClose, onStudentAdded }) => {
               className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
               placeholder="091234566"
             />
+            <p className="text-xs text-gray-500 mt-1">Optional - for SMS reminders</p>
           </div>
           {/* Password */}
           <div>
