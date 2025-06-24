@@ -105,90 +105,137 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white p-6 rounded shadow w-full max-w-sm">
-            <h2 className="text-xl font-bold text-center mb-4">Create Account</h2>
+      <div className="bg-white p-6 rounded shadow w-full max-w-sm">
+        <h2 className="text-xl font-bold text-center mb-4">Create Account</h2>
 
-            {error && (
-                <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
-                    <p className="text-red-600 text-sm">{error}</p>
-                </div>
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
+
+        <form className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Account Type
+            </label>
+            <select
+              name=""
+              value={formData.role}
+              onChange={handleChange}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="student">Student</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <div>
+            <input
+              name="firstName"
+              placeholder="First Name *"
+              value={formData.firstName}
+              onChange={handleChange}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <input
+              name="lastName"
+              placeholder="Last Name *"
+              value={formData.lastName}
+              onChange={handleChange}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <input
+              name="email"
+              type="email"
+              placeholder="Email Address *"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          {formData.role === "student" && (
+            <div>
+              <input
+                name="phone"
+                placeholder="Phone Number (Optional)"
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">Format: +639XXXXXXXXX or 09XXXXXXXXX</p>
+            </div>
+          )}
+
+          <div>
+            <input
+              name="password"
+              type="password"
+              placeholder="Password (min 6 characters) *"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <input
+              name="confirmPassword"
+              type="password"
+              placeholder="Confirm Password *"
+              value={formData.password}
+              onChange={handleChange}
+              className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 ${
+                formData.confirmPassword && formData.password !== formData.confirmPassword
+                    ? 'border-red-300' : ''
+              }`}
+              required
+            />
+            {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <p className="text-xs text-red-500 mt-1">Passwords don't match</p>
             )}
+          </div>
 
-            <form className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium mb-1">Account Type</label>
-                    <select 
-                    name=""
-                    value={formData.role}
-                    onChange={handleChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                    required
-                    >
-                        <option value="student">Student</option>
-                         <option value="admin">Admin</option>
-                    </select>
-                </div>
+          <button
+          type="submit"
+          disabled={loading}
+          className={`w-full p-2 rounded font-medium ${
+            loading
+            ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+            : 'bg-blue-500 text-white hover:bg-blue-600'
+          }`}
+          >
+            {loading ? 'Creating Account...' : 'Create Account'}
+          </button>
 
-                <div>
-                    <input 
-                    name="firstName"
-                    placeholder="First Name *"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                    required
-                    />
-                </div>
-
-                 <div>
-                    <input 
-                    name="firstName"
-                    placeholder="First Name *"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                    required
-                    />
-                </div>
-
-                 <div>
-                    <input 
-                    name="firstName"
-                    placeholder="First Name *"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                    required
-                    />
-                </div>
-
-                 <div>
-                    <input 
-                    name="firstName"
-                    placeholder="First Name *"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                    required
-                    />
-                </div>
-
-                 <div>
-                    <input 
-                    name="firstName"
-                    placeholder="First Name *"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                    required
-                    />
-                </div>
-
-
-            </form>
-        </div>
+          <div className="text-center pt-2">
+            <p className="text-sm text-gray-600">
+                Already have an account?{' '}
+                <Link
+                    to='/login'
+                    className="text-blue-500 hover:text-blue-700 hover:underline font-medium"
+                >
+                    Sign In
+                </Link>
+            </p>
+          </div>
+        </form>
+      </div>
     </div>
-  )
+  );
 };
 
 export default Register;
