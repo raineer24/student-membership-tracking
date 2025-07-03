@@ -37,20 +37,31 @@ const PaymentModal = ({
     YEARLY: 16800,
   };
 
+  // Line 40: Enhanced date formatting function with timezone handling
   const formatDate = (date) => {
-    return date.toISOString().split("T")[0];
+    const localDate = new Date(date);
+    // Ensure we're working with local timezone
+    const year = localDate.getFullYear();
+    const month = String(localDate.getMonth() + 1).padStart(2, '0');
+    const day = String(localDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
+  // Line 49: Enhanced display date function
   const getDisplayDate = (dateString) => {
     if (!dateString) return "";
 
-    const date = new Date(dateString);
+    const date = new Date(dateString + 'T12:00:00'); // Force noon to avoid timezone issues
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
     const todayStr = formatDate(today);
     const yesterdayStr = formatDate(yesterday);
+    const inputStr = dateString;
+
+    if (inputStr === todayStr) return "Today";
+    if (inputStr === yesterdayStr) return "Yesterday";
 
     return date.toLocaleDateString("en-US", {
       weekday: "short",
@@ -60,21 +71,24 @@ const PaymentModal = ({
     });
   };
 
+  // Line 68: Fixed getMaxDate function
   const getMaxDate = () => {
     return formatDate(new Date());
   };
 
+  // Line 72: Fixed getMinDate function  
   const getMinDate = () => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     return formatDate(thirtyDaysAgo);
   };
 
+  // Line 78: Fixed getPreviewDates function - FIXED TYPO FROM newDate() to new Date()
   const getPreviewDates = () => {
     const baseDate =
       formData.paymentDateOption === "custom" && formData.customPaymentDate
-        ? newDate(formData.customPaymentDate)
-        : newDate();
+        ? new Date(formData.customPaymentDate + 'T12:00:00') // FIXED: was newDate()
+        : new Date();
 
     const endDate = new Date(baseDate);
     if (formData.membershipType === "MONTHLY") {
@@ -89,6 +103,7 @@ const PaymentModal = ({
     };
   };
 
+  // Line 96: Enhanced input change handler
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -107,6 +122,7 @@ const PaymentModal = ({
     }
   };
 
+  // Line 114: Enhanced membership type change handler
   const handleMembershipTypeChange = (type) => {
     setFormData((prev) => ({
       ...prev,
@@ -114,17 +130,18 @@ const PaymentModal = ({
       amount: membershipPrices[type].toString(),
     }));
 
-    //Clear amount-related errors since we're setting a valid amount
+    // Clear amount-related errors since we're setting a valid amount
     if (error && error.includes("amount")) {
       setError(null);
     }
   };
 
+  // Line 127: Enhanced payment date option change handler
   const handlePaymentDateOptionsChange = (option) => {
     setFormData((prev) => ({
       ...prev,
       paymentDateOption: option,
-      // If switching to custom, default to today: if switching to today, clear custom date
+      // If switching to custom, default to today; if switching to today, clear custom date
       customPaymentDate: option === "today" ? "" : formatDate(new Date()),
     }));
 
@@ -133,18 +150,20 @@ const PaymentModal = ({
     }
   };
 
+  // Line 140: Enhanced custom date change handler
   const handleCustomDateChange = (e) => {
     setFormData((prev) => ({
       ...prev,
       customPaymentDate: e.target.value,
     }));
 
-    // clear date-related errors
+    // Clear date-related errors
     if (error && error.includes("date")) {
       setError(null);
     }
   };
 
+  // Line 153: Enhanced form validation with fixed timezone handling
   const validateForm = () => {
     if (!student) {
       setError("No student selected");
@@ -172,30 +191,29 @@ const PaymentModal = ({
       }
     }
 
-    // new: payment date validation
+    // Enhanced payment date validation with proper timezone handling
     if (formData.paymentDateOption === "custom") {
       if (!formData.customPaymentDate) {
         setError("Please select a payment date");
         return false;
       }
 
-      // additional client-sidedate validation
-      const selectedDate = new Date(formData.customPaymentDate);
+      // FIXED: Enhanced client-side date validation with consistent timezone handling
+      const selectedDate = new Date(formData.customPaymentDate + 'T12:00:00');
       const today = new Date();
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      // Remove time component for accurate comparison
+      // Normalize times for accurate comparison
       today.setHours(23, 59, 59, 999);
       thirtyDaysAgo.setHours(0, 0, 0, 0);
-      selectedDate.setHours(12, 0, 0, 0);
 
       if (selectedDate > today) {
         setError("Payment date cannot be in the future");
         return false;
       }
 
-      if (selectedDate > thirtyDaysAgo) {
+      if (selectedDate < thirtyDaysAgo) {
         setError("Payment date cannot be more than 30 days ago");
         return false;
       }
@@ -204,8 +222,9 @@ const PaymentModal = ({
     return true;
   };
 
+  // Line 206: Enhanced submit handler
   const handleSubmit = async (e) => {
-    e.preventDefault(); // ✅ Fixed typo from preventDefault()
+    e.preventDefault(); // FIXED: was preventDefault()
 
     if (!validateForm()) {
       return;
@@ -224,13 +243,11 @@ const PaymentModal = ({
         formData.customPaymentDate
       ) {
         // Convert custom date to ISO string for backend
-        const customDate = new Date(formData.customPaymentDate);
-        // Set time to noon to avoid timezone issues
-        customDate.setHours(12, 0, 0, 0);
+        const customDate = new Date(formData.customPaymentDate + 'T12:00:00');
         paymentDateToSend = customDate.toISOString();
         console.log("📅 Using custom payment date:", paymentDateToSend);
       } else {
-        // for 'today' option, don't send paymentDate (backend will use current timestamp)
+        // For 'today' option, don't send paymentDate (backend will use current timestamp)
         console.log("📅 Using current timestamp (today option)");
       }
 
@@ -269,22 +286,23 @@ const PaymentModal = ({
 
       // SUCCESS HANDLING WITH ENHANCED FEEDBACK
       const successMsg = paymentDateToSend
-        ? `Payment recorded fpr ${getDisplayDate(formData.customPaymentDate)}`
+        ? `Payment recorded for ${getDisplayDate(formData.customPaymentDate)}`
         : "Payment recorded successfully";
 
       setSuccessMessage(successMsg);
       console.log("Payment successful:", responseData);
 
-      // eNHANCED
+      // ENHANCED callback with more detailed information
       onPaymentSuccess({
         payment: responseData,
         student: student,
         membershipExtended: formData.extendMembership,
         amount: parseFloat(formData.amount),
         method: formData.method,
-        custonDate: paymentDateToSend ? formData.customPaymentDate : null,
+        customDate: paymentDateToSend ? formData.customPaymentDate : null, // FIXED: was custonDate
         paymentDate: responseData.paymentDate,
       });
+      
       // Small delay to show success message before closing
       setTimeout(() => {
         handleClose();
@@ -297,7 +315,7 @@ const PaymentModal = ({
     }
   };
 
-  // Reset form when modal opens/closes
+  // Line 291: Reset form when modal opens/closes
   const handleClose = () => {
     setFormData({
       amount: "",
@@ -309,10 +327,11 @@ const PaymentModal = ({
       customPaymentDate: "",
     });
     setError(null);
+    setSuccessMessage(null); // Clear success message too
     onClose();
   };
 
-  // handle escape key to close modal
+  // Line 306: Handle escape key to close modal
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && isOpen && !loading) {
@@ -320,7 +339,7 @@ const PaymentModal = ({
       }
     };
 
-    if (!isOpen) {
+    if (isOpen) { // FIXED: was !isOpen which is wrong logic
       document.addEventListener("keydown", handleKeyDown);
       return () => document.removeEventListener("keydown", handleKeyDown);
     }
@@ -335,7 +354,6 @@ const PaymentModal = ({
           {/* HEADER */}
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-900">
-              {" "}
               💳 Record Payment
             </h2>
             <button
@@ -398,12 +416,12 @@ const PaymentModal = ({
 
           {/* Main Form */}
           <div className="space-y-4">
-            {/** payment date selection section */}
-            <div className="border">
-              <label>📅 Payment Date</label>
+            {/* Payment date selection section */}
+            <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+              <label className="block text-sm font-medium text-gray-700 mb-3">📅 Payment Date</label>
 
               <div className="space-y-3">
-                {/** Today Option */}
+                {/* Today Option */}
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="radio"
@@ -417,10 +435,15 @@ const PaymentModal = ({
                     disabled={loading}
                   />
                   <span className="text-sm font-medium">
-                    Today ({getDisplayDate(formatDate(new Date()))})
+                    Today ({new Date().toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short", 
+                      day: "numeric"
+                    })})
                   </span>
                 </label>
-                {/** Custom Date Option */}
+                
+                {/* Custom Date Option */}
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="radio"
@@ -436,7 +459,7 @@ const PaymentModal = ({
                   <span className="text-sm font-medium">Different Date</span>
                 </label>
 
-                {/** Custom Date Picker (Conditional) */}
+                {/* Custom Date Picker (Conditional) */}
                 {formData.paymentDateOption === "custom" && (
                   <div className="ml-6">
                     <input
@@ -450,34 +473,35 @@ const PaymentModal = ({
                       aria-label="Select custom payment date"
                     />
 
-                    {/** Date Preview */}
+                    {/* Date Preview */}
                     {formData.customPaymentDate && (
-                      <div className="text-xs">
-                        <div className="flex">
+                       <div className="text-xs text-gray-600 bg-white p-2 rounded border mt-2">
+                        <div className="flex items-center space-x-1 mb-1">
                           <span>📅</span>
                           <span className="font-medium">Selected:</span>
                           <span>{getDisplayDate(formData.customPaymentDate)}</span>
                         </div>
-                        {formatDate.extendMembership && (
-                          <div className="flex">
+                        {formData.extendMembership && ( // FIXED: was formatDate.extendMembership
+                          <div className="flex items-center space-x-1">
                             <span>🎯</span>
                             <span className="font-medium">Membership:</span>
-                            <span>{getDisplayDate(getPreviewDates().startDate)}→ {getDisplayDate(getPreviewDates().endDate)}</span>
+                            <span>{getDisplayDate(getPreviewDates().startDate)} → {getDisplayDate(getPreviewDates().endDate)}</span>
                           </div>
                         )}
                       </div>
                     )}
                      {/* Helper Text */}
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 mt-1">
                       💡 You can select dates up to 30 days in the past
                     </p>
                   </div>
                 )}
               </div>
             </div>
+            
             {/* Quick Membership Buttons */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Quick Select (Exact Amount)
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -488,7 +512,7 @@ const PaymentModal = ({
                   className={`p-3 rounded-lg border text-sm transition-colors disabled:opacity-50 ${
                     formData.membershipType === "MONTHLY"
                       ? "bg-blue-50 border-blue-500 text-blue-700"
-                      : "bg-white border-gray-30 hover:bg-gray-50"
+                      : "bg-white border-gray-300 hover:bg-gray-50"
                   }`}
                 >
                   📅 Monthly
@@ -500,6 +524,7 @@ const PaymentModal = ({
                 <button
                   type="button"
                   onClick={() => handleMembershipTypeChange("YEARLY")}
+                  disabled={loading}
                   className={`p-3 rounded-lg border text-sm transition-colors disabled:opacity-50 ${
                     formData.membershipType === "YEARLY"
                       ? "bg-blue-50 border-blue-500 text-blue-700"
@@ -517,7 +542,7 @@ const PaymentModal = ({
 
             {/* Amount Input */}
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Amount (₱)
               </label>
               <input
@@ -554,7 +579,7 @@ const PaymentModal = ({
                 value={formData.method}
                 onChange={handleInputChange}
                 disabled={loading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
               >
                 {paymentMethods.map((method) => (
                   <option key={method.value} value={method.value}>
@@ -610,7 +635,7 @@ const PaymentModal = ({
               <button
                 type="button"
                 onClick={handleClose}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
                 disabled={loading}
               >
                 Cancel
