@@ -26,44 +26,48 @@ export default async function handler(req, res) {
       await authorizeRole("ADMIN", user);
 
       const payments = await prisma.payment.findMany({
-        include: { 
+        include: {
           student: {
             select: {
               id: true,
               name: true,
               email: true,
-              phone: true
-            }
-          }
+              phone: true,
+            },
+          },
         },
-        orderBy: { paidAt: 'desc' }
+        orderBy: { paidAt: "desc" },
       });
 
       return res.status(200).json({
         success: true,
         count: payments.length,
-        payments
+        payments,
       });
     }
 
     // ✅ GET /api/payments/:id
-    if (method === "GET" && pathParts.length === 1 && !isNaN(Number(pathParts[0]))) {
+    if (
+      method === "GET" &&
+      pathParts.length === 1 &&
+      !isNaN(Number(pathParts[0]))
+    ) {
       await authorizeRole("ADMIN", user);
 
       const id = Number(pathParts[0]);
 
       const payment = await prisma.payment.findUnique({
         where: { id },
-        include: { 
+        include: {
           student: {
             select: {
               id: true,
               name: true,
               email: true,
-              phone: true
-            }
-          }
-        }
+              phone: true,
+            },
+          },
+        },
       });
 
       return payment
@@ -72,43 +76,93 @@ export default async function handler(req, res) {
     }
 
     // ✅ POST /api/payments/create - Enhanced with membership extension
-    if (method === "POST" && pathParts.length === 1 && pathParts[0] === "create") {
+    if (
+      method === "POST" &&
+      pathParts.length === 1 &&
+      pathParts[0] === "create"
+    ) {
       await authorizeRole("ADMIN", user);
 
-      const { 
-        studentId, 
-        amount, 
-        method = "CASH", 
-        description = "", 
+      const {
+        studentId,
+        amount,
+        method = "CASH",
+        description = "",
         extendMembership = true,
-        membershipType = "MONTHLY"
+        membershipType = "MONTHLY",
+        paymentDate,
       } = req.body;
 
       // Validation
       if (!studentId || !amount) {
-        return res.status(400).json({ 
-          success: false, 
-          error: "Student ID and amount are required" 
+        return res.status(400).json({
+          success: false,
+          error: "Student ID and amount are required",
         });
       }
 
       if (isNaN(Number(amount)) || Number(amount) <= 0) {
-        return res.status(400).json({ 
-          success: false, 
-          error: "Amount must be a positive number" 
+        return res.status(400).json({
+          success: false,
+          error: "Amount must be a positive number",
         });
+      }
+
+      let validatedPaymentDate = new Date();
+
+      if (paymentDate) {
+        console.log("Custom payment date provided", paymentDate);
+
+        const customDate = new Date(paymentDate);
+        const now = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        //Validation 1: Check if date is valid
+        if (isNaN(customDate.getTime())) {
+          return res.status(400).json({
+            success: false,
+            error:
+              "Invalid payment date format. Please use a valid ISO date string",
+          });
+        }
+
+        //Validation 2: Prevent future dates
+        if (customDate > now) {
+          return res.status(400).json({
+            success: false,
+            error: "Payment date cannot be in the future",
+          });
+        }
+
+        // Validation 3: Prevent dates older than 30 days
+        if (customDate < thirtyDaysAgo) {
+          return res.status(400).json({
+            success: false,
+            error: "Payment date cannot be in the future",
+          });
+        }
+
+        //If all validation passes, use the custom date
+        validatedPaymentDate = customDate;
+        console.log(
+          "✅ Using custom payment date:",
+          validatedPaymentDate.toISOString()
+        );
+      } else {
+        console.log("ℹ️  No custom date provided, using current timestamp");
       }
 
       // Verify student exists
       const student = await prisma.student.findUnique({
         where: { id: Number(studentId) },
-        include: { memberships: true }
+        include: { memberships: true },
       });
 
       if (!student) {
-        return res.status(404).json({ 
-          success: false, 
-          error: "Student not found" 
+        return res.status(404).json({
+          success: false,
+          error: "Student not found",
         });
       }
 
@@ -119,7 +173,7 @@ export default async function handler(req, res) {
         method: method || "CASH",
         description: description || `${membershipType} membership payment`,
         status: "COMPLETED", // Assuming immediate completion for cash/direct payments
-        paidAt: new Date()
+        paidAt: validatedPaymentDate,
       };
 
       console.log("Creating payment with data:", paymentData);
@@ -132,13 +186,13 @@ export default async function handler(req, res) {
               id: true,
               name: true,
               email: true,
-              phone: true
-            }
-          }
-        }
+              phone: true,
+            },
+          },
+        },
       });
 
-      console.log("Payment created:", newPayment);
+      console.log("Payment created successfully:", newPayment.id);
 
       // Handle membership extension if requested
       let membershipResult = null;
@@ -147,45 +201,56 @@ export default async function handler(req, res) {
           // Find the most recent membership
           let membership = await prisma.membership.findFirst({
             where: { studentId: Number(studentId) },
-            orderBy: { endDate: 'desc' }
+            orderBy: { endDate: "desc" },
           });
 
-          const now = new Date();
-          let newEndDate = new Date();
+          const paymentDateTime = validatedPaymentDate;
+          let newEndDate = new Date(paymentDateTime);
 
           if (membership) {
             // Extend existing membership
             const membershipEndDate = new Date(membership.endDate);
-            const baseDate = membershipEndDate > now ? membershipEndDate : now;
-            
-            if (membershipType === "YEARLY") {
-              newEndDate = new Date(baseDate);
-              newEndDate.setFullYear(newEndDate.getFullYear() + 1);
-            } else {
-              // Default to MONTHLY
-              newEndDate = new Date(baseDate);
-              newEndDate.setMonth(newEndDate.getMonth() + 1);
-            }
+            console.log(
+              "Payment date for calculations",
+              paymentDateTime.toISOString()
+            );
+            const baseDate =
+              membershipEndDate > paymentDateTime
+                ? membershipEndDate
+                : paymentDateTime;
 
+            newEndDate = new Date(baseDate);
+
+            console.log("Membership extended:", baseDate.toISOString());
+          } else {
+            //Create new membership starting from payment date
+            newEndDate = new Date(paymentDateTime);
+            console.log(
+              "🆕 Creating new membership from payment date,",
+              paymentDateTime.toISOString()
+            );
+          }
+
+          //Calculate extension based on membership type
+          const originalEndDate = new Date(newEndDate);
+          if (membershipType === "YEARLY") {
+            newEndDate.setFullYear(newEndDate.getFullYear() + 1);
+          } else if (membershipType === "MONTHLY") {
+            newEndDate.setMonth(newEndDate.getMonth() + 1);
+          }
+
+          // update or create membership card
+          if (membership) {
             membershipResult = await prisma.membership.update({
               where: { id: membership.id },
-              data: { 
+              data: {
                 endDate: newEndDate,
                 type: membershipType,
                 isActive: true,
-                overdue: false
-              }
+                overdue: false,
+              },
             });
-
-            console.log("Membership extended:", membershipResult);
           } else {
-            // Create new membership
-            if (membershipType === "YEARLY") {
-              newEndDate.setFullYear(newEndDate.getFullYear() + 1);
-            } else {
-              newEndDate.setMonth(newEndDate.getMonth() + 1);
-            }
-
             membershipResult = await prisma.membership.create({
               data: {
                 studentId: Number(studentId),
@@ -193,11 +258,9 @@ export default async function handler(req, res) {
                 endDate: newEndDate,
                 type: membershipType,
                 isActive: true,
-                overdue: false
-              }
+                overdue: false,
+              },
             });
-
-            console.log("New membership created:", membershipResult);
           }
         } catch (membershipError) {
           console.error("Error handling membership:", membershipError);
@@ -205,18 +268,30 @@ export default async function handler(req, res) {
           // Just log the error and continue
         }
       }
-
-      return res.status(201).json({
+      const response = {
         success: true,
-        message: "Payment processed successfully",
+        message: 'Payment processed successfully',
         payment: newPayment,
         membership: membershipResult,
-        extendedMembership: extendMembership
-      });
+        extendedMembership: extendMembership,
+        paymentDate: validatedPaymentDate.toISOString(),
+        customDateUsed: !!paymentDate,
+        membershipExtension: membershipResult ? {
+          type: membershipType,
+          newEndDate: membershipResult.endDate,
+          startDate: membershipResult.startDate
+        } : null
+      }
+      console.log('✅ Payment processing completed successfully')
+      return res.status(201).json(response);
     }
 
     // ✅ PUT /api/payments/:id - Update payment
-    if (method === "PUT" && pathParts.length === 1 && !isNaN(Number(pathParts[0]))) {
+    if (
+      method === "PUT" &&
+      pathParts.length === 1 &&
+      !isNaN(Number(pathParts[0]))
+    ) {
       await authorizeRole("ADMIN", user);
 
       const id = Number(pathParts[0]);
@@ -238,44 +313,53 @@ export default async function handler(req, res) {
               id: true,
               name: true,
               email: true,
-              phone: true
-            }
-          }
-        }
+              phone: true,
+            },
+          },
+        },
       });
 
       return res.status(200).json({
         success: true,
         message: "Payment updated successfully",
-        payment: updated
+        payment: updated,
       });
     }
 
     // ✅ DELETE /api/payments/:id - Delete payment
-    if (method === "DELETE" && pathParts.length === 1 && !isNaN(Number(pathParts[0]))) {
+    if (
+      method === "DELETE" &&
+      pathParts.length === 1 &&
+      !isNaN(Number(pathParts[0]))
+    ) {
       await authorizeRole("ADMIN", user);
 
       const id = Number(pathParts[0]);
-      
+
       // Check if payment exists
       const payment = await prisma.payment.findUnique({ where: { id } });
       if (!payment) {
-        return res.status(404).json({ 
-          success: false, 
-          error: "Payment not found" 
+        return res.status(404).json({
+          success: false,
+          error: "Payment not found",
         });
       }
 
       await prisma.payment.delete({ where: { id } });
-      
+
       return res.status(200).json({
         success: true,
-        message: "Payment deleted successfully"
+        message: "Payment deleted successfully",
       });
     }
 
     // ✅ GET /api/payments/student/:studentId - Get payments for specific student
-    if (method === "GET" && pathParts.length === 2 && pathParts[0] === "student" && !isNaN(Number(pathParts[1]))) {
+    if (
+      method === "GET" &&
+      pathParts.length === 2 &&
+      pathParts[0] === "student" &&
+      !isNaN(Number(pathParts[1]))
+    ) {
       await authorizeRole("ADMIN", user);
 
       const studentId = Number(pathParts[1]);
@@ -288,48 +372,59 @@ export default async function handler(req, res) {
               id: true,
               name: true,
               email: true,
-              phone: true
-            }
-          }
+              phone: true,
+            },
+          },
         },
-        orderBy: { paidAt: 'desc' }
+        orderBy: { paidAt: "desc" },
       });
 
       return res.status(200).json({
         success: true,
         count: payments.length,
         studentId,
-        payments
+        payments,
       });
     }
 
     // ✅ GET /api/payments/stats - Payment statistics
-    if (method === "GET" && pathParts.length === 1 && pathParts[0] === "stats") {
+    if (
+      method === "GET" &&
+      pathParts.length === 1 &&
+      pathParts[0] === "stats"
+    ) {
       await authorizeRole("ADMIN", user);
 
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-      const [totalPayments, monthlyPayments, yearlyPayments, totalRevenue, monthlyRevenue, yearlyRevenue] = await Promise.all([
+      const [
+        totalPayments,
+        monthlyPayments,
+        yearlyPayments,
+        totalRevenue,
+        monthlyRevenue,
+        yearlyRevenue,
+      ] = await Promise.all([
         prisma.payment.count(),
         prisma.payment.count({
-          where: { paidAt: { gte: startOfMonth } }
+          where: { paidAt: { gte: startOfMonth } },
         }),
         prisma.payment.count({
-          where: { paidAt: { gte: startOfYear } }
-        }),
-        prisma.payment.aggregate({
-          _sum: { amount: true }
+          where: { paidAt: { gte: startOfYear } },
         }),
         prisma.payment.aggregate({
           _sum: { amount: true },
-          where: { paidAt: { gte: startOfMonth } }
         }),
         prisma.payment.aggregate({
           _sum: { amount: true },
-          where: { paidAt: { gte: startOfYear } }
-        })
+          where: { paidAt: { gte: startOfMonth } },
+        }),
+        prisma.payment.aggregate({
+          _sum: { amount: true },
+          where: { paidAt: { gte: startOfYear } },
+        }),
       ]);
 
       return res.status(200).json({
@@ -340,14 +435,14 @@ export default async function handler(req, res) {
           yearlyPayments,
           totalRevenue: totalRevenue._sum.amount || 0,
           monthlyRevenue: monthlyRevenue._sum.amount || 0,
-          yearlyRevenue: yearlyRevenue._sum.amount || 0
-        }
+          yearlyRevenue: yearlyRevenue._sum.amount || 0,
+        },
       });
     }
 
     // 🚫 Unsupported route
-    return res.status(404).json({ 
-      success: false, 
+    return res.status(404).json({
+      success: false,
       error: "Route not found",
       availableRoutes: [
         "GET /api/payments",
@@ -356,40 +451,40 @@ export default async function handler(req, res) {
         "PUT /api/payments/:id",
         "DELETE /api/payments/:id",
         "GET /api/payments/student/:studentId",
-        "GET /api/payments/stats"
-      ]
+        "GET /api/payments/stats",
+      ],
     });
-
   } catch (err) {
     console.error("❌ Payments API ERROR:", err);
-    
+
     if (err.message === "Authentication required") {
-      return res.status(401).json({ 
-        success: false, 
-        error: "Authentication required" 
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
       });
     }
-    
+
     if (err.message === "Unauthorized") {
-      return res.status(403).json({ 
-        success: false, 
-        error: "Unauthorized: Admin access required" 
+      return res.status(403).json({
+        success: false,
+        error: "Unauthorized: Admin access required",
       });
     }
 
-    if (err.code?.startsWith('P')) {
+    if (err.code?.startsWith("P")) {
       // Prisma error
-      return res.status(500).json({ 
-        success: false, 
-        error: "Database error", 
-        details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      return res.status(500).json({
+        success: false,
+        error: "Database error",
+        details:
+          process.env.NODE_ENV === "development" ? err.message : undefined,
       });
     }
 
-    return res.status(500).json({ 
-      success: false, 
+    return res.status(500).json({
+      success: false,
       error: "Internal server error",
-      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      details: process.env.NODE_ENV === "development" ? err.message : undefined,
     });
   }
-};
+}
