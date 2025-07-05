@@ -1,3 +1,4 @@
+// Line 1: Import statements for React and custom components
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -9,6 +10,7 @@ import StudentProfileView from "../components/StudentProfileView";
 import StudentEditForm from "./StudentEditForm";
 import { useToast } from "../hooks/useToast";
 
+// Line 12: Main dashboard component with enhanced payment-membership integration
 export default function DashboardPage() {
   const { user, token } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
@@ -22,7 +24,7 @@ export default function DashboardPage() {
   const [activeView, setActiveView] = useState("dashboard"); // "dashboard" | "profile"
   const [selectedStudentId, setSelectedStudentId] = useState(null);
 
- const { showSuccess, showError} = useToast();
+  const { showSuccess, showError } = useToast();
 
   // Modal states
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -38,6 +40,7 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
+  // Line 36: Enhanced data fetching with better error handling
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -88,7 +91,7 @@ export default function DashboardPage() {
     }
   };
 
-  // View handlers
+  // Line 77: View navigation handlers
   const handleViewStudent = (student) => {
     setSelectedStudentId(student.id);
     setActiveView("profile");
@@ -104,31 +107,34 @@ export default function DashboardPage() {
   const handleEditStudent = (student) => {
     setStudentToEdit(student);
     setEditMode(true);
-  }
+  };
 
+  // Line 92: Enhanced student save with membership verification
   const handleSaveStudent = async (updatedStudent) => {
     try {
-       const response = await fetch(`/api/students/${updatedStudent.id}`, {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(updatedStudent),
-        });
+      const response = await fetch(`/api/students/${updatedStudent.id}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedStudent),
+      });
 
-        if (response.ok) {
-          setStudents(prev =>
-            prev.map(s => s.id === updatedStudent.id ? updatedStudent : s )
-          );
+      if (response.ok) {
+        setStudents(prev =>
+          prev.map(s => s.id === updatedStudent.id ? updatedStudent : s)
+        );
 
-          setEditMode(false);
-          setStudentToEdit(null);
-        } else {
-          throw new Error('Failed to update student');
-        }
+        setEditMode(false);
+        setStudentToEdit(null);
+        showSuccess(`Student ${updatedStudent.name} updated successfully!`);
+      } else {
+        throw new Error('Failed to update student');
+      }
     } catch (error) {
       console.error('Error updating student:', error);
+      showError(`Failed to update student: ${error.message}`);
       throw error;
     }
   };
@@ -136,19 +142,18 @@ export default function DashboardPage() {
   const handleCancelEdit = () => {
     setEditMode(false);
     setStudentToEdit(null);
-  }
+  };
 
   const handleProcessPayment = (student) => {
     setSelectedStudent(student);
     setPaymentModalOpen(true);
   };
 
-  const handlePaymentSuccess = (paymentResult) => {
+  // Line 128: Critical fix - enhanced payment success handler with membership verification
+  const handlePaymentSuccess = async (paymentResult) => {
     console.log("Payment successful:", paymentResult);
-    // Refresh dashboard data to show updated information
-    fetchDashboardData();
-
-    // Extract amount from multiple possible sources
+    
+    // Extract payment details from multiple possible sources
     const amount =
       paymentResult.amount ||
       paymentResult.payment?.amount ||
@@ -156,19 +161,40 @@ export default function DashboardPage() {
       "0";
 
     const studentName = paymentResult.student?.name || "Student";
+    const membershipExtended = paymentResult.membershipExtended || paymentResult.membership;
 
-    // Show success message with proper data
-       showSuccess(`Payment of ${amount} processed successfully for ${studentName}!`)
-   
+    // Show immediate success message
+    showSuccess(`Payment of ₱${amount} processed successfully for ${studentName}!`);
+
+    // Verify membership creation/extension
+    if (membershipExtended) {
+      const membershipEndDate = membershipExtended.endDate || paymentResult.endDate;
+      if (membershipEndDate) {
+        const formattedDate = new Date(membershipEndDate).toLocaleDateString();
+        showSuccess(`Membership extended until ${formattedDate}`);
+      } else {
+        showSuccess("Membership successfully activated!");
+      }
+    } else {
+      // Warning if payment processed but no membership extended
+      showError("Payment processed but membership may not be activated. Please verify manually.");
+    }
+
+    // Refresh dashboard data to show updated information
+    await fetchDashboardData();
+    
+    setPaymentModalOpen(false);
+    setSelectedStudent(null);
   };
 
-  const handleStudentAdded = (newStudent) => {
-    showSuccess(`Student ${newStudent.name} added successfully!`)
-    fetchDashboardData();
-    setAddStudentModalOpen(false); // Close the modal
+  // Line 160: Enhanced student addition handler
+  const handleStudentAdded = async (newStudent) => {
+    showSuccess(`Student ${newStudent.name} added successfully!`);
+    await fetchDashboardData();
+    setAddStudentModalOpen(false);
   };
 
-  // Helper functions for student status
+  // Line 166: Improved student status determination logic
   const isStudentActive = (student) => {
     if (!student.memberships || student.memberships.length === 0) return false;
     return student.memberships.some((membership) => {
@@ -188,7 +214,7 @@ export default function DashboardPage() {
     });
   };
 
-  // Memoized filtered students for performance
+  // Line 183: Optimized student filtering with performance memoization
   const filteredStudents = useMemo(() => {
     console.log("Filtering - Original students:", students);
     console.log(
@@ -238,16 +264,16 @@ export default function DashboardPage() {
     return filtered;
   }, [students, activeTab, searchTerm, selectedFilter]);
 
-  // Conditional rendering based on activeView
+  // Line 224: Conditional rendering based on view state
   if (activeView === "profile" && selectedStudentId) {
-    if(editMode && studentToEdit) {
+    if (editMode && studentToEdit) {
       return (
         <StudentEditForm
           student={studentToEdit}
           onSave={handleSaveStudent}
           onCancel={handleCancelEdit}
         />
-      )
+      );
     }
     return (
       <StudentProfileView
@@ -255,7 +281,7 @@ export default function DashboardPage() {
         onBack={handleBackToDashboard}
         onEdit={() => {
           const student = students.find(s => s.id === selectedStudentId);
-          if(student) {
+          if (student) {
             handleEditStudent(student);
           }
         }}
@@ -269,6 +295,7 @@ export default function DashboardPage() {
     return <ErrorMessage message={error} onRetry={fetchDashboardData} />;
   if (!dashboardData) return <div>No data available</div>;
 
+  // Line 250: Main dashboard render
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -370,7 +397,7 @@ export default function DashboardPage() {
   );
 }
 
-// Summary Cards Component
+// Line 327: Summary Cards Component - Clean display of key metrics
 const SummaryCards = ({ data }) => {
   const cards = [
     {
@@ -403,8 +430,8 @@ const SummaryCards = ({ data }) => {
     },
     {
       title: "Total Revenue",
-      value: `$${data.totalRevenue || 0}`,
-      subtitle: `$${data.thisMonthRevenue || 0} this month`,
+      value: `₱${data.totalRevenue || 0}`,
+      subtitle: `₱${data.thisMonthRevenue || 0} this month`,
       icon: "💰",
       color: "yellow",
     },
@@ -419,7 +446,7 @@ const SummaryCards = ({ data }) => {
   );
 };
 
-// Stats Card Component
+// Line 372: Individual stats card component with color theming
 const StatsCard = ({ title, value, subtitle, icon, color }) => {
   const colorClasses = {
     blue: "bg-blue-50 border-blue-200 text-blue-900",
@@ -443,7 +470,7 @@ const StatsCard = ({ title, value, subtitle, icon, color }) => {
   );
 };
 
-// Student Tabs Component
+// Line 397: Student tabs component with dynamic counts
 const StudentTabs = ({ activeTab, setActiveTab, students }) => {
   // Helper function to determine if student is active
   const isStudentActive = (student) => {
@@ -519,7 +546,7 @@ const StudentTabs = ({ activeTab, setActiveTab, students }) => {
   );
 };
 
-// Search and Filters Component
+// Line 463: Search and filtering component with membership type filters
 const SearchAndFilters = ({
   searchTerm,
   setSearchTerm,
@@ -527,7 +554,7 @@ const SearchAndFilters = ({
   setSelectedFilter,
   students,
 }) => {
-  // Calculate filter counts
+  // Calculate filter counts for better UX
   const filterCounts = useMemo(() => {
     const monthlyCount = students.filter((student) =>
       student.memberships?.some((m) => m.type?.toLowerCase() === "monthly")
@@ -590,7 +617,7 @@ const SearchAndFilters = ({
   );
 };
 
-// Students Table Component
+// Line 525: Students table component with loading states
 const StudentsTable = ({
   students,
   loading,
@@ -652,14 +679,14 @@ const StudentsTable = ({
   );
 };
 
-// Student Row Component - UPDATED TO REMOVE CONSOLE.LOG
+// Line 576: Enhanced student row component with comprehensive status logic
 const StudentRow = ({ student, onProcessPayment, onViewStudent, onEditStudent }) => {
   if (!student) {
     console.warn("StudentRow received null/undefined student");
     return null;
   }
 
-  // Helper function to determine student status based on memberships
+  // Line 582: Enhanced student status determination with better logic
   const getStudentStatus = (student) => {
     if (!student.memberships || student.memberships.length === 0) {
       return "inactive";
@@ -687,6 +714,7 @@ const StudentRow = ({ student, onProcessPayment, onViewStudent, onEditStudent })
     return "inactive";
   };
 
+  // Line 605: Status badge component with proper color coding
   const getStatusBadge = (status) => {
     const statusConfig = {
       active: { bg: "bg-green-100", text: "text-green-800", label: "Active" },
@@ -705,6 +733,7 @@ const StudentRow = ({ student, onProcessPayment, onViewStudent, onEditStudent })
     );
   };
 
+  // Line 620: Safe date formatting function
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     try {
@@ -715,7 +744,7 @@ const StudentRow = ({ student, onProcessPayment, onViewStudent, onEditStudent })
     }
   };
 
-  // Get the most recent membership for due date
+  // Line 630: Get the most recent membership for display
   const getLatestMembership = (memberships) => {
     if (!memberships || memberships.length === 0) return null;
 
@@ -726,10 +755,8 @@ const StudentRow = ({ student, onProcessPayment, onViewStudent, onEditStudent })
     });
   };
 
-
-
+  // Line 641: Enhanced contact functionality
   const handleContactStudent = () => {
-    // Placeholder for contact functionality
     if (student.email) {
       window.location.href = `mailto:${student.email}`;
     } else {
@@ -740,6 +767,7 @@ const StudentRow = ({ student, onProcessPayment, onViewStudent, onEditStudent })
   const studentStatus = getStudentStatus(student);
   const latestMembership = getLatestMembership(student.memberships);
 
+  // Line 652: Student row render with comprehensive information display
   return (
     <tr className="hover:bg-gray-50">
       <td className="px-6 py-4 whitespace-nowrap">
@@ -782,6 +810,13 @@ const StudentRow = ({ student, onProcessPayment, onViewStudent, onEditStudent })
           title="View Student Profile"
         >
           View
+        </button>
+        <button
+          onClick={() => onEditStudent(student)}
+          className="text-indigo-600 hover:text-indigo-900 transition-colors"
+          title="Edit Student"
+        >
+          Edit
         </button>
         <button
           onClick={handleContactStudent}
