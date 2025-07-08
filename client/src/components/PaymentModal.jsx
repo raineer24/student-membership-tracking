@@ -51,7 +51,9 @@ const PaymentModal = ({
   const getDisplayDate = (dateString) => {
     if (!dateString) return "";
 
-    const date = new Date(dateString + 'T12:00:00'); // Force noon to avoid timezone issues
+    // FIXED: Parse date without time to avoid timezone issues
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day); // month is 0-indexed
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -71,24 +73,27 @@ const PaymentModal = ({
     });
   };
 
-  // Line 68: Fixed getMaxDate function
+  // Line 71: Fixed getMaxDate function
   const getMaxDate = () => {
     return formatDate(new Date());
   };
 
-  // Line 72: Fixed getMinDate function  
+  // Line 75: Fixed getMinDate function  
   const getMinDate = () => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     return formatDate(thirtyDaysAgo);
   };
 
-  // Line 78: Fixed getPreviewDates function - FIXED TYPO FROM newDate() to new Date()
+  // Line 81: Fixed getPreviewDates function with proper date handling
   const getPreviewDates = () => {
-    const baseDate =
-      formData.paymentDateOption === "custom" && formData.customPaymentDate
-        ? new Date(formData.customPaymentDate + 'T12:00:00') // FIXED: was newDate()
-        : new Date();
+    let baseDate = new Date();
+    
+    if (formData.paymentDateOption === "custom" && formData.customPaymentDate) {
+      // FIXED: Parse date string properly without timezone conversion
+      const [year, month, day] = formData.customPaymentDate.split('-').map(Number);
+      baseDate = new Date(year, month - 1, day); // month is 0-indexed
+    }
 
     const endDate = new Date(baseDate);
     if (formData.membershipType === "MONTHLY") {
@@ -103,7 +108,7 @@ const PaymentModal = ({
     };
   };
 
-  // Line 96: Enhanced input change handler
+  // Line 102: Enhanced input change handler
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -122,7 +127,7 @@ const PaymentModal = ({
     }
   };
 
-  // Line 114: Enhanced membership type change handler
+  // Line 120: Enhanced membership type change handler
   const handleMembershipTypeChange = (type) => {
     setFormData((prev) => ({
       ...prev,
@@ -136,7 +141,7 @@ const PaymentModal = ({
     }
   };
 
-  // Line 127: Enhanced payment date option change handler
+  // Line 133: Enhanced payment date option change handler
   const handlePaymentDateOptionsChange = (option) => {
     setFormData((prev) => ({
       ...prev,
@@ -150,7 +155,7 @@ const PaymentModal = ({
     }
   };
 
-  // Line 140: Enhanced custom date change handler
+  // Line 146: Enhanced custom date change handler
   const handleCustomDateChange = (e) => {
     setFormData((prev) => ({
       ...prev,
@@ -163,7 +168,7 @@ const PaymentModal = ({
     }
   };
 
-  // Line 153: Enhanced form validation with fixed timezone handling
+  // Line 159: Enhanced form validation with fixed timezone handling
   const validateForm = () => {
     if (!student) {
       setError("No student selected");
@@ -199,7 +204,8 @@ const PaymentModal = ({
       }
 
       // FIXED: Enhanced client-side date validation with consistent timezone handling
-      const selectedDate = new Date(formData.customPaymentDate + 'T12:00:00');
+      const [year, month, day] = formData.customPaymentDate.split('-').map(Number);
+      const selectedDate = new Date(year, month - 1, day);
       const today = new Date();
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -207,6 +213,7 @@ const PaymentModal = ({
       // Normalize times for accurate comparison
       today.setHours(23, 59, 59, 999);
       thirtyDaysAgo.setHours(0, 0, 0, 0);
+      selectedDate.setHours(12, 0, 0, 0); // Set to noon for comparison
 
       if (selectedDate > today) {
         setError("Payment date cannot be in the future");
@@ -222,9 +229,9 @@ const PaymentModal = ({
     return true;
   };
 
-  // Line 206: Enhanced submit handler
+  // Line 209: Enhanced submit handler with fixed date handling
   const handleSubmit = async (e) => {
-    e.preventDefault(); // FIXED: was preventDefault()
+    e.preventDefault();
 
     if (!validateForm()) {
       return;
@@ -235,16 +242,12 @@ const PaymentModal = ({
     setSuccessMessage(null);
 
     try {
-      // Enhanced payment date determination
+      // FIXED: Enhanced payment date determination - send date string instead of ISO timestamp
       let paymentDateToSend = null;
 
-      if (
-        formData.paymentDateOption === "custom" &&
-        formData.customPaymentDate
-      ) {
-        // Convert custom date to ISO string for backend
-        const customDate = new Date(formData.customPaymentDate + 'T12:00:00');
-        paymentDateToSend = customDate.toISOString();
+      if (formData.paymentDateOption === "custom" && formData.customPaymentDate) {
+        // FIXED: Send date as string to avoid timezone conversion issues
+        paymentDateToSend = formData.customPaymentDate; // Send as "2025-07-05"
         console.log("📅 Using custom payment date:", paymentDateToSend);
       } else {
         // For 'today' option, don't send paymentDate (backend will use current timestamp)
@@ -260,7 +263,7 @@ const PaymentModal = ({
           `${formData.membershipType} membership payment`,
         extendMembership: formData.extendMembership,
         membershipType: formData.membershipType,
-        // Conditionally include paymentDate only if custom date is used
+        // FIXED: Conditionally include paymentDate as date string
         ...(paymentDateToSend && { paymentDate: paymentDateToSend }),
       };
 
@@ -299,7 +302,7 @@ const PaymentModal = ({
         membershipExtended: formData.extendMembership,
         amount: parseFloat(formData.amount),
         method: formData.method,
-        customDate: paymentDateToSend ? formData.customPaymentDate : null, // FIXED: was custonDate
+        customDate: paymentDateToSend ? formData.customPaymentDate : null,
         paymentDate: responseData.paymentDate,
       });
       
@@ -315,7 +318,7 @@ const PaymentModal = ({
     }
   };
 
-  // Line 291: Reset form when modal opens/closes
+  // Line 295: Reset form when modal opens/closes
   const handleClose = () => {
     setFormData({
       amount: "",
@@ -327,11 +330,11 @@ const PaymentModal = ({
       customPaymentDate: "",
     });
     setError(null);
-    setSuccessMessage(null); // Clear success message too
+    setSuccessMessage(null);
     onClose();
   };
 
-  // Line 306: Handle escape key to close modal
+  // Line 310: Handle escape key to close modal
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && isOpen && !loading) {
@@ -339,7 +342,7 @@ const PaymentModal = ({
       }
     };
 
-    if (isOpen) { // FIXED: was !isOpen which is wrong logic
+    if (isOpen) {
       document.addEventListener("keydown", handleKeyDown);
       return () => document.removeEventListener("keydown", handleKeyDown);
     }
@@ -481,7 +484,7 @@ const PaymentModal = ({
                           <span className="font-medium">Selected:</span>
                           <span>{getDisplayDate(formData.customPaymentDate)}</span>
                         </div>
-                        {formData.extendMembership && ( // FIXED: was formatDate.extendMembership
+                        {formData.extendMembership && (
                           <div className="flex items-center space-x-1">
                             <span>🎯</span>
                             <span className="font-medium">Membership:</span>

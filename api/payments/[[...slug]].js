@@ -87,10 +87,11 @@ export default async function handler(req, res) {
         method = "CASH", 
         description = "", 
         extendMembership = true,
-        membershipType = "MONTHLY"
+        membershipType = "MONTHLY",
+        paymentDate // NEW: Accept custom payment date
       } = req.body;
 
-      // Line 83: Comprehensive input validation
+      // Line 86: Comprehensive input validation
       if (!studentId || !amount) {
         return res.status(400).json({ 
           success: false, 
@@ -121,7 +122,45 @@ export default async function handler(req, res) {
         });
       }
 
-      // Line 109: Verify student exists and get current membership data
+      // Line 112: Enhanced payment date validation
+      if (paymentDate) {
+        // Validate date format (YYYY-MM-DD)
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(paymentDate)) {
+          return res.status(400).json({
+            success: false,
+            error: "Invalid payment date format. Expected YYYY-MM-DD"
+          });
+        }
+
+        // Parse and validate date range
+        const [year, month, day] = paymentDate.split('-').map(Number);
+        const selectedDate = new Date(year, month - 1, day);
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        // Normalize times for comparison
+        today.setHours(23, 59, 59, 999);
+        thirtyDaysAgo.setHours(0, 0, 0, 0);
+        selectedDate.setHours(12, 0, 0, 0);
+
+        if (selectedDate > today) {
+          return res.status(400).json({
+            success: false,
+            error: "Payment date cannot be in the future"
+          });
+        }
+
+        if (selectedDate < thirtyDaysAgo) {
+          return res.status(400).json({
+            success: false,
+            error: "Payment date cannot be more than 30 days ago"
+          });
+        }
+      }
+
+      // Line 143: Verify student exists and get current membership data
       const student = await prisma.student.findUnique({
         where: { id: Number(studentId) },
         include: { 
@@ -138,7 +177,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // Line 123: Membership pricing validation
+      // Line 157: Membership pricing validation
       const membershipPrices = {
         MONTHLY: 1400,
         YEARLY: 16800
@@ -154,8 +193,44 @@ export default async function handler(req, res) {
         }
       }
 
-      // Line 138: Atomic transaction - payment creation with membership extension
+      // Line 170: Helper function to parse payment date with proper timezone handling
+      const parsePaymentDate = (dateString) => {
+        if (!dateString) return new Date();
+        
+        // Parse YYYY-MM-DD format and create date at noon local time to avoid timezone issues
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(year, month - 1, day, 12, 0, 0); // Month is 0-indexed, set to noon
+      };
+
+      // Line 178: Helper function for consistent date formatting in logs
+      const formatDateForLog = (date) => {
+        return date.toISOString().split('T')[0];
+      };
+
+      // Line 183: FIXED membership end date calculation function
+      const calculateMembershipEndDate = (startDate, membershipType) => {
+        const start = new Date(startDate);
+        let end;
+        
+        if (membershipType === "YEARLY") {
+          // Add exactly 365 days for yearly membership
+          end = new Date(start);
+          end.setTime(start.getTime() + (365 * 24 * 60 * 60 * 1000));
+        } else {
+          // Add exactly 30 days for monthly membership using milliseconds
+          end = new Date(start);
+          end.setTime(start.getTime() + (30 * 24 * 60 * 60 * 1000));
+        }
+        
+        console.log(`📅 Membership calculation: ${formatDateForLog(start)} + ${membershipType === "YEARLY" ? "365" : "30"} days = ${formatDateForLog(end)}`);
+        return end;
+      };
+
+      // Line 200: Atomic transaction - payment creation with membership extension
       const result = await prisma.$transaction(async (tx) => {
+        // FIXED: Determine payment date with proper timezone handling
+        const paidAtDate = parsePaymentDate(paymentDate);
+        
         // Create payment record
         const paymentData = {
           studentId: Number(studentId),
@@ -163,7 +238,7 @@ export default async function handler(req, res) {
           method: method || "CASH",
           description: description || `${membershipType} membership payment`,
           status: "COMPLETED",
-          paidAt: new Date()
+          paidAt: paidAtDate // FIXED: Use custom date if provided, otherwise current timestamp
         };
 
         console.log("Creating payment with data:", paymentData);
@@ -186,7 +261,7 @@ export default async function handler(req, res) {
 
         let membershipResult = null;
 
-        // Line 165: Handle membership extension if requested
+        // Line 229: Handle membership extension if requested
         if (extendMembership) {
           try {
             // Find the most recent membership
@@ -195,28 +270,31 @@ export default async function handler(req, res) {
               orderBy: { endDate: 'desc' }
             });
 
-            const now = new Date();
-            let startDate = new Date();
-            let endDate = new Date();
+            // Use payment date as base for membership calculation
+            const baseDate = paidAtDate;
+            let startDate = new Date(baseDate);
 
-            // Line 176: Calculate membership dates based on existing membership
+            // Line 241: Calculate membership dates based on existing membership
             if (latestMembership) {
               const membershipEndDate = new Date(latestMembership.endDate);
               
               // If current membership is still active, extend from end date
-              // If expired, start from today
-              startDate = membershipEndDate > now ? membershipEndDate : now;
+              // If expired, start from payment date
+              startDate = membershipEndDate > baseDate ? membershipEndDate : baseDate;
+              
+              console.log(`📊 Latest membership ends: ${formatDateForLog(membershipEndDate)}`);
+              console.log(`📊 Payment date: ${formatDateForLog(baseDate)}`);
+              console.log(`📊 New membership starts: ${formatDateForLog(startDate)}`);
             } else {
-              // New member - start from today
-              startDate = now;
+              // New member - start from payment date
+              startDate = baseDate;
+              console.log(`🆕 New member - membership starts: ${formatDateForLog(startDate)}`);
             }
 
-            // Calculate end date based on membership type
-            const durationDays = membershipType === "YEARLY" ? 365 : 30;
-            endDate = new Date(startDate);
-            endDate.setDate(startDate.getDate() + durationDays);
+            // FIXED: Calculate end date with proper date arithmetic using helper function
+            const endDate = calculateMembershipEndDate(startDate, membershipType);
 
-            // Line 192: Create new membership record (fixed schema compatibility)
+            // Line 258: Create new membership record (fixed schema compatibility)
             const membershipData = {
               studentId: Number(studentId),
               type: membershipType,
@@ -248,7 +326,7 @@ export default async function handler(req, res) {
         };
       });
 
-      // Line 218: Enhanced response with complete transaction details
+      // Line 284: Enhanced response with complete transaction details
       const response = {
         success: true,
         message: "Payment processed successfully",
@@ -256,7 +334,8 @@ export default async function handler(req, res) {
         student: result.payment.student,
         membershipExtended: result.membershipExtended,
         amount: parseFloat(amount),
-        method: method
+        method: method,
+        paymentDate: result.payment.paidAt // Include actual payment date in response
       };
 
       if (result.membership) {
@@ -276,12 +355,12 @@ export default async function handler(req, res) {
       return res.status(201).json(response);
     }
 
-    // Line 241: PUT /api/payments/:id – Update existing payment
+    // Line 307: PUT /api/payments/:id – Update existing payment
     if (method === "PUT" && pathParts.length === 1 && !isNaN(Number(pathParts[0]))) {
       await authorizeRole("ADMIN", user);
 
       const id = Number(pathParts[0]);
-      const { amount, method, description, status } = req.body;
+      const { amount, method, description, status, paymentDate } = req.body;
 
       // Check if payment exists
       const existingPayment = await prisma.payment.findUnique({
@@ -330,6 +409,26 @@ export default async function handler(req, res) {
         updateData.status = status;
       }
 
+      // FIXED: Handle payment date updates
+      if (paymentDate !== undefined) {
+        if (paymentDate) {
+          // Validate date format
+          const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+          if (!dateRegex.test(paymentDate)) {
+            return res.status(400).json({
+              success: false,
+              error: "Invalid payment date format. Expected YYYY-MM-DD"
+            });
+          }
+          
+          // Parse date with proper timezone handling
+          const [year, month, day] = paymentDate.split('-').map(Number);
+          updateData.paidAt = new Date(year, month - 1, day, 12, 0, 0);
+        } else {
+          updateData.paidAt = new Date(); // Reset to current time if paymentDate is null/empty
+        }
+      }
+
       updateData.updatedAt = new Date();
 
       const updatedPayment = await prisma.payment.update({
@@ -354,7 +453,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Line 304: DELETE /api/payments/:id – Delete payment (admin only)
+    // Line 389: DELETE /api/payments/:id – Delete payment (admin only)
     if (method === "DELETE" && pathParts.length === 1 && !isNaN(Number(pathParts[0]))) {
       await authorizeRole("ADMIN", user);
 
@@ -379,7 +478,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Line 327: GET /api/payments/student/:studentId – Get payments for specific student
+    // Line 412: GET /api/payments/student/:studentId – Get payments for specific student
     if (method === "GET" && pathParts.length === 2 && pathParts[0] === "student" && !isNaN(Number(pathParts[1]))) {
       await authorizeRole("ADMIN", user);
 
@@ -408,7 +507,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Line 353: GET /api/payments/stats – Payment statistics and analytics
+    // Line 438: GET /api/payments/stats – Payment statistics and analytics
     if (method === "GET" && pathParts.length === 1 && pathParts[0] === "stats") {
       await authorizeRole("ADMIN", user);
 
@@ -472,7 +571,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Line 407: GET /api/payments/verify/:paymentId – Verify payment and membership status
+    // Line 492: GET /api/payments/verify/:paymentId – Verify payment and membership status
     if (method === "GET" && pathParts.length === 2 && pathParts[0] === "verify" && !isNaN(Number(pathParts[1]))) {
       await authorizeRole("ADMIN", user);
 
@@ -518,7 +617,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Line 447: Unsupported route handler with helpful error message
+    // Line 532: Unsupported route handler with helpful error message
     return res.status(404).json({ 
       success: false, 
       error: "Route not found",
@@ -537,7 +636,7 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error("❌ Payments API ERROR:", err);
     
-    // Line 464: Comprehensive error handling with proper HTTP status codes
+    // Line 549: Comprehensive error handling with proper HTTP status codes
     if (err.message === "Authentication required") {
       return res.status(401).json({ 
         success: false, 
