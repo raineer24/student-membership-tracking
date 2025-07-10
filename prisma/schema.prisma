@@ -27,6 +27,7 @@ model Student {
   userId      Int          @unique
   memberships Membership[]
   payments    Payment[]
+  reminders   Reminder[]
   user        User         @relation(fields: [userId], references: [id])
 }
 
@@ -53,6 +54,24 @@ model Payment {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   student     Student       @relation(fields: [studentId], references: [id])
+}
+
+model Reminder {
+  id Int @id @default(autoincrement())
+  studentId Int
+  method String @default("SMS")
+  sentAt DateTime @default(now())
+  status String @default("SENT")
+  message String?
+  phoneNumber String?
+  cost Float?
+  response String?
+  retryCount Int @default(0)
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([sentAt])
+  @@index([status])
 }
 
 enum MembershipType {
