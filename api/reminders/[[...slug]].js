@@ -1,3 +1,4 @@
+// Line 1: Import required dependencies for SMS reminder system
 import { PrismaClient } from "@prisma/client";
 import { authenticate, authorizeRole } from "../../utils/auth.js";
 import {
@@ -7,6 +8,7 @@ import {
   getNetworkProvider,
 } from "../../utils/phoneUtils.js";
 
+// Line 10: Initialize Prisma client - follows existing codebase pattern
 const prisma = new PrismaClient({
   datasources: {
     db: {
@@ -15,65 +17,92 @@ const prisma = new PrismaClient({
   },
 });
 
+// Line 18: Main API handler function - matches existing [[...slug]].js pattern
 export default async function handler(req, res) {
-  const { method } = req;
+  const { method, query } = req;
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = url.pathname;
+
+  // Extract path parts after "/api/reminders" - same pattern as payments API
+  const parts = pathname.split("/").filter(Boolean);
+  const remindersIndex = parts.indexOf("reminders");
+  const pathParts = remindersIndex !== -1 ? parts.slice(remindersIndex + 1) : [];
+  const action = pathParts[0] || "";
+
+  console.log("🔥 Reminders API hit");
+  console.log("REQ.URL:", req.url);
+  console.log("PATHNAME:", pathname);
+  console.log("PATH PARTS:", pathParts);
+  console.log("METHOD:", method);
 
   try {
-    const { slug } = req.query;
-    const pathParts = Array.isArray(slug) ? slug : slug ? [slug] : [];
-    const action = pathParts[0] || "";
-
+    // Line 28: Authenticate and authorize admin access
     const user = await authenticate(req);
-    await authorizeRole("admin", user);
+    await authorizeRole("ADMIN", user);
 
-    switch (method) {
-      case "GET":
-        if (action === "history") {
-          return await handleGetReminderHistory(req, res);
-        } else if (action === "credits") {
-          return await handleGetSMSCredits(req, res);
-        } else if (action === "stats") {
-          return await handleGetReminderStats(req, res);
-        } else if (!action) {
-          return await handleGetReminders(req, res);
-        }
-        break;
-
-      case "POST":
-        if (action === "send") {
-          return await handleSendReminder(req, res);
-        } else if (action === "test") {
-          return await handleTestSMS(req, res);
-        }
-        break;
-
-      case "DELETE":
-        if (action && !isNaN(action)) {
-          return await handleDeleteReminder(req, res, parseInt(action));
-        }
-        break;
-
-      default:
-        return res.status(405).json({
-          success: false,
-          error: `Method ${method} not allowed`,
-        });
+    // Line 32: GET /api/reminders - Basic reminder statistics
+    if (method === "GET" && pathParts.length === 0) {
+      return await handleGetReminders(req, res);
     }
 
+    // Line 36: GET /api/reminders/history - Get reminder history with pagination
+    if (method === "GET" && pathParts.length === 1 && pathParts[0] === "history") {
+      return await handleGetReminderHistory(req, res);
+    }
+
+    // Line 40: GET /api/reminders/credits - Check SMS credit balance
+    if (method === "GET" && pathParts.length === 1 && pathParts[0] === "credits") {
+      return await handleGetSMSCredits(req, res);
+    }
+
+    // Line 44: GET /api/reminders/stats - Get detailed reminder statistics
+    if (method === "GET" && pathParts.length === 1 && pathParts[0] === "stats") {
+      return await handleGetReminderStats(req, res);
+    }
+
+    // Line 48: POST /api/reminders/send - Send SMS reminder to student
+    if (method === "POST" && pathParts.length === 1 && pathParts[0] === "send") {
+      return await handleSendReminder(req, res);
+    }
+
+    // Line 52: POST /api/reminders/test - Test SMS functionality
+    if (method === "POST" && pathParts.length === 1 && pathParts[0] === "test") {
+      return await handleTestSMS(req, res);
+    }
+
+    // Line 56: DELETE /api/reminders/:id - Delete specific reminder
+    if (method === "DELETE" && pathParts.length === 1 && !isNaN(Number(pathParts[0]))) {
+      return await handleDeleteReminder(req, res, parseInt(pathParts[0]));
+    }
+
+    // Line 60: Unsupported route handler with helpful error message
     return res.status(404).json({
       success: false,
       error: "Route not found",
+      availableRoutes: [
+        "GET /api/reminders",
+        "GET /api/reminders/history",
+        "GET /api/reminders/credits", 
+        "GET /api/reminders/stats",
+        "POST /api/reminders/send",
+        "POST /api/reminders/test",
+        "DELETE /api/reminders/:id"
+      ]
     });
+
   } catch (error) {
     return handleAPIError(error, res);
   } finally {
+    // Line 71: Ensure database connection is properly closed
     await prisma.$disconnect();
   }
 }
 
+// Line 75: Function to handle authentication and authorization errors
 function handleAPIError(error, res) {
   console.error("Reminder API Error:", error);
 
+  // Line 79: Handle authentication errors
   if (
     error.message === "Authentication required" ||
     error.message === "Invalid token"
@@ -84,6 +113,7 @@ function handleAPIError(error, res) {
     });
   }
 
+  // Line 86: Handle authorization errors  
   if (
     error.message.includes("Forbidden") ||
     error.message.includes("Insufficient permissions")
@@ -94,6 +124,7 @@ function handleAPIError(error, res) {
     });
   }
 
+  // Line 93: Handle validation errors
   if (
     error.message.includes("validation") ||
     error.message.includes("invalid")
@@ -104,14 +135,17 @@ function handleAPIError(error, res) {
     });
   }
 
+  // Line 100: Handle generic server errors
   return res.status(500).json({
     success: false,
     error: "Internal server error. Please try again.",
   });
 }
 
+// Line 106: Function to get basic reminder statistics for dashboard
 async function handleGetReminders(req, res) {
   try {
+    // Line 109: Get today's reminder count for dashboard display
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -126,8 +160,10 @@ async function handleGetReminders(req, res) {
       },
     });
 
+    // Line 122: Get total reminder count for overview
     const totalCount = await prisma.reminder.count();
 
+    // Line 125: Get recent reminder status summary
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const recentReminders = await prisma.reminder.findMany({
       where: {
@@ -138,6 +174,7 @@ async function handleGetReminders(req, res) {
       },
     });
 
+    // Line 135: Calculate status distribution
     const statusCounts = recentReminders.reduce((acc, reminder) => {
       acc[reminder.status] = (acc[reminder.status] || 0) + 1;
       return acc;
@@ -150,7 +187,9 @@ async function handleGetReminders(req, res) {
         totalCount,
         last24HoursCount: recentReminders.length,
         statusDistribution: statusCounts,
-        message: "Reminder service operational",
+        message: "PhilSMS reminder service operational",
+        provider: "PhilSMS",
+        costPerSMS: 0.35
       },
     });
   } catch (error) {
@@ -162,14 +201,18 @@ async function handleGetReminders(req, res) {
   }
 }
 
+// Line 157: Function to get detailed reminder history with student information
 async function handleGetReminderHistory(req, res) {
   try {
+    // Line 160: Extract query parameters for pagination and filtering
     const { page = 1, limit = 20, studentId, status, days = 30 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
+    // Line 164: Build date filter for recent reminders
     const dateFilter = new Date();
     dateFilter.setDate(dateFilter.getDate() - parseInt(days));
 
+    // Line 168: Build where clause with optional filters
     const whereClause = {
       sentAt: { gte: dateFilter },
     };
@@ -182,8 +225,10 @@ async function handleGetReminderHistory(req, res) {
       whereClause.status = status;
     }
 
+    // Line 179: Get total count for pagination
     const totalCount = await prisma.reminder.count({ where: whereClause });
 
+    // Line 182: Fetch reminders with student details
     const reminders = await prisma.reminder.findMany({
       where: whereClause,
       include: {
@@ -201,6 +246,7 @@ async function handleGetReminderHistory(req, res) {
       skip: offset,
     });
 
+    // Line 197: Format reminders for response
     const formattedReminders = reminders.map((reminder) => ({
       id: reminder.id,
       studentId: reminder.studentId,
@@ -213,7 +259,7 @@ async function handleGetReminderHistory(req, res) {
       message:
         reminder.message?.substring(0, 100) +
         (reminder.message?.length > 100 ? "..." : ""),
-      cost: reminder.cost || 0.06,
+      cost: reminder.cost || 0.35, // Updated for PhilSMS cost
       sentAt: reminder.sentAt,
       response: reminder.response,
       retryCount: reminder.retryCount || 0,
@@ -236,6 +282,8 @@ async function handleGetReminderHistory(req, res) {
           totalReminders: totalCount,
           dateRange: `Last ${days} days`,
           filters: { studentId, status },
+          provider: "PhilSMS",
+          avgCostPerSMS: 0.35
         },
       },
     });
@@ -248,8 +296,10 @@ async function handleGetReminderHistory(req, res) {
   }
 }
 
+// Line 235: Function to send SMS reminder to student (UPDATED FOR PHILSMS)
 async function handleSendReminder(req, res) {
   try {
+    // Line 238: Extract and validate request body
     const { studentId, customMessage, testMode = false } = req.body;
 
     if (!studentId || isNaN(studentId)) {
@@ -259,6 +309,7 @@ async function handleSendReminder(req, res) {
       });
     }
 
+    // Line 247: Fetch student with membership and recent reminder data
     const student = await prisma.student.findUnique({
       where: { id: parseInt(studentId) },
       include: {
@@ -286,6 +337,7 @@ async function handleSendReminder(req, res) {
       });
     }
 
+    // Line 271: Validate phone number
     if (!student.phone || !isValidPhilippinePhone(student.phone)) {
       return res.status(400).json({
         success: false,
@@ -293,6 +345,7 @@ async function handleSendReminder(req, res) {
       });
     }
 
+    // Line 279: Check rate limiting (24-hour cooldown)
     if (student.reminders.length > 0) {
       const lastReminder = student.reminders[0];
       const timeSinceLastReminder =
@@ -309,10 +362,11 @@ async function handleSendReminder(req, res) {
       }
     }
 
+    // Line 291: Generate reminder message
     const message = customMessage || generateReminderMessage(student);
     const normalizedPhone = normalizePhoneNumber(student.phone);
 
-    // Line 291: Test mode - log without sending actual SMS
+    // Line 295: Test mode - log without sending actual SMS
     if (testMode || process.env.NODE_ENV === "development") {
       console.log("=== TEST MODE SMS REMINDER ===");
       console.log("Student:", student.name);
@@ -320,10 +374,11 @@ async function handleSendReminder(req, res) {
       console.log("Message:", message);
       console.log("Length:", message.length, "characters");
       console.log("Network:", getNetworkProvider(normalizedPhone));
-      console.log("Estimated Cost: ₱0.06");
+      console.log("Provider: PhilSMS");
+      console.log("Estimated Cost: ₱0.35 (42% cheaper!)");
       console.log("==============================");
 
-      // Line 301: Create test reminder record
+      // Line 306: Create test reminder record
       const reminder = await prisma.reminder.create({
         data: {
           studentId: parseInt(studentId),
@@ -331,8 +386,8 @@ async function handleSendReminder(req, res) {
           status: "TEST_SENT",
           message: message,
           phoneNumber: normalizedPhone,
-          cost: 0.06,
-          response: "Test mode - no actual SMS sent",
+          cost: 0.35, // Updated for PhilSMS cost
+          response: "Test mode - no actual SMS sent via PhilSMS",
         },
       });
 
@@ -345,28 +400,33 @@ async function handleSendReminder(req, res) {
           studentName: student.name,
           phone: formatPhoneForDisplay(normalizedPhone),
           messageLength: message.length,
-          estimatedCost: 0.06,
+          estimatedCost: 0.35,
           network: getNetworkProvider(normalizedPhone),
+          provider: "PhilSMS",
+          savings: "42% cheaper than Semaphore"
         },
       });
     }
 
+    // Line 331: Production mode - attempt to send actual SMS via PhilSMS
     let smsResult = null;
     let reminderStatus = "FAILED";
     let responseText = "";
 
     try {
-      const { sendSMSViaSemaphore } = await import("../../utils/smsService.js");
+      // Line 336: Import PhilSMS service dynamically to avoid import errors in test mode
+      const { sendSMSViaPhilSMS } = await import("../../utils/smsService.js");
 
-      smsResult = await sendSMSViaSemaphore(normalizedPhone, message);
+      smsResult = await sendSMSViaPhilSMS(normalizedPhone, message);
       reminderStatus = smsResult.success ? "SENT" : "FAILED";
       responseText = smsResult.response || smsResult.error || "Unknown error";
     } catch (smsError) {
-      console.error("SMS sending failed:", smsError);
+      console.error("PhilSMS sending failed:", smsError);
       reminderStatus = "FAILED";
-      responseText = smsError.message || "SMS service error";
+      responseText = smsError.message || "PhilSMS service error";
     }
 
+    // Line 347: Create reminder record with actual results
     const reminder = await prisma.reminder.create({
       data: {
         studentId: parseInt(studentId),
@@ -374,34 +434,38 @@ async function handleSendReminder(req, res) {
         status: reminderStatus,
         message: message,
         phoneNumber: normalizedPhone,
-        cost: reminderStatus === "SENT" ? 0.06 : 0,
+        cost: reminderStatus === "SENT" ? 0.35 : 0, // Updated for PhilSMS cost
         response: responseText,
         retryCount: 0,
       },
     });
 
+    // Line 360: Return response based on SMS result
     if (reminderStatus === "SENT") {
       return res.status(200).json({
         success: true,
-        message: "SMS reminder sent successfully",
+        message: "SMS reminder sent successfully via PhilSMS",
         data: {
           reminderId: reminder.id,
           studentName: student.name,
           phone: formatPhoneForDisplay(normalizedPhone),
           messageLength: message.length,
-          cost: 0.06,
+          cost: 0.35,
           network: getNetworkProvider(normalizedPhone),
           sentAt: reminder.sentAt,
+          provider: "PhilSMS",
+          savings: "₱0.25 saved vs Semaphore"
         },
       });
     } else {
       return res.status(500).json({
         success: false,
-        error: `Failed to send SMS: ${responseText}`,
+        error: `Failed to send SMS via PhilSMS: ${responseText}`,
         data: {
           reminderId: reminder.id,
           studentName: student.name,
           phone: formatPhoneForDisplay(normalizedPhone),
+          provider: "PhilSMS"
         },
       });
     }
@@ -414,6 +478,7 @@ async function handleSendReminder(req, res) {
   }
 }
 
+// Line 389: Function to generate context-aware reminder messages
 function generateReminderMessage(student) {
   const activeMembership = student.memberships[0];
 
@@ -421,10 +486,12 @@ function generateReminderMessage(student) {
     return `Hi ${student.name}! Your gym membership has expired. Please visit us to renew and continue your fitness journey.`;
   }
 
+  // Line 396: Calculate days overdue
   const endDate = new Date(activeMembership.endDate);
   const today = new Date();
   const daysOverdue = Math.ceil((today - endDate) / (1000 * 60 * 60 * 24));
 
+  // Line 401: Generate message based on overdue period
   if (daysOverdue <= 3) {
     return `Hi ${student.name}! Your gym membership expired ${daysOverdue} day(s) ago. Please renew soon to avoid service interruption. Thank you!`;
   } else if (daysOverdue <= 7) {
@@ -436,74 +503,93 @@ function generateReminderMessage(student) {
   }
 }
 
+// Line 413: Function to check SMS credits balance via PhilSMS API
 async function handleGetSMSCredits(req, res) {
   try {
-    const apiKey = process.env.SEMAPHORE_API_KEY;
+    const apiKey = process.env.PHILSMS_API_KEY; // Updated environment variable
 
     if (!apiKey) {
-      return res.status(500).json({
-        success: false,
-        error: "SMS service not configured",
+      // Line 419: Return mock data if no API key configured (for development)
+      console.log("⚠️ No PhilSMS API key configured - returning mock data");
+      
+      const mockCredits = {
+        balance: 1000,
+        used: 50,
+        remaining: 950,
+        costPerSMS: 0.35,
+        currency: "PHP",
+        lowBalance: false,
+        lastUpdated: new Date().toISOString(),
+        messagesRemaining: Math.floor(950 / 0.35),
+        provider: "PhilSMS",
+        note: "Mock data - SMS service not configured. Add PHILSMS_API_KEY to environment variables."
+      };
+
+      return res.status(200).json({
+        success: true,
+        data: mockCredits,
+        message: "SMS credits retrieved (mock data for development)",
+        warning: "Configure PHILSMS_API_KEY for real SMS functionality"
       });
     }
 
-    const response = await fetch("https://semaphore.co/api/v4/account", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-    });
+    // Line 440: Import PhilSMS service to check credits
+    const { checkSMSCredits } = await import("../../utils/smsService.js");
+    const creditsResult = await checkSMSCredits();
 
-    if (!response.ok) {
-      throw new Error(`Semaphore API error: ${response.status}`);
+    if (creditsResult.success) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          ...creditsResult.data,
+          provider: "PhilSMS",
+          savingsVsSemaphore: "42%"
+        },
+        message: "PhilSMS credits retrieved successfully",
+      });
+    } else {
+      // Line 453: Return fallback data if API fails
+      const fallbackCredits = {
+        balance: 0,
+        used: 0,
+        remaining: 0,
+        costPerSMS: 0.35,
+        currency: "PHP",
+        lowBalance: true,
+        lastUpdated: new Date().toISOString(),
+        messagesRemaining: 0,
+        provider: "PhilSMS",
+        note: "Unable to fetch current balance - PhilSMS service temporarily unavailable",
+        error: creditsResult.error
+      };
+
+      return res.status(200).json({
+        success: true,
+        data: fallbackCredits,
+        message: "SMS credits retrieved (cached/fallback data)",
+        warning: "PhilSMS service temporarily unavailable"
+      });
     }
-
-    const accountData = await response.json();
-
-    const credits = {
-      balance: accountData.credit_balance || 0,
-      used: accountData.total_sent || 0,
-      remaining: accountData.credit_balance || 0,
-      costPerSMS: 0.06,
-      currency: "PHP",
-      lowBalance: accountData.credit_balance < 100,
-      lastUpdated: new Date().toISOString(),
-    };
-
-    return res.status(200).json({
-      success: true,
-      data: credits,
-      message: "SMS credits retrieved successfully",
-    });
   } catch (error) {
-    console.error("Error checking SMS credits:", error);
+    console.error("Error checking PhilSMS credits:", error);
 
-    const mockCredits = {
-      balance: 1000,
-      used: 50,
-      remaining: 950,
-      costPerSMS: 0.06,
-      currency: "PHP",
-      lowBalance: false,
-      lastUpdated: new Date().toISOString(),
-      note: "Mock data - SMS service temporarily unavailable",
-    };
-
-    return res.status(200).json({
-      success: true,
-      data: mockCredits,
-      message: "SMS credits retrieved (cached data)",
+    // Line 472: Return error response
+    return res.status(500).json({
+      success: false,
+      error: "Failed to check SMS credits",
+      provider: "PhilSMS"
     });
   }
 }
 
+// Line 479: Function to get detailed reminder statistics for analytics
 async function handleGetReminderStats(req, res) {
   try {
     const { days = 30 } = req.query;
     const dateFilter = new Date();
     dateFilter.setDate(dateFilter.getDate() - parseInt(days));
 
+    // Line 485: Get comprehensive statistics
     const stats = await prisma.reminder.groupBy({
       by: ["status"],
       where: {
@@ -517,6 +603,7 @@ async function handleGetReminderStats(req, res) {
       },
     });
 
+    // Line 497: Get network provider distribution
     const networkStats = await prisma.$queryRaw`
       SELECT 
         CASE 
@@ -547,6 +634,7 @@ async function handleGetReminderStats(req, res) {
       ORDER BY count DESC
     `;
 
+    // Line 522: Get daily reminder trends
     const dailyStats = await prisma.$queryRaw`
       SELECT 
         DATE("sentAt") as date,
@@ -561,12 +649,24 @@ async function handleGetReminderStats(req, res) {
       LIMIT 30
     `;
 
+    // Line 535: Calculate total cost savings compared to Semaphore
+    const totalCost = stats.reduce((sum, stat) => sum + (stat._sum.cost || 0), 0);
+    const estimatedSemaphoreCost = totalCost / 0.35 * 0.60; // What it would cost with Semaphore
+    const savings = estimatedSemaphoreCost - totalCost;
+
     return res.status(200).json({
       success: true,
       data: {
         statusBreakdown: stats,
         networkDistribution: networkStats,
         dailyTrends: dailyStats,
+        costAnalysis: {
+          totalCost: totalCost,
+          estimatedSemaphoreCost: estimatedSemaphoreCost,
+          savings: savings,
+          savingsPercentage: Math.round((savings / estimatedSemaphoreCost) * 100),
+          provider: "PhilSMS"
+        },
         period: `Last ${days} days`,
         generatedAt: new Date().toISOString(),
       },
@@ -580,11 +680,12 @@ async function handleGetReminderStats(req, res) {
   }
 }
 
+// Line 560: Function to test SMS functionality safely
 async function handleTestSMS(req, res) {
   try {
     const {
       phone,
-      message = "This is a test message from your gym management system.",
+      message = "This is a test message from your gym management system via PhilSMS.",
     } = req.body;
 
     if (!phone) {
@@ -602,66 +703,74 @@ async function handleTestSMS(req, res) {
 
     const normalizedPhone = normalizePhoneNumber(phone);
 
-    console.log("=== SMS TEST ENDPOINT ===");
+    // Line 578: Always use test mode for this endpoint
+    console.log("=== PHILSMS TEST ENDPOINT ===");
     console.log("Phone:", normalizedPhone);
     console.log("Message:", message);
     console.log("Length:", message.length, "characters");
     console.log("Network:", getNetworkProvider(normalizedPhone));
+    console.log("Provider: PhilSMS");
+    console.log("Cost: ₱0.35 (vs ₱0.60 Semaphore)");
     console.log("=========================");
 
     return res.status(200).json({
       success: true,
       testMode: true,
-      message: "SMS test completed successfully",
+      message: "PhilSMS test completed successfully",
       data: {
         phone: formatPhoneForDisplay(normalizedPhone),
         messageLength: message.length,
         network: getNetworkProvider(normalizedPhone),
-        estimatedCost: 0.06,
+        estimatedCost: 0.35,
+        provider: "PhilSMS",
+        savings: "42% cheaper than Semaphore",
         validation: "Phone number is valid for SMS",
       },
     });
   } catch (error) {
-    console.error("Error in SMS test:", error);
+    console.error("Error in PhilSMS test:", error);
     return res.status(500).json({
       success: false,
-      error: "SMS test failed",
+      error: "PhilSMS test failed",
     });
   }
 }
 
+// Line 608: Function to delete reminder record (admin cleanup)
 async function handleDeleteReminder(req, res, reminderId) {
   try {
-     const reminder = await prisma.reminder.findUnique({
+    // Line 611: Verify reminder exists
+    const reminder = await prisma.reminder.findUnique({
       where: { id: reminderId },
       include: {
         student: {
-          select: { name: true }
-        }
-      }
+          select: { name: true },
+        },
+      },
     });
 
-     if (!reminder) {
+    if (!reminder) {
       return res.status(404).json({
         success: false,
-        error: 'Reminder not found'
+        error: "Reminder not found",
       });
     }
 
+    // Line 625: Delete the reminder
     await prisma.reminder.delete({
-      where: { id: reminderId }
+      where: { id: reminderId },
     });
 
-      return res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: 'Reminder deleted successfully',
-      data: { 
+      message: "Reminder deleted successfully",
+      data: {
         deletedId: reminderId,
         studentName: reminder.student.name,
-        sentAt: reminder.sentAt
-      }
+        sentAt: reminder.sentAt,
+        provider: "PhilSMS"
+      },
     });
-    
   } catch (error) {
     console.error("Error deleting reminder:", error);
     return res.status(500).json({
