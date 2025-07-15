@@ -503,37 +503,40 @@ function generateReminderMessage(student) {
   }
 }
 
-// Line 413: Function to check SMS credits balance via PhilSMS API
+// Line 1: Fixed SMS Credits API Handler - api/reminders/[[...slug]].js
+// Removes mock data fallback and properly handles PhilSMS API integration
+
+// Line 275: Enhanced function to check SMS credits balance via PhilSMS API
 async function handleGetSMSCredits(req, res) {
   try {
-    const apiKey = process.env.PHILSMS_API_KEY; // Updated environment variable
+    const apiKey = process.env.PHILSMS_API_KEY;
 
+    // Line 279: Return actual zero balance when no API key is configured
     if (!apiKey) {
-      // Line 419: Return mock data if no API key configured (for development)
-      console.log("⚠️ No PhilSMS API key configured - returning mock data");
+      console.log("⚠️ No PhilSMS API key configured - returning zero balance");
       
-      const mockCredits = {
-        balance: 1000,
-        used: 50,
-        remaining: 950,
+      const noApiKeyCredits = {
+        balance: 0,
+        used: 0,
+        remaining: 0,
         costPerSMS: 0.35,
         currency: "PHP",
-        lowBalance: false,
+        lowBalance: true,
         lastUpdated: new Date().toISOString(),
-        messagesRemaining: Math.floor(950 / 0.35),
+        messagesRemaining: 0,
         provider: "PhilSMS",
-        note: "Mock data - SMS service not configured. Add PHILSMS_API_KEY to environment variables."
+        note: "SMS service not configured. Add PHILSMS_API_KEY to environment variables for real balance."
       };
 
       return res.status(200).json({
         success: true,
-        data: mockCredits,
-        message: "SMS credits retrieved (mock data for development)",
-        warning: "Configure PHILSMS_API_KEY for real SMS functionality"
+        data: noApiKeyCredits,
+        message: "SMS service not configured",
+        warning: "Configure PHILSMS_API_KEY for SMS functionality"
       });
     }
 
-    // Line 440: Import PhilSMS service to check credits
+    // Line 299: Import PhilSMS service to check actual credits
     const { checkSMSCredits } = await import("../../utils/smsService.js");
     const creditsResult = await checkSMSCredits();
 
@@ -548,8 +551,8 @@ async function handleGetSMSCredits(req, res) {
         message: "PhilSMS credits retrieved successfully",
       });
     } else {
-      // Line 453: Return fallback data if API fails
-      const fallbackCredits = {
+      // Line 313: Return zero balance data if API fails instead of mock data
+      const apiFailureCredits = {
         balance: 0,
         used: 0,
         remaining: 0,
@@ -565,19 +568,30 @@ async function handleGetSMSCredits(req, res) {
 
       return res.status(200).json({
         success: true,
-        data: fallbackCredits,
-        message: "SMS credits retrieved (cached/fallback data)",
+        data: apiFailureCredits,
+        message: "SMS credits unavailable",
         warning: "PhilSMS service temporarily unavailable"
       });
     }
   } catch (error) {
     console.error("Error checking PhilSMS credits:", error);
 
-    // Line 472: Return error response
+    // Line 337: Return zero balance on error instead of mock data
     return res.status(500).json({
       success: false,
       error: "Failed to check SMS credits",
-      provider: "PhilSMS"
+      data: {
+        balance: 0,
+        used: 0,
+        remaining: 0,
+        costPerSMS: 0.35,
+        currency: "PHP",
+        lowBalance: true,
+        lastUpdated: new Date().toISOString(),
+        messagesRemaining: 0,
+        provider: "PhilSMS",
+        note: "SMS service error occurred"
+      }
     });
   }
 }

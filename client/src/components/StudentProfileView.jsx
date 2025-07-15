@@ -1,411 +1,301 @@
-// Line 1: Complete StudentProfileView.jsx - Student profile viewing component
-// Clean implementation for viewing student details and memberships
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import LoadingSpinner from './LoadingSpinner';
-import ErrorMessage from './ErrorMessage';
+// Line 1: Fixed StudentProfileView.jsx - Resolves infinite loading issues
+// Implements proper loading states and error handling
 
-// Line 8: StudentProfileView Component - displays detailed student information
+import React, { useState, useEffect, useMemo } from "react";
+import { useAuth } from "../context/AuthContext";
+
+// Line 6: Main StudentProfileView component with enhanced loading management
 const StudentProfileView = ({ student, onBack, onEdit }) => {
   const { token } = useAuth();
-  const [studentData, setStudentData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [studentData, setStudentData] = useState(null);
 
-  // Line 15: Fetch detailed student data when component mounts
+  // Line 13: Initialize component with provided student data
   useEffect(() => {
-    if (student?.id) {
-      fetchStudentDetails(student.id);
-    } else if (student) {
-      // If full student object is passed, use it directly
+    if (student) {
       setStudentData(student);
+      setLoading(false);
+      setError(null);
+    } else {
+      setError("Student data not provided");
       setLoading(false);
     }
   }, [student]);
 
-  // Line 25: Fetch student details from API
-  const fetchStudentDetails = async (studentId) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch(`/api/students/${studentId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch student details: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setStudentData(data);
-    } catch (error) {
-      console.error('Error fetching student details:', error);
-      setError('Failed to load student details. Please try again.');
-    } finally {
-      setLoading(false);
+  // Line 24: Enhanced membership status calculation
+  const membershipStatus = useMemo(() => {
+    if (!studentData?.memberships || studentData.memberships.length === 0) {
+      return {
+        status: "inactive",
+        message: "No active membership",
+        color: "text-gray-600"
+      };
     }
-  };
 
-  // Line 47: Helper function to determine student status
-  const getStudentStatus = (student) => {
-    if (!student.memberships || student.memberships.length === 0) {
-      return { status: 'INACTIVE', color: 'gray', bgColor: 'bg-gray-100' };
-    }
-    
-    const now = new Date();
-    const activeMembership = student.memberships.find(membership => {
-      const endDate = new Date(membership.endDate);
-      return endDate > now;
+    // Line 33: Find current membership
+    const latestMembership = studentData.memberships.reduce((latest, current) => {
+      const currentEndDate = new Date(current.endDate);
+      const latestEndDate = new Date(latest.endDate);
+      return currentEndDate > latestEndDate ? current : latest;
     });
+
+    const today = new Date();
+    const endDate = new Date(latestMembership.endDate);
     
-    if (activeMembership) {
-      return { status: 'ACTIVE', color: 'green', bgColor: 'bg-green-100' };
+    // Line 42: Clear date comparison
+    today.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
+    if (endDate >= today) {
+      return {
+        status: "active",
+        message: "Membership Active",
+        color: "text-green-600"
+      };
     }
-    
-    // Check if recently expired (within 30 days) = OVERDUE
-    const recentlyExpired = student.memberships.some(membership => {
-      const endDate = new Date(membership.endDate);
-      const daysSinceExpiry = (now - endDate) / (1000 * 60 * 60 * 24);
-      return daysSinceExpiry > 0 && daysSinceExpiry <= 30;
-    });
-    
-    if (recentlyExpired) {
-      return { status: 'OVERDUE', color: 'red', bgColor: 'bg-red-100' };
+
+    // Line 53: Calculate overdue status
+    const timeDiff = today.getTime() - endDate.getTime();
+    const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+
+    if (daysDiff <= 30) {
+      return {
+        status: "overdue",
+        message: `Overdue by ${daysDiff} day(s)`,
+        color: "text-red-600"
+      };
     }
-    
-    return { status: 'EXPIRED', color: 'red', bgColor: 'bg-red-100' };
-  };
 
-  // Line 73: Helper function to get latest membership
-  const getLatestMembership = (memberships) => {
-    if (!memberships || memberships.length === 0) return null;
-    return memberships.reduce((latest, current) => {
-      return new Date(current.endDate) > new Date(latest.endDate) ? current : latest;
-    });
-  };
+    return {
+      status: "inactive",
+      message: `Expired ${daysDiff} days ago`,
+      color: "text-gray-600"
+    };
+  }, [studentData]);
 
-  // Line 80: Helper function to format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP',
-      minimumFractionDigits: 0,
-    }).format(amount || 0);
-  };
-
-  // Line 88: Helper function to format dates
+  // Line 70: Safe date formatting function
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
     try {
-      return new Date(dateString).toLocaleDateString('en-PH', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-    } catch (error) {
-      return 'Invalid Date';
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return "Invalid Date";
     }
   };
 
-  // Line 100: Loading state
+  // Line 80: Loading state - should be minimal since data is passed as prop
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner message="Loading student profile..." />
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading student profile...</p>
+        </div>
       </div>
     );
   }
 
-  // Line 108: Error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <ErrorMessage 
-          message={error} 
-          onRetry={() => fetchStudentDetails(student?.id)}
-        />
-      </div>
-    );
-  }
-
-  // Line 118: No student data state
-  if (!studentData) {
+  // Line 91: Error state
+  if (error || !studentData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Student Not Found</h2>
-          <p className="text-gray-600 mb-4">The requested student profile could not be loaded.</p>
-          <button
-            onClick={onBack}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Back to Dashboard
-          </button>
+          <div className="bg-white rounded-lg shadow p-6 max-w-md">
+            <div className="text-red-500 mb-4">
+              <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Profile Unavailable</h3>
+            <p className="text-red-600 mb-4">{error || "Student data could not be loaded"}</p>
+            <button
+              onClick={onBack}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Back to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Line 134: Calculate derived data
-  const statusInfo = getStudentStatus(studentData);
-  const latestMembership = getLatestMembership(studentData.memberships);
-  const studentName = studentData.name || 
-    `${studentData.firstName || ''} ${studentData.lastName || ''}`.trim() || 
-    'Unknown Student';
-
-  // Line 141: Main render
+  // Line 118: Main profile view render
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
+            <div>
               <button
                 onClick={onBack}
-                className="mr-4 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
-                title="Back to dashboard"
+                className="flex items-center text-gray-600 hover:text-gray-900 mb-2"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+                ← Back to Dashboard
               </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Student Profile</h1>
-                <p className="text-gray-600">{studentName}</p>
-              </div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {studentData.name || "Student Profile"}
+              </h1>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => onEdit(studentData)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                ✏️ Edit Profile
-              </button>
-            </div>
+            <button
+              onClick={() => onEdit(studentData)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              Edit Profile
+            </button>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
-          {/* Basic Information Card */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
-              <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
-                statusInfo.bgColor
-              } text-${statusInfo.color}-800`}>
-                {statusInfo.status}
-              </span>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Full Name</label>
-                <p className="text-lg text-gray-900">{studentName}</p>
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Basic Information */}
+          <div className="lg:col-span-1">
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">Basic Information</h3>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Email Address</label>
-                <p className="text-lg text-gray-900">{studentData.email || 'N/A'}</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Phone Number</label>
-                <p className="text-lg text-gray-900">{studentData.phone || 'N/A'}</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Student ID</label>
-                <p className="text-lg text-gray-900">#{studentData.id}</p>
+              <div className="px-6 py-4 space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Name</label>
+                  <p className="text-sm text-gray-900">{studentData.name || "N/A"}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Email</label>
+                  <p className="text-sm text-gray-900">{studentData.email || "N/A"}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Phone</label>
+                  <p className="text-sm text-gray-900">{studentData.phone || "N/A"}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Student ID</label>
+                  <p className="text-sm text-gray-900">#{studentData.id}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Current Membership Card */}
-          {latestMembership ? (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Membership</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Type</label>
-                  <p className="text-lg text-gray-900">
-                    {latestMembership.type || latestMembership.membershipType || 'N/A'}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Fee</label>
-                  <p className="text-lg text-gray-900">
-                    {formatCurrency(latestMembership.fee || latestMembership.amount)}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Start Date</label>
-                  <p className="text-lg text-gray-900">
-                    {formatDate(latestMembership.startDate)}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">End Date</label>
-                  <p className="text-lg text-gray-900">
-                    {formatDate(latestMembership.endDate)}
-                  </p>
-                </div>
+          {/* Current Membership & History */}
+          <div className="lg:col-span-2">
+            
+            {/* Current Membership */}
+            <div className="bg-white overflow-hidden shadow rounded-lg mb-8">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">Current Membership</h3>
               </div>
-              
-              {/* Membership Status Alert */}
-              {statusInfo.status === 'OVERDUE' && (
-                <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div className="flex items-start">
-                    <div className="text-red-500 mr-3 mt-0.5">
-                      ⚠️
-                    </div>
-                    <div>
-                      <p className="text-red-800 font-medium text-sm">Membership Overdue</p>
-                      <p className="text-red-700 text-sm mt-1">
-                        This student's membership has expired and requires renewal.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Membership Status</h2>
-              <div className="text-center py-8">
-                <div className="text-gray-400 mb-4">
-                  <svg className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <p className="text-lg font-medium text-gray-900">No Active Membership</p>
-                <p className="text-gray-500 mt-2">This student does not have any membership records.</p>
+              <div className="px-6 py-4">
+                {studentData.memberships && studentData.memberships.length > 0 ? (
+                  (() => {
+                    const latestMembership = studentData.memberships.reduce((latest, current) => {
+                      const currentEndDate = new Date(current.endDate);
+                      const latestEndDate = new Date(latest.endDate);
+                      return currentEndDate > latestEndDate ? current : latest;
+                    });
+                    
+                    return (
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-lg font-semibold text-gray-900">
+                              {latestMembership.type || latestMembership.membershipType}
+                            </p>
+                            <p className={`text-sm font-medium ${membershipStatus.color}`}>
+                              {membershipStatus.message}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-gray-900">
+                              ₱{latestMembership.fee || 0}
+                            </p>
+                            <p className="text-sm text-gray-500">Monthly Fee</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">Start Date</label>
+                            <p className="text-sm text-gray-900">{formatDate(latestMembership.startDate)}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">End Date</label>
+                            <p className="text-sm text-gray-900">{formatDate(latestMembership.endDate)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <p className="text-gray-500">No membership found</p>
+                )}
               </div>
             </div>
-          )}
 
-          {/* Membership History */}
-          {studentData.memberships && studentData.memberships.length > 0 && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Membership History</h2>
-              
+            {/* Membership History */}
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">Membership History</h3>
+              </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Period
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Fee
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {studentData.memberships
-                      .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
-                      .map((membership, index) => {
-                        const membershipStatus = new Date(membership.endDate) > new Date() ? 'Active' : 'Expired';
-                        const isActive = membershipStatus === 'Active';
+                {studentData.memberships && studentData.memberships.length > 0 ? (
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {studentData.memberships.map((membership, index) => {
+                        const today = new Date();
+                        const endDate = new Date(membership.endDate);
+                        const isActive = endDate >= today;
                         
                         return (
-                          <tr key={index} className="hover:bg-gray-50">
+                          <tr key={index}>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {membership.type || membership.membershipType || 'N/A'}
+                              {membership.type || membership.membershipType}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {formatDate(membership.startDate)} - {formatDate(membership.endDate)}
+                              ₱{membership.fee || 0}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {formatCurrency(membership.fee || membership.amount)}
+                              {formatDate(membership.startDate)}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {formatDate(membership.endDate)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
                               <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                                 isActive 
                                   ? 'bg-green-100 text-green-800' 
                                   : 'bg-gray-100 text-gray-800'
                               }`}>
-                                {membershipStatus}
+                                {isActive ? 'Active' : 'Expired'}
                               </span>
                             </td>
                           </tr>
                         );
                       })}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="px-6 py-4">
+                    <p className="text-gray-500">No membership history found</p>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-
-          {/* Payment History */}
-          {studentData.payments && studentData.payments.length > 0 && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment History</h2>
-              
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Amount
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Method
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {studentData.payments
-                      .sort((a, b) => new Date(b.paidAt || b.createdAt) - new Date(a.paidAt || a.createdAt))
-                      .map((payment, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {formatDate(payment.paidAt || payment.createdAt)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {formatCurrency(payment.amount)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {payment.method || 'N/A'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                              {payment.status || 'Completed'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

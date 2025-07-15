@@ -1,4 +1,4 @@
-// Line 1: Complete SMS service for PhilSMS API integration
+// Line 1: Complete SMS service for PhilSMS API integration - Production Ready
 // Philippine SMS provider with Globe, Smart, DITO network support at ₱0.35 per SMS
 import { normalizePhoneNumber, isValidPhilippinePhone, getNetworkProvider } from './phoneUtils.js';
 
@@ -9,179 +9,125 @@ const SMS_CONFIG = {
   COST_PER_SMS: 0.35, // 42% cheaper than Semaphore!
   TIMEOUT_MS: 30000, // 30 seconds timeout
   RETRY_ATTEMPTS: 3,
-  RETRY_DELAY_MS: 2000 // 2 seconds between retries
+  RETRY_DELAY_MS: 2000, // 2 seconds between retries
+  SENDER_NAME: 'StudentGym' // Default sender name
 };
 
-// Line 14: Main function to send SMS via PhilSMS API (called by reminder API)
-export async function sendSMSViaPhilSMS(phone, message, options = {}) {
-  try {
-    // Line 17: Input validation
-    if (!phone || !message) {
-      throw new Error('Phone number and message are required');
-    }
-
-    // Line 22: Validate API key
-    const apiKey = process.env.PHILSMS_API_KEY;
-    if (!apiKey) {
-      throw new Error('SMS service not configured. Missing PHILSMS_API_KEY environment variable.');
-    }
-
-    // Line 28: Validate and normalize phone number
-    if (!isValidPhilippinePhone(phone)) {
-      throw new Error(`Invalid Philippine phone number: ${phone}`);
-    }
-
-    const normalizedPhone = normalizePhoneNumber(phone);
-    const network = getNetworkProvider(normalizedPhone);
-
-    // Line 35: Message length validation with warning
-    if (message.length > SMS_CONFIG.MAX_MESSAGE_LENGTH) {
-      console.warn(`⚠️ Message length (${message.length}) exceeds ${SMS_CONFIG.MAX_MESSAGE_LENGTH} characters. May be sent as multiple SMS.`);
-    }
-
-    // Line 40: Logging for debugging and monitoring
-    console.log("📱 === SENDING SMS VIA PHILSMS ===");
-    console.log("📞 Phone:", normalizedPhone);
-    console.log("🌐 Network:", network);
-    console.log("📝 Message length:", message.length, "characters");
-    console.log("💰 Cost: ₱" + SMS_CONFIG.COST_PER_SMS + " (42% cheaper than Semaphore!)");
-    console.log("⏰ Timestamp:", new Date().toISOString());
-
-    // Line 48: Prepare request payload for PhilSMS
-    const payload = {
-      recipient: normalizedPhone.replace('+63', '63'), // PhilSMS expects 63XXXXXXXXX format
-      message: message.trim(),
-      sender_id: options.senderId || 'GymReminder' // Use your registered sender ID
-    };
-
-    // Line 55: Send SMS with retry logic
-    const result = await sendWithRetry(apiKey, payload, options);
-
-    console.log("✅ SMS sent successfully via PhilSMS!");
-    console.log("📋 Message ID:", result.messageId);
-    console.log("💰 Account balance:", result.balance);
-    console.log("==============================");
-
-    return {
-      success: true,
-      messageId: result.messageId,
-      phone: normalizedPhone,
-      network: network,
-      cost: SMS_CONFIG.COST_PER_SMS,
-      balance: result.balance,
-      response: `SMS sent successfully to ${normalizedPhone}`,
-      timestamp: new Date().toISOString()
-    };
-
-  } catch (error) {
-    console.error("❌ SMS sending failed:", error.message);
-    return {
-      success: false,
-      error: error.message,
-      phone: phone,
-      network: getNetworkProvider(phone),
-      cost: 0,
-      response: `Failed to send SMS: ${error.message}`,
-      timestamp: new Date().toISOString()
-    };
-  }
-}
-
-// Line 78: Function to send SMS with automatic retry logic
-async function sendWithRetry(apiKey, payload, options = {}) {
-  const maxRetries = options.retryAttempts || SMS_CONFIG.RETRY_ATTEMPTS;
-  const retryDelay = options.retryDelay || SMS_CONFIG.RETRY_DELAY_MS;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      // Line 84: Make the actual API call
-      const result = await makeAPICall(apiKey, payload, options);
-      
-      // Line 87: Success - return immediately
-      return result;
-
-    } catch (error) {
-      console.warn(`⚠️ SMS attempt ${attempt}/${maxRetries} failed:`, error.message);
-
-      // Line 92: If this was the last attempt, throw the error
-      if (attempt === maxRetries) {
-        throw error;
-      }
-
-      // Line 96: Wait before retrying (exponential backoff)
-      const waitTime = retryDelay * Math.pow(2, attempt - 1);
-      console.log(`⏳ Retrying in ${waitTime}ms...`);
-      await sleep(waitTime);
-    }
-  }
-}
-
-// Line 103: Core function to make HTTP request to PhilSMS API
-async function makeAPICall(apiKey, payload, options = {}) {
-  const timeout = options.timeout || SMS_CONFIG.TIMEOUT_MS;
-
-  // Line 107: Create abort controller for timeout handling
+// Line 15: Main function to send SMS via PhilSMS API
+export async function sendSMSReminder(phoneNumber, message, student = null) {
   const controller = new AbortController();
+  const timeout = SMS_CONFIG.TIMEOUT_MS;
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
-    // Line 112: Make HTTP request to PhilSMS API
-    const response = await fetch(`${SMS_CONFIG.API_BASE_URL}/sms/send`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'StudentMembershipGym/1.0',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+    // Line 21: Validate API key
+    const apiKey = process.env.PHILSMS_API_KEY;
+    if (!apiKey) {
+      throw new Error('SMS service not configured. Check PHILSMS_API_KEY.');
+    }
 
-    clearTimeout(timeoutId);
+    // Line 27: Validate phone number format
+    const cleanPhone = isValidPhilippinePhone(phoneNumber);
+    if (!cleanPhone.isValid) {
+      throw new Error(`Invalid phone number: ${cleanPhone.error}`);
+    }
 
-    // Line 125: Handle different HTTP status codes
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ PhilSMS API Error:", response.status, errorText);
-      
-      // Line 130: Specific error handling for different status codes
-      switch (response.status) {
-        case 401:
-          throw new Error('SMS API authentication failed. Check PHILSMS_API_KEY.');
-        case 402:
-          throw new Error('Insufficient SMS credits. Top-up at philsms.com.');
-        case 422:
-          throw new Error('Invalid request data. Check phone number and message format.');
-        case 429:
-          throw new Error('SMS API rate limit exceeded. Try again later.');
-        case 500:
-          throw new Error('SMS service temporarily unavailable. Please try again.');
-        default:
-          throw new Error(`SMS API error: ${response.status} ${response.statusText}`);
+    // Line 33: Validate message content
+    if (!message || message.trim().length === 0) {
+      throw new Error('Message content is required');
+    }
+
+    if (message.length > SMS_CONFIG.MAX_MESSAGE_LENGTH) {
+      throw new Error(`Message too long. Maximum ${SMS_CONFIG.MAX_MESSAGE_LENGTH} characters allowed.`);
+    }
+
+    // Line 42: Prepare SMS request payload
+    const smsData = {
+      recipient: cleanPhone.formatted,
+      message: message.trim(),
+      sender_name: SMS_CONFIG.SENDER_NAME
+    };
+
+    // Line 49: Send SMS via PhilSMS API with retry logic
+    let lastError;
+    for (let attempt = 1; attempt <= SMS_CONFIG.RETRY_ATTEMPTS; attempt++) {
+      try {
+        const response = await fetch(`${SMS_CONFIG.API_BASE_URL}/sms/send`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'User-Agent': 'StudentMembershipGym/1.0',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(smsData),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        // Line 64: Handle API response errors with specific error messages
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          
+          switch (response.status) {
+            case 401:
+              throw new Error('SMS API authentication failed. Check PHILSMS_API_KEY.');
+            case 402:
+              throw new Error('Insufficient SMS credits. Top-up at philsms.com.');
+            case 422:
+              throw new Error('Invalid request data. Check phone number and message format.');
+            case 429:
+              throw new Error('SMS API rate limit exceeded. Try again later.');
+            case 500:
+              throw new Error('SMS service temporarily unavailable. Please try again.');
+            default:
+              throw new Error(`SMS API error: ${response.status} ${response.statusText}`);
+          }
+        }
+
+        // Line 79: Parse successful response
+        const result = await response.json();
+        
+        // Line 81: Validate PhilSMS response structure
+        if (!result || result.status !== 'success') {
+          throw new Error('Invalid response from PhilSMS service');
+        }
+
+        // Line 85: Return standardized successful response
+        return {
+          messageId: result.data?.message_id || result.data?.id || 'unknown',
+          balance: result.data?.balance || null,
+          status: 'sent',
+          cost: SMS_CONFIG.COST_PER_SMS,
+          provider: 'PhilSMS',
+          raw: result // Keep full response for debugging
+        };
+
+      } catch (error) {
+        lastError = error;
+        
+        // Line 96: Don't retry on authentication or rate limit errors
+        if (error.message.includes('authentication') || 
+            error.message.includes('rate limit') ||
+            error.message.includes('credits')) {
+          throw error;
+        }
+
+        // Line 102: Wait before retry (except on last attempt)
+        if (attempt < SMS_CONFIG.RETRY_ATTEMPTS) {
+          await sleep(SMS_CONFIG.RETRY_DELAY_MS * attempt);
+        }
       }
     }
 
-    // Line 143: Parse successful response
-    const result = await response.json();
-    
-    // Line 146: Validate PhilSMS response structure
-    if (!result || result.status !== 'success') {
-      throw new Error('Invalid response from PhilSMS service');
-    }
-
-    // Line 151: Extract relevant data from PhilSMS response
-    return {
-      messageId: result.data?.message_id || result.data?.id || 'unknown',
-      balance: result.data?.balance || null,
-      status: 'sent',
-      raw: result // Keep full response for debugging
-    };
+    // Line 108: All retry attempts failed
+    throw lastError || new Error('SMS sending failed after all retry attempts');
 
   } catch (error) {
     clearTimeout(timeoutId);
     
-    // Line 160: Handle network and timeout errors
+    // Line 113: Handle specific error types
     if (error.name === 'AbortError') {
       throw new Error(`SMS request timeout after ${timeout}ms`);
     }
@@ -190,23 +136,36 @@ async function makeAPICall(apiKey, payload, options = {}) {
       throw new Error('Network error: Unable to connect to SMS service');
     }
     
-    // Line 168: Re-throw other errors as-is
+    // Line 121: Re-throw other errors as-is
     throw error;
   }
 }
 
-// Line 172: Function to check SMS account balance and usage
+// Line 125: Function to check SMS account balance and usage
 export async function checkSMSCredits() {
   try {
     const apiKey = process.env.PHILSMS_API_KEY;
     
     if (!apiKey) {
-      throw new Error('SMS service not configured');
+      return {
+        success: false,
+        error: 'SMS service not configured',
+        data: {
+          balance: 0,
+          used: 0,
+          remaining: 0,
+          costPerSMS: SMS_CONFIG.COST_PER_SMS,
+          currency: 'PHP',
+          lowBalance: true,
+          lastUpdated: new Date().toISOString(),
+          messagesRemaining: 0,
+          provider: 'PhilSMS',
+          note: 'SMS service not configured. Add PHILSMS_API_KEY to environment variables.'
+        }
+      };
     }
 
-    console.log("💳 Checking PhilSMS credits...");
-
-    // Line 182: Fetch account information from PhilSMS
+    // Line 143: Fetch account information from PhilSMS
     const response = await fetch(`${SMS_CONFIG.API_BASE_URL}/user/credits`, {
       method: 'GET',
       headers: {
@@ -223,22 +182,26 @@ export async function checkSMSCredits() {
 
     const accountData = await response.json();
 
-    // Line 195: Calculate credit information
+    // Line 157: Calculate credit information
+    const balance = accountData.data?.credits || 0;
+    const used = accountData.data?.used_credits || 0;
+    
     const credits = {
-      balance: accountData.data?.credits || 0,
-      used: accountData.data?.used_credits || 0,
-      remaining: accountData.data?.credits || 0,
+      balance: balance,
+      used: used,
+      remaining: balance,
       costPerSMS: SMS_CONFIG.COST_PER_SMS,
       currency: 'PHP',
-      lowBalance: (accountData.data?.credits || 0) < 50, // Lower threshold since it's cheaper
+      lowBalance: balance < 50, // Warning threshold
       lastUpdated: new Date().toISOString(),
-      messagesRemaining: Math.floor((accountData.data?.credits || 0) / SMS_CONFIG.COST_PER_SMS),
-      provider: 'PhilSMS'
+      messagesRemaining: Math.floor(balance / SMS_CONFIG.COST_PER_SMS),
+      provider: 'PhilSMS',
+      estimatedCost: {
+        conservative: Math.round(72 * SMS_CONFIG.COST_PER_SMS * 100) / 100, // 4 SMS per student
+        moderate: Math.round(108 * SMS_CONFIG.COST_PER_SMS * 100) / 100,    // 6 SMS per student
+        high: Math.round(144 * SMS_CONFIG.COST_PER_SMS * 100) / 100         // 8 SMS per student
+      }
     };
-
-    console.log("💰 Credits:", credits.balance);
-    console.log("📨 Messages remaining:", credits.messagesRemaining);
-    console.log("⚠️ Low balance:", credits.lowBalance);
 
     return {
       success: true,
@@ -246,9 +209,7 @@ export async function checkSMSCredits() {
     };
 
   } catch (error) {
-    console.error("❌ Credits check failed:", error.message);
-    
-    // Line 214: Return fallback data if API fails
+    // Line 179: Return fallback data if API fails
     return {
       success: false,
       error: error.message,
@@ -268,217 +229,149 @@ export async function checkSMSCredits() {
   }
 }
 
-// Line 231: Function to check SMS delivery status (if supported by PhilSMS)
-export async function checkSMSStatus(messageId) {
+// Line 196: Function to send test SMS (for API testing)
+export async function sendTestSMS(phoneNumber) {
+  const testMessage = "Test SMS from Student Membership System. If you receive this, SMS integration is working correctly!";
+  
   try {
-    const apiKey = process.env.PHILSMS_API_KEY;
-    
-    if (!apiKey) {
-      throw new Error('SMS service not configured');
-    }
-
-    // Line 240: Check message status via PhilSMS API
-    const response = await fetch(`${SMS_CONFIG.API_BASE_URL}/sms/status/${messageId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Status check failed: ${response.status}`);
-    }
-
-    const statusData = await response.json();
-
+    const result = await sendSMSReminder(phoneNumber, testMessage);
     return {
       success: true,
-      messageId: messageId,
-      status: statusData.data?.status || 'unknown',
-      deliveredAt: statusData.data?.delivered_at || null,
-      error: statusData.data?.error || null
+      message: "Test SMS sent successfully",
+      data: result
     };
-
   } catch (error) {
-    console.error("❌ Status check failed:", error.message);
     return {
       success: false,
-      messageId: messageId,
       error: error.message
     };
   }
 }
 
-// Line 267: Function to send bulk SMS (for future use)
-export async function sendBulkSMS(recipients, message, options = {}) {
-  const results = [];
-  const batchSize = options.batchSize || 10;
-  const delayBetweenBatches = options.delay || 1000;
-
-  console.log(`📱 Starting bulk SMS to ${recipients.length} recipients in batches of ${batchSize}`);
-
-  for (let i = 0; i < recipients.length; i += batchSize) {
-    const batch = recipients.slice(i, i + batchSize);
-    console.log(`📨 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(recipients.length / batchSize)}`);
-
-    // Line 277: Process batch in parallel
-    const batchPromises = batch.map(async (recipient) => {
-      try {
-        const result = await sendSMSViaPhilSMS(recipient.phone, message, options);
-        return {
-          recipient: recipient,
-          success: result.success,
-          messageId: result.messageId,
-          error: result.error
-        };
-      } catch (error) {
-        return {
-          recipient: recipient,
-          success: false,
-          error: error.message
-        };
-      }
-    });
-
-    const batchResults = await Promise.all(batchPromises);
-    results.push(...batchResults);
-
-    // Line 295: Delay between batches to avoid rate limiting
-    if (i + batchSize < recipients.length) {
-      console.log(`⏳ Waiting ${delayBetweenBatches}ms before next batch...`);
-      await sleep(delayBetweenBatches);
-    }
+// Line 213: Function to generate personalized reminder messages
+export function generateReminderMessage(student, daysOverdue) {
+  if (!student || !student.name) {
+    return "Your gym membership payment is overdue. Please renew to continue accessing our facilities.";
   }
 
-  // Line 301: Calculate summary statistics
-  const successful = results.filter(r => r.success).length;
-  const failed = results.filter(r => !r.success).length;
+  // Line 219: Customize message based on how overdue the payment is
+  if (daysOverdue <= 3) {
+    return `Hi ${student.name}! Your gym membership expired ${daysOverdue} day(s) ago. Please renew soon to avoid service interruption. Thank you!`;
+  } else if (daysOverdue <= 7) {
+    return `Hi ${student.name}! Your membership has been overdue for ${daysOverdue} days. Please renew to continue accessing our facilities.`;
+  } else if (daysOverdue <= 14) {
+    return `Hi ${student.name}! Your membership expired ${daysOverdue} days ago. Please visit us to renew and restore your access immediately.`;
+  } else {
+    return `Hi ${student.name}! Your membership has been expired for ${daysOverdue} days. Please contact us to discuss renewal options.`;
+  }
+}
 
-  console.log(`✅ Bulk SMS completed: ${successful} sent, ${failed} failed`);
+// Line 231: Function to validate SMS message content
+export function validateSMSMessage(message) {
+  if (!message || typeof message !== 'string') {
+    return {
+      isValid: false,
+      error: 'Message is required and must be a string'
+    };
+  }
+
+  const trimmed = message.trim();
+  
+  if (trimmed.length === 0) {
+    return {
+      isValid: false,
+      error: 'Message cannot be empty'
+    };
+  }
+
+  if (trimmed.length > SMS_CONFIG.MAX_MESSAGE_LENGTH) {
+    return {
+      isValid: false,
+      error: `Message too long. Maximum ${SMS_CONFIG.MAX_MESSAGE_LENGTH} characters allowed. Current: ${trimmed.length}`
+    };
+  }
 
   return {
-    success: true,
-    results: results,
-    summary: {
-      total: recipients.length,
-      successful: successful,
-      failed: failed,
-      successRate: Math.round((successful / recipients.length) * 100)
-    }
+    isValid: true,
+    message: trimmed,
+    length: trimmed.length,
+    remaining: SMS_CONFIG.MAX_MESSAGE_LENGTH - trimmed.length
   };
 }
 
-// Line 317: Helper function for delays
+// Line 257: Function to calculate SMS costs for budgeting
+export function calculateSMSCosts(studentCount, messagesPerStudent = 6) {
+  const totalMessages = studentCount * messagesPerStudent;
+  const totalCost = totalMessages * SMS_CONFIG.COST_PER_SMS;
+  
+  return {
+    studentsCount: studentCount,
+    messagesPerStudent: messagesPerStudent,
+    totalMessages: totalMessages,
+    costPerSMS: SMS_CONFIG.COST_PER_SMS,
+    totalCost: Math.round(totalCost * 100) / 100, // Round to 2 decimal places
+    currency: 'PHP',
+    estimatedMonthly: Math.round(totalCost * 100) / 100,
+    savingsVsSemaphore: Math.round((totalMessages * 0.60 - totalCost) * 100) / 100,
+    provider: 'PhilSMS'
+  };
+}
+
+// Line 274: Function to get SMS service status and health
+export async function getSMSServiceStatus() {
+  try {
+    const creditsResult = await checkSMSCredits();
+    
+    return {
+      status: creditsResult.success ? 'operational' : 'degraded',
+      provider: 'PhilSMS',
+      lastChecked: new Date().toISOString(),
+      credits: creditsResult.data,
+      apiConfigured: !!process.env.PHILSMS_API_KEY,
+      networkSupport: ['Globe', 'Smart', 'DITO', 'Sun'],
+      costPerSMS: SMS_CONFIG.COST_PER_SMS,
+      maxMessageLength: SMS_CONFIG.MAX_MESSAGE_LENGTH
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      provider: 'PhilSMS',
+      lastChecked: new Date().toISOString(),
+      error: error.message,
+      apiConfigured: !!process.env.PHILSMS_API_KEY
+    };
+  }
+}
+
+// Line 296: Helper function for delays in retry logic
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Line 322: Function to validate SMS message content
-export function validateSMSMessage(message) {
-  const errors = [];
-
-  if (!message || typeof message !== 'string') {
-    errors.push('Message must be a non-empty string');
-  }
-
-  if (message && message.length === 0) {
-    errors.push('Message cannot be empty');
-  }
-
-  if (message && message.length > SMS_CONFIG.MAX_MESSAGE_LENGTH) {
-    errors.push(`Message too long: ${message.length}/${SMS_CONFIG.MAX_MESSAGE_LENGTH} characters`);
-  }
-
-  // Line 336: Check for potentially problematic content
-  const prohibitedWords = ['scam', 'free money', 'click here', 'urgent transfer'];
-  const foundProhibited = prohibitedWords.filter(word => 
-    message.toLowerCase().includes(word.toLowerCase())
-  );
-
-  if (foundProhibited.length > 0) {
-    errors.push(`Message contains potentially flagged words: ${foundProhibited.join(', ')}`);
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors: errors,
-    warnings: message && message.length > 140 ? ['Message is close to character limit'] : []
-  };
-}
-
-// Line 350: Function to generate SMS usage report
-export async function generateSMSReport(startDate, endDate) {
-  try {
-    const apiKey = process.env.PHILSMS_API_KEY;
-    
-    if (!apiKey) {
-      throw new Error('SMS service not configured');
-    }
-
-    // Line 358: Format dates for API
-    const start = new Date(startDate).toISOString().split('T')[0];
-    const end = new Date(endDate).toISOString().split('T')[0];
-
-    const response = await fetch(`${SMS_CONFIG.API_BASE_URL}/reports/usage?start=${start}&end=${end}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Report generation failed: ${response.status}`);
-    }
-
-    const reportData = await response.json();
-
-    return {
-      success: true,
-      period: { start: startDate, end: endDate },
-      data: {
-        totalSent: reportData.data?.total_sent || 0,
-        totalCost: reportData.data?.total_cost || 0,
-        successRate: reportData.data?.success_rate || 0,
-        dailyBreakdown: reportData.data?.daily_breakdown || []
-      }
-    };
-
-  } catch (error) {
-    console.error("❌ Report generation failed:", error.message);
-    return {
-      success: false,
-      error: error.message,
-      period: { start: startDate, end: endDate }
-    };
-  }
-}
-
-// Line 389: Export SMS configuration for use by other modules
+// Line 301: Export SMS configuration constants for external use
 export const SMS_CONSTANTS = {
   COST_PER_SMS: SMS_CONFIG.COST_PER_SMS,
   MAX_MESSAGE_LENGTH: SMS_CONFIG.MAX_MESSAGE_LENGTH,
-  SUPPORTED_NETWORKS: ['Globe', 'Smart', 'DITO'],
+  SUPPORTED_NETWORKS: ['Globe', 'Smart', 'DITO', 'Sun'],
   PROVIDER: 'PhilSMS',
   SAVINGS_VS_SEMAPHORE: '42%',
+  TIMEOUT_MS: SMS_CONFIG.TIMEOUT_MS,
+  RETRY_ATTEMPTS: SMS_CONFIG.RETRY_ATTEMPTS,
+  SENDER_NAME: SMS_CONFIG.SENDER_NAME,
   API_ENDPOINTS: {
     SEND: `${SMS_CONFIG.API_BASE_URL}/sms/send`,
-    CREDITS: `${SMS_CONFIG.API_BASE_URL}/user/credits`,
-    STATUS: `${SMS_CONFIG.API_BASE_URL}/sms/status`,
-    REPORTS: `${SMS_CONFIG.API_BASE_URL}/reports/usage`
+    CREDITS: `${SMS_CONFIG.API_BASE_URL}/user/credits`
   }
 };
 
-// Line 403: Export default object with all main functions
+// Line 316: Export default object with all main functions for convenience
 export default {
-  send: sendSMSViaPhilSMS,
+  send: sendSMSReminder,
   checkCredits: checkSMSCredits,
-  checkStatus: checkSMSStatus,
-  sendBulk: sendBulkSMS,
-  validate: validateSMSMessage,
-  generateReport: generateSMSReport,
+  sendTest: sendTestSMS,
+  generateMessage: generateReminderMessage,
+  validateMessage: validateSMSMessage,
+  calculateCosts: calculateSMSCosts,
+  getStatus: getSMSServiceStatus,
   constants: SMS_CONSTANTS
 };
