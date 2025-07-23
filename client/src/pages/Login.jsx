@@ -1,3 +1,4 @@
+// Line 1-50: Enhanced Login.jsx with BJJ Landing Page Theme
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +12,7 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  // Line 15-39: Enhanced login handler with proper role-based navigation
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -20,15 +22,14 @@ const Login = () => {
       const success = await login(email, password);
       
       if (success) {
-        // Get the user data to determine where to navigate
         const userData = JSON.parse(localStorage.getItem('user'));
         
         if (userData.role === 'ADMIN') {
-          console.log('Login successful, navigating to /dashboard');
-          navigate('/dashboard', { replace: true });
+          console.log('Login successful, navigating to /admin-dashboard');
+          navigate('/admin-dashboard', { replace: true });
         } else if (userData.role === 'STUDENT') {
-          console.log('Login successful, navigating to /membership');
-          navigate('/membership', { replace: true });
+          console.log('Login successful, navigating to /student-dashboard');
+          navigate('/student-dashboard', { replace: true });
         } else {
           console.log('Unknown role, navigating to /');
           navigate('/', { replace: true });
@@ -42,121 +43,99 @@ const Login = () => {
     }
   };
 
-  return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      height: '100vh',
-      backgroundColor: '#f5f5f5'
-    }}>
-      <div style={{
-        background: 'white',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-        width: '100%',
-        maxWidth: '400px'
-      }}>
-      <form onSubmit={handleSubmit} style={{
-        background: 'white',
-        padding: '2rem',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-        width: '100%',
-        maxWidth: '400px'
-      }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>Login</h2>
-        
-        {error && (
-          <div style={{
-            color: 'red',
-            backgroundColor: '#fee',
-            padding: '0.5rem',
-            borderRadius: '4px',
-            marginBottom: '1rem'
-          }}>
-            {error}
-          </div>
-        )}
-        
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-            Email:
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              borderRadius: '4px',
-              border: '1px solid #ddd'
-            }}
-          />
-        </div>
-        
-        <div style={{ marginBottom: '2rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}>
-            Password:
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              borderRadius: '4px',
-              border: '1px solid #ddd'
-            }}
-          />
-        </div>
-        
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            backgroundColor: loading ? '#ccc' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
+  // Line 41-44: Navigation handler for returning to landing page
+  const handleBackToHome = () => {
+    navigate('/');
+  };
 
-       <div style={{
-          padding: '1rem 2rem 2rem 2rem',
-          borderTop: '1px solid #eee',
-          textAlign: 'center'
-        }}>
-          <p style={{ 
-            margin: '0 0 0.5rem 0', 
-            color: '#666', 
-            fontSize: '14px' 
-          }}>
-            Don't have an account?
-          </p>
-          <Link 
-            to="/register" 
-            style={{
-              color: '#007bff',
-              textDecoration: 'none',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-            onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
-            onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center px-4">
+      {/* Line 47-54: Header with back to home navigation */}
+      <div className="absolute top-0 left-0 right-0 p-6">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <button
+            onClick={handleBackToHome}
+            className="text-2xl font-bold text-white hover:text-red-500 transition-colors cursor-pointer"
           >
-            Create new account
-          </Link>
+            🥋 BJJ Academy
+          </button>
+        </div>
+      </div>
+
+      {/* Line 56-149: Main login form with BJJ theme */}
+      <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl shadow-2xl w-full max-w-md border border-gray-700">
+        <div className="p-8">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
+            <p className="text-gray-300">Sign in to access your BJJ portal</p>
+          </div>
+
+          {error && (
+            <div className="bg-red-500 bg-opacity-20 border border-red-500 text-red-300 rounded-lg p-4 mb-6">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                placeholder="Enter your email"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                placeholder="Enter your password"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Signing In...' : 'Sign In'}
+            </button>
+          </form>
+
+          {/* Line 114-129: Registration link section with BJJ theme */}
+          <div className="mt-8 pt-6 border-t border-gray-700 text-center">
+            <p className="text-gray-400 mb-4">
+              New to BJJ Academy?
+            </p>
+            <Link 
+              to="/register" 
+              className="inline-flex items-center px-6 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors font-medium"
+            >
+              Create Account
+            </Link>
+          </div>
+
+          {/* Line 131-139: Back to home link */}
+          <div className="mt-6 text-center">
+            <button
+              onClick={handleBackToHome}
+              className="text-gray-400 hover:text-gray-300 text-sm transition-colors"
+            >
+              ← Back to Home
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,28 +1,27 @@
-// Line 1: Complete DashboardPage.jsx - Production ready with relative due dates and SMS integration
-// Enhanced existing dashboard with SMS functionality using clean architecture
+// Line 1: Complete DashboardPage.jsx - BJJ themed with SMS integration and FIXED navigation
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorMessage from "../components/ErrorMessage";
 import PaymentModal from "../components/PaymentModal";
 import AddStudentModal from "../components/AddStudentModal";
-import LogoutButton from "../components/LogoutButton";
 import StudentProfileView from "../components/StudentProfileView";
 import StudentEditForm from "./StudentEditForm";
 import { useToast } from "../hooks/useToast";
 
-// Line 13: SMS Credits Modal Component
+// Line 13: SMS Credits Modal Component with BJJ theme
 const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+      <div className="bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-xl border border-gray-600 p-6 w-full max-w-md mx-4">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">SMS Credits Balance</h3>
+          <h3 className="text-lg font-semibold text-white">SMS Credits Balance</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-red-500 transition-colors"
           >
             ✕
           </button>
@@ -30,30 +29,30 @@ const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
         
         {loading ? (
           <div className="text-center py-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading credits...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
+            <p className="mt-2 text-gray-300">Loading credits...</p>
           </div>
         ) : creditsData ? (
           <div className="space-y-4">
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">
+              <div className="text-3xl font-bold text-red-500">
                 ₱{creditsData.balance || "0.00"}
               </div>
-              <p className="text-gray-600">Available Balance</p>
+              <p className="text-gray-300">Available Balance</p>
             </div>
             
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="font-medium mb-2">Usage Statistics</h4>
+            <div className="bg-gray-700 rounded-lg p-4">
+              <h4 className="font-medium mb-2 text-white">Usage Statistics</h4>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
+                <div className="flex justify-between text-gray-300">
                   <span>Cost per SMS:</span>
                   <span>₱0.35</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-gray-300">
                   <span>Estimated capacity:</span>
                   <span>{Math.floor((creditsData.balance || 0) / 0.35)} SMS</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-gray-300">
                   <span>Provider:</span>
                   <span>PhilSMS</span>
                 </div>
@@ -61,16 +60,16 @@ const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
             </div>
             
             {(creditsData.balance || 0) < 50 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-yellow-800 text-sm">
+              <div className="bg-yellow-500 bg-opacity-20 border border-yellow-500 rounded-lg p-3">
+                <p className="text-yellow-300 text-sm">
                   ⚠️ Low balance warning. Consider topping up soon.
                 </p>
               </div>
             )}
             
             {creditsData.note && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-blue-800 text-sm">
+              <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded-lg p-3">
+                <p className="text-red-300 text-sm">
                   ℹ️ {creditsData.note}
                 </p>
               </div>
@@ -78,14 +77,14 @@ const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
           </div>
         ) : (
           <div className="text-center py-4">
-            <p className="text-gray-600">Unable to load credits data</p>
+            <p className="text-gray-400">Unable to load credits data</p>
           </div>
         )}
         
         <div className="mt-6 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Close
           </button>
@@ -95,18 +94,18 @@ const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
   );
 };
 
-// Line 87: SMS History Modal Component
+// Line 87: SMS History Modal Component with BJJ theme
 const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden">
+      <div className="bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-xl border border-gray-600 p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">SMS History</h3>
+          <h3 className="text-lg font-semibold text-white">SMS History</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-red-500 transition-colors"
           >
             ✕
           </button>
@@ -114,43 +113,43 @@ const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
         
         {loading ? (
           <div className="text-center py-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading history...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
+            <p className="mt-2 text-gray-300">Loading history...</p>
           </div>
         ) : historyData?.reminders?.length > 0 ? (
           <div className="overflow-y-auto max-h-96">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-600">
+              <thead className="bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cost</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Student</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Phone</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Cost</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Sent</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-gray-700 divide-y divide-gray-600">
                 {historyData.reminders.map((reminder, index) => (
                   <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                       {reminder.student?.name || "Unknown"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                       {reminder.phoneNumber || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         reminder.status === 'SENT' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
+                          ? 'bg-green-500 bg-opacity-20 text-green-400 border border-green-500' 
+                          : 'bg-red-500 bg-opacity-20 text-red-400 border border-red-500'
                       }`}>
                         {reminder.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                       ₱{reminder.cost || '0.35'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                       {new Date(reminder.sentAt).toLocaleDateString()}
                     </td>
                   </tr>
@@ -160,14 +159,14 @@ const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
           </div>
         ) : (
           <div className="text-center py-8">
-            <p className="text-gray-600">No SMS history found</p>
+            <p className="text-gray-400">No SMS history found</p>
           </div>
         )}
         
         <div className="mt-6 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Close
           </button>
@@ -177,162 +176,68 @@ const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
   );
 };
 
-// Line 159: Custom SMS Hooks
-const useSMSReminders = (token) => {
-  const [smsLoading, setSmsLoading] = useState(false);
-  const { showSuccess, showError } = useToast();
+// Line 159: Enhanced Logout Button with BJJ theme
+const LogoutButton = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
-  const canSendReminder = useCallback((student) => {
-    if (!student?.phone) return false;
-    
-    // Check if student has overdue membership
-    const hasOverdueMembership = (() => {
-      if (!student.memberships || student.memberships.length === 0) return false;
-      
-      const latestMembership = student.memberships.reduce((latest, current) => {
-        const currentEndDate = new Date(current.endDate);
-        const latestEndDate = new Date(latest.endDate);
-        return currentEndDate > latestEndDate ? current : latest;
-      });
-
-      const today = new Date();
-      const endDate = new Date(latestMembership.endDate);
-      today.setHours(0, 0, 0, 0);
-      endDate.setHours(0, 0, 0, 0);
-
-      if (endDate >= today) return false;
-
-      const timeDiff = today.getTime() - endDate.getTime();
-      const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-      return daysDiff <= 30; // Only overdue, not expired
-    })();
-
-    return hasOverdueMembership;
-  }, []);
-
-  const sendReminder = useCallback(async (student) => {
-    if (!canSendReminder(student)) {
-      showError("Cannot send reminder to this student");
-      return false;
+  const handleLogout = () => {
+    if (confirm("Are you sure you want to logout?")) {
+      logout();
+      navigate('/');
     }
-
-    try {
-      setSmsLoading(true);
-      
-      const response = await fetch('/api/reminders/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          studentId: student.id,
-          phoneNumber: student.phone,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        showSuccess(`SMS reminder sent to ${student.name} (₱${result.cost})`);
-        return true;
-      } else {
-        throw new Error(result.error || 'Failed to send SMS');
-      }
-    } catch (error) {
-      showError(`Failed to send SMS: ${error.message}`);
-      return false;
-    } finally {
-      setSmsLoading(false);
-    }
-  }, [token, canSendReminder, showSuccess, showError]);
-
-  return { smsLoading, canSendReminder, sendReminder };
-};
-
-// Line 227: Custom SMS Modals Hook
-const useSMSModals = (token) => {
-  const [creditsModalOpen, setCreditsModalOpen] = useState(false);
-  const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [creditsData, setCreditsData] = useState(null);
-  const [historyData, setHistoryData] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
-
-  const fetchCreditsData = useCallback(async () => {
-    try {
-      setModalLoading(true);
-      setCreditsModalOpen(true);
-      
-      const response = await fetch('/api/reminders/credits', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      
-      const result = await response.json();
-      setCreditsData(result.data);
-    } catch (error) {
-      setCreditsData({ balance: 0, note: 'Unable to load credits data' });
-    } finally {
-      setModalLoading(false);
-    }
-  }, [token]);
-
-  const fetchHistoryData = useCallback(async () => {
-    try {
-      setModalLoading(true);
-      setHistoryModalOpen(true);
-      
-      const response = await fetch('/api/reminders/history', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      
-      const result = await response.json();
-      setHistoryData(result.data);
-    } catch (error) {
-      setHistoryData({ reminders: [] });
-    } finally {
-      setModalLoading(false);
-    }
-  }, [token]);
-
-  return {
-    creditsModalOpen,
-    historyModalOpen,
-    creditsData,
-    historyData,
-    modalLoading,
-    fetchCreditsData,
-    fetchHistoryData,
-    setCreditsModalOpen,
-    setHistoryModalOpen,
   };
+
+  return (
+    <button
+      onClick={handleLogout}
+      className="px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors font-medium"
+    >
+      Logout
+    </button>
+  );
 };
 
-// Line 274: Student Status Badge Component
+// Line 178: Enhanced Student Status Badge with BJJ theme
 const StudentStatusBadge = ({ status }) => {
   const statusConfig = {
-    active: { bg: "bg-green-100", text: "text-green-800", label: "Active" },
-    inactive: { bg: "bg-gray-100", text: "text-gray-800", label: "Inactive" },
-    overdue: { bg: "bg-red-100", text: "text-red-800", label: "Overdue" }
+    active: { 
+      bg: "bg-green-500 bg-opacity-20", 
+      text: "text-green-400", 
+      border: "border-green-500",
+      label: "Active" 
+    },
+    inactive: { 
+      bg: "bg-gray-500 bg-opacity-20", 
+      text: "text-gray-400", 
+      border: "border-gray-500",
+      label: "Inactive" 
+    },
+    overdue: { 
+      bg: "bg-red-500 bg-opacity-20", 
+      text: "text-red-400", 
+      border: "border-red-500",
+      label: "Overdue" 
+    }
   };
   
   const config = statusConfig[status] || statusConfig.inactive;
   
   return (
-    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${config.bg} ${config.text}`}>
+    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${config.bg} ${config.text} ${config.border}`}>
       {config.label}
     </span>
   );
 };
 
-// Line 289: Enhanced date formatting utility for relative due dates
+// Line 207: Enhanced date formatting utility
 const formatDueDate = (dateString) => {
-  if (!dateString) return { text: "N/A", color: "text-gray-500" };
+  if (!dateString) return { text: "N/A", color: "text-gray-400" };
   
   try {
     const endDate = new Date(dateString);
     const today = new Date();
     
-    // Set both dates to midnight for accurate day comparison
     today.setHours(0, 0, 0, 0);
     endDate.setHours(0, 0, 0, 0);
     
@@ -340,37 +245,33 @@ const formatDueDate = (dateString) => {
     const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
     
     if (daysDiff > 7) {
-      // More than a week remaining - green
       return {
         text: `${daysDiff} days remaining`,
-        color: "text-green-600"
+        color: "text-green-400"
       };
     } else if (daysDiff > 0) {
-      // Less than a week but still valid - yellow/orange
       return {
         text: `${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining`,
-        color: "text-yellow-600"
+        color: "text-yellow-400"
       };
     } else if (daysDiff === 0) {
-      // Due today - orange
       return {
         text: "Due today",
-        color: "text-orange-600 font-medium"
+        color: "text-orange-400 font-medium"
       };
     } else {
-      // Overdue - red
       const overdueDays = Math.abs(daysDiff);
       return {
         text: `${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue`,
-        color: "text-red-600 font-medium"
+        color: "text-red-400 font-medium"
       };
     }
   } catch {
-    return { text: "Invalid Date", color: "text-gray-500" };
+    return { text: "Invalid Date", color: "text-gray-400" };
   }
 };
 
-// Line 330: Enhanced Student Table Row Component with improved due date display
+// Line 245: Enhanced Student Table Row with BJJ theme
 const StudentTableRow = ({ 
   student, 
   onProcessPayment, 
@@ -396,16 +297,16 @@ const StudentTableRow = ({
   const dueDateInfo = formatDueDate(latestMembership?.endDate);
 
   return (
-    <tr className="hover:bg-gray-50">
+    <tr className="hover:bg-gray-700 hover:bg-opacity-50 transition-colors">
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center">
           <div>
-            <div className="text-sm font-medium text-gray-900">
+            <div className="text-sm font-medium text-white">
               {student.name || "Unknown"}
             </div>
-            <div className="text-sm text-gray-500">{student.email || "No email"}</div>
+            <div className="text-sm text-gray-400">{student.email || "No email"}</div>
             {student.phone && (
-              <div className="text-xs text-gray-400">{student.phone}</div>
+              <div className="text-xs text-gray-500">{student.phone}</div>
             )}
           </div>
         </div>
@@ -414,11 +315,11 @@ const StudentTableRow = ({
         <StudentStatusBadge status={status} />
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm text-gray-900">
+        <div className="text-sm text-white">
           {latestMembership?.type || latestMembership?.membershipType || "No Membership"}
         </div>
         {latestMembership?.startDate && (
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-400">
             Started: {new Date(latestMembership.startDate).toLocaleDateString()}
           </div>
         )}
@@ -462,7 +363,7 @@ const StudentTableRow = ({
           
           <button
             onClick={() => onEditStudent(student)}
-            className="bg-gray-600 text-white px-3 py-1 rounded text-xs hover:bg-gray-700 transition-colors flex items-center space-x-1"
+            className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition-colors flex items-center space-x-1"
             title="Edit student information"
           >
             <span>✏️</span>
@@ -474,9 +375,10 @@ const StudentTableRow = ({
   );
 };
 
-// Line 417: Main Dashboard Component
+// Line 337: Main Dashboard Component with BJJ theme
 export default function DashboardPage() {
   const { user, token } = useAuth();
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -498,21 +400,121 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Line 439: Integrate SMS hooks
-  const { smsLoading, canSendReminder, sendReminder } = useSMSReminders(token);
-  const {
-    creditsModalOpen,
-    historyModalOpen,
-    creditsData,
-    historyData,
-    modalLoading,
-    fetchCreditsData,
-    fetchHistoryData,
-    setCreditsModalOpen,
-    setHistoryModalOpen,
-  } = useSMSModals(token);
+  // SMS state
+  const [creditsModalOpen, setCreditsModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [creditsData, setCreditsData] = useState(null);
+  const [historyData, setHistoryData] = useState(null);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [smsLoading, setSmsLoading] = useState(false);
 
-  // Line 454: Enhanced getStudentStatus function with proper overdue logic
+  // Line 367: Navigation handler for landing page
+  const handleGoToLanding = () => {
+    navigate('/');
+  };
+
+  // Line 371: SMS functionality hooks
+  const canSendReminder = useCallback((student) => {
+    if (!student?.phone) return false;
+    
+    const hasOverdueMembership = (() => {
+      if (!student.memberships || student.memberships.length === 0) return false;
+      
+      const latestMembership = student.memberships.reduce((latest, current) => {
+        const currentEndDate = new Date(current.endDate);
+        const latestEndDate = new Date(latest.endDate);
+        return currentEndDate > latestEndDate ? current : latest;
+      });
+
+      const today = new Date();
+      const endDate = new Date(latestMembership.endDate);
+      today.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+
+      if (endDate >= today) return false;
+
+      const timeDiff = today.getTime() - endDate.getTime();
+      const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+      return daysDiff <= 30;
+    })();
+
+    return hasOverdueMembership;
+  }, []);
+
+  const sendReminder = useCallback(async (student) => {
+    if (!canSendReminder(student)) {
+      showError("Cannot send reminder to this student");
+      return false;
+    }
+
+    try {
+      setSmsLoading(true);
+      
+      const response = await fetch('/api/reminders/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentId: student.id,
+          phoneNumber: student.phone,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        showSuccess(`SMS reminder sent to ${student.name} (₱${result.cost})`);
+        return true;
+      } else {
+        throw new Error(result.error || 'Failed to send SMS');
+      }
+    } catch (error) {
+      showError(`Failed to send SMS: ${error.message}`);
+      return false;
+    } finally {
+      setSmsLoading(false);
+    }
+  }, [token, canSendReminder, showSuccess, showError]);
+
+  const fetchCreditsData = useCallback(async () => {
+    try {
+      setModalLoading(true);
+      setCreditsModalOpen(true);
+      
+      const response = await fetch('/api/reminders/credits', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      
+      const result = await response.json();
+      setCreditsData(result.data);
+    } catch (error) {
+      setCreditsData({ balance: 0, note: 'Unable to load credits data' });
+    } finally {
+      setModalLoading(false);
+    }
+  }, [token]);
+
+  const fetchHistoryData = useCallback(async () => {
+    try {
+      setModalLoading(true);
+      setHistoryModalOpen(true);
+      
+      const response = await fetch('/api/reminders/history', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      
+      const result = await response.json();
+      setHistoryData(result.data);
+    } catch (error) {
+      setHistoryData({ reminders: [] });
+    } finally {
+      setModalLoading(false);
+    }
+  }, [token]);
+
+  // Line 459: Student status and filtering logic
   const getStudentStatus = useCallback((student) => {
     if (!student || !student.memberships || student.memberships.length === 0) {
       return "inactive";
@@ -544,7 +546,6 @@ export default function DashboardPage() {
     return "inactive";
   }, []);
 
-  // Line 485: Enhanced tab counts calculation
   const tabCounts = useMemo(() => {
     if (!students || students.length === 0) {
       return { all: 0, active: 0, overdue: 0, inactive: 0 };
@@ -565,7 +566,6 @@ export default function DashboardPage() {
     return counts;
   }, [students, getStudentStatus]);
 
-  // Line 505: Status-based filtering with consistent logic
   const filteredStudents = useMemo(() => {
     if (!students || students.length === 0) {
       return [];
@@ -600,7 +600,7 @@ export default function DashboardPage() {
     return filtered;
   }, [students, activeTab, searchTerm, getStudentStatus]);
 
-  // Line 535: Data fetching function
+  // Line 536: Data fetching and handlers
   const fetchDashboardData = useCallback(async () => {
     if (!token) return;
 
@@ -637,12 +637,11 @@ export default function DashboardPage() {
     }
   }, [token, showError]);
 
-  // Line 565: Effect for initial data loading
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Line 570: Handler functions
+  // Line 568: Event handlers
   const handleSendReminder = async (student) => {
     const success = await sendReminder(student);
     if (success) {
@@ -724,36 +723,54 @@ export default function DashboardPage() {
     showSuccess("Student added successfully!");
   };
 
-  // Line 640: Loading and error states
+  // Line 636: Loading and error states
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner message="Loading dashboard..." />
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <ErrorMessage message={error} onRetry={fetchDashboardData} />
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+        <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl border border-gray-600 p-8 max-w-md text-center">
+          <div className="text-red-500 mb-4">
+            <svg className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-white mb-2">Error Loading Dashboard</h3>
+          <p className="text-red-400 mb-6">{error}</p>
+          <button
+            onClick={fetchDashboardData}
+            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
-  // Line 654: Conditional view rendering for profile and edit
+  // Line 668: Conditional view rendering for profile and edit
   if (activeView === "profile" && selectedStudentId) {
     const selectedStudentData = students.find(s => s.id === selectedStudentId);
     
     if (!selectedStudentData) {
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Student Not Found</h2>
-            <p className="text-gray-600 mb-4">The requested student could not be found.</p>
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+          <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl border border-gray-600 p-8 text-center">
+            <h2 className="text-xl font-semibold text-white mb-2">Student Not Found</h2>
+            <p className="text-gray-400 mb-4">The requested student could not be found.</p>
             <button
               onClick={handleBackToDashboard}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
               Back to Dashboard
             </button>
@@ -781,24 +798,34 @@ export default function DashboardPage() {
     );
   }
 
-  // Line 688: Main dashboard render
+  // Line 702: Main dashboard render with BJJ theme - FIXED: Single navigation only
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header with SMS controls */}
-      <header className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+      {/* Header with SINGLE navigation only */}
+      <header className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl border-b border-gray-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Student Management Dashboard
-              </h1>
-              <p className="text-gray-600">
-                Manage student memberships and payments
-              </p>
+            {/* Left side - Brand and title */}
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={handleGoToLanding}
+                className="text-2xl font-bold text-white hover:text-red-500 transition-colors cursor-pointer"
+              >
+                🥋 BJJ Academy
+              </button>
+              <div className="border-l border-gray-600 pl-4">
+                <h1 className="text-2xl font-bold text-white">
+                  Admin Dashboard
+                </h1>
+                <p className="text-gray-400">
+                  Manage student memberships and payments
+                </p>
+              </div>
             </div>
             
-            {/* SMS Controls */}
+            {/* Right side - SMS controls and logout ONLY */}
             <div className="flex items-center space-x-4">
+              {/* SMS Controls */}
               <button
                 onClick={fetchCreditsData}
                 disabled={modalLoading}
@@ -817,7 +844,7 @@ export default function DashboardPage() {
               
               <button
                 onClick={() => setAddStudentModalOpen(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 + Add Student
               </button>
@@ -830,24 +857,24 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Statistics Cards */}
+        {/* Statistics Cards with BJJ theme */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
+            <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <span className="text-2xl">👥</span>
+                  <span className="text-3xl">👥</span>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-medium text-gray-400 truncate">
                       Total Students
                     </dt>
-                    <dd className="text-3xl font-bold text-gray-900">
+                    <dd className="text-3xl font-bold text-white">
                       {tabCounts.all}
                     </dd>
-                    <dd className="text-sm text-gray-600">
-                      View all registered students
+                    <dd className="text-sm text-gray-500">
+                      All registered students
                     </dd>
                   </dl>
                 </div>
@@ -855,21 +882,21 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
+            <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <span className="text-2xl">✅</span>
+                  <span className="text-3xl">✅</span>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-medium text-gray-400 truncate">
                       Active
                     </dt>
-                    <dd className="text-3xl font-bold text-green-600">
+                    <dd className="text-3xl font-bold text-green-400">
                       {tabCounts.active}
                     </dd>
-                    <dd className="text-sm text-gray-600">
+                    <dd className="text-sm text-gray-500">
                       Currently enrolled
                     </dd>
                   </dl>
@@ -878,21 +905,21 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
+            <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <span className="text-2xl">⚠️</span>
+                  <span className="text-3xl">⚠️</span>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-medium text-gray-400 truncate">
                       Overdue
                     </dt>
-                    <dd className="text-3xl font-bold text-red-600">
+                    <dd className="text-3xl font-bold text-red-400">
                       {tabCounts.overdue}
                     </dd>
-                    <dd className="text-sm text-gray-600">
+                    <dd className="text-sm text-gray-500">
                       Payment required
                     </dd>
                   </dl>
@@ -901,22 +928,22 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
+            <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <span className="text-2xl">💰</span>
+                  <span className="text-3xl">💰</span>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-medium text-gray-400 truncate">
                       Total Revenue
                     </dt>
-                    <dd className="text-3xl font-bold text-gray-900">
-                      {dashboardData?.totalRevenue || "25200"}
+                    <dd className="text-3xl font-bold text-white">
+                      ₱{dashboardData?.totalRevenue || "25,200"}
                     </dd>
-                    <dd className="text-sm text-gray-600">
-                      15400 this month
+                    <dd className="text-sm text-gray-500">
+                      ₱15,400 this month
                     </dd>
                   </dl>
                 </div>
@@ -925,25 +952,25 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Students Management Section - Updated with relative due dates */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <div className="px-6 py-4 border-b border-gray-200">
+        {/* Students Management Section with BJJ theme */}
+        <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl overflow-hidden rounded-xl border border-gray-600">
+          <div className="px-6 py-4 border-b border-gray-600">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">Students</h3>
+              <h3 className="text-lg font-medium text-white">Students</h3>
               
-              {/* Search bar */}
+              {/* Search bar with BJJ theme */}
               <div className="max-w-md">
                 <input
                   type="text"
                   placeholder="Search students by name, email, or phone..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
                 />
               </div>
             </div>
             
-            {/* Status tabs */}
+            {/* Status tabs with BJJ theme */}
             <div className="mt-4 flex space-x-1">
               {[
                 { key: "all", label: "All Students", count: tabCounts.all },
@@ -954,10 +981,10 @@ export default function DashboardPage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     activeTab === tab.key
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      ? 'bg-red-600 text-white'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
                   }`}
                 >
                   {tab.label} ({tab.count})
@@ -966,29 +993,29 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          {/* Enhanced Students Table */}
+          {/* Enhanced Students Table with BJJ theme */}
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-600">
+              <thead className="bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Student
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Membership
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Due Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-gray-800 divide-y divide-gray-600">
                 {filteredStudents.length > 0 ? (
                   filteredStudents.map((student) => (
                     <StudentTableRow
@@ -1005,7 +1032,7 @@ export default function DashboardPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="5" className="px-6 py-8 text-center text-gray-400">
                       {searchTerm ? "No students match your search." : "No students found."}
                     </td>
                   </tr>
