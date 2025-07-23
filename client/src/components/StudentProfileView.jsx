@@ -1,27 +1,59 @@
-// Line 1: Complete StudentProfileView.jsx - BJJ themed with enhanced functionality
+// Line 1: Complete StudentProfileView.jsx - BJJ themed with enhanced functionality including payment history
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 
-// Line 5: Main StudentProfileView component with BJJ theme
+// Line 5: Main StudentProfileView component with BJJ theme and payment history
 const StudentProfileView = ({ student, onBack, onEdit }) => {
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [studentData, setStudentData] = useState(null);
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
-  // Line 12: Initialize component with provided student data
+  // Line 13: Initialize component with provided student data
   useEffect(() => {
     if (student) {
       setStudentData(student);
       setLoading(false);
       setError(null);
+      // Fetch payment history when student data is loaded
+      fetchPaymentHistory(student.id);
     } else {
       setError("Student data not provided");
       setLoading(false);
     }
   }, [student]);
 
-  // Line 23: Enhanced membership status calculation with BJJ theme colors
+  // Line 26: Fetch payment history for the student
+  const fetchPaymentHistory = async (studentId) => {
+    if (!studentId || !token) return;
+    
+    setPaymentLoading(true);
+    try {
+      const response = await fetch(`/api/payments/student/${studentId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch payment history");
+      }
+
+      const result = await response.json();
+      setPaymentHistory(result.payments || []);
+    } catch (error) {
+      console.error("Payment history fetch error:", error);
+      setPaymentHistory([]);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // Line 49: Enhanced membership status calculation with BJJ theme colors
   const membershipStatus = useMemo(() => {
     if (!studentData?.memberships || studentData.memberships.length === 0) {
       return {
@@ -72,7 +104,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     };
   }, [studentData]);
 
-  // Line 67: Safe date formatting function
+  // Line 88: Safe date formatting function
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     try {
@@ -82,7 +114,32 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     }
   };
 
-  // Line 77: Loading state with BJJ theme
+  // Line 98: Format currency for payment amounts
+  const formatCurrency = (amount) => {
+    if (!amount && amount !== 0) return "₱0";
+    return `₱${parseFloat(amount).toLocaleString()}`;
+  };
+
+  // Line 104: Get payment status badge styling
+  const getPaymentStatusBadge = (status) => {
+    const statusStyles = {
+      completed: "bg-green-500 bg-opacity-20 text-green-400 border-green-500",
+      pending: "bg-yellow-500 bg-opacity-20 text-yellow-400 border-yellow-500",
+      failed: "bg-red-500 bg-opacity-20 text-red-400 border-red-500",
+      cancelled: "bg-gray-500 bg-opacity-20 text-gray-400 border-gray-500"
+    };
+    
+    const style = statusStyles[status?.toLowerCase()] || statusStyles.pending;
+    const displayStatus = status ? status.charAt(0).toUpperCase() + status.slice(1) : "Unknown";
+    
+    return (
+      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${style}`}>
+        {displayStatus}
+      </span>
+    );
+  };
+
+  // Line 122: Loading state with BJJ theme
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
@@ -94,7 +151,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     );
   }
 
-  // Line 88: Error state with BJJ theme
+  // Line 133: Error state with BJJ theme
   if (error || !studentData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
@@ -118,7 +175,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     );
   }
 
-  // Line 115: Main profile view render with BJJ theme
+  // Line 157: Main profile view render with BJJ theme
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       {/* Header with BJJ theme */}
@@ -178,10 +235,10 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
           </div>
 
           {/* Current Membership & History */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-8">
             
             {/* Current Membership Card */}
-            <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600 mb-8">
+            <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
               <div className="px-6 py-4 border-b border-gray-600">
                 <h3 className="text-lg font-medium text-white">Current Membership</h3>
               </div>
@@ -227,6 +284,66 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                   })()
                 ) : (
                   <p className="text-gray-400">No membership found</p>
+                )}
+              </div>
+            </div>
+
+            {/* Payment History Card */}
+            <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
+              <div className="px-6 py-4 border-b border-gray-600">
+                <h3 className="text-lg font-medium text-white">Payment History</h3>
+                {paymentLoading && (
+                  <div className="flex items-center mt-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500 mr-2"></div>
+                    <span className="text-sm text-gray-400">Loading payments...</span>
+                  </div>
+                )}
+              </div>
+              <div className="overflow-x-auto">
+                {!paymentLoading && paymentHistory.length > 0 ? (
+                  <table className="min-w-full divide-y divide-gray-600">
+                    <thead className="bg-gray-700">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Description</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Amount</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Date</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Method</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-gray-800 divide-y divide-gray-600">
+                      {paymentHistory.map((payment, index) => (
+                        <tr key={payment.id || index}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                            {payment.description || payment.membershipType || "Payment"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                            {formatCurrency(payment.amount)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                            {formatDate(payment.paidAt || payment.createdAt)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {getPaymentStatusBadge(payment.status)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                            {payment.method || payment.paymentMethod || "N/A"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : !paymentLoading && (
+                  <div className="px-6 py-8 text-center">
+                    <div className="text-gray-500 mb-2">
+                      <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-400">No payment history found</p>
+                    <p className="text-sm text-gray-500 mt-1">Payment records will appear here once transactions are made</p>
+                  </div>
                 )}
               </div>
             </div>
