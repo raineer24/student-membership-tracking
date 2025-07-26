@@ -1,129 +1,89 @@
-// Line 1: Fixed import with explicit useContext import to prevent bundler conflicts
 import React, { createContext, useState, useEffect, useContext } from "react";
 import axios from "axios";
 
-// Line 5: Create authentication context
 const AuthContext = createContext();
 
-// Line 8: AuthProvider component with descriptive variable names to prevent minification conflicts
 export const AuthProvider = ({ children }) => {
-  // Line 10: State management with descriptive variable names
-  const [currentUser, setCurrentUser] = useState(null);
-  const [authenticationToken, setAuthenticationToken] = useState(localStorage.getItem("token"));
-  const [isAuthenticationLoading, setIsAuthenticationLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [loading, setLoading] = useState(true);
 
-  // Line 15: useEffect for authentication initialization
   useEffect(() => {
-    const initializeUserAuthentication = async () => {
-      // Line 18: Early return if no authentication token
-      if (!authenticationToken) {
-        setIsAuthenticationLoading(false);
+    const fetchUser = async () => {
+      if (!token) {
+        setLoading(false);
         return;
       }
 
       try {
-        // Line 24: Skip API call and rely on stored user data
-        const storedUserData = localStorage.getItem("user");
-        if (storedUserData) {
-          const parsedUserData = JSON.parse(storedUserData);
-          setCurrentUser(parsedUserData);
-          console.log("Using stored user data:", parsedUserData);
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+          console.log("Using stored user data:", JSON.parse(storedUser));
         }
-      } catch (authenticationError) {
-        // Line 31: Handle authentication errors
-        console.error("Fetch user error:", authenticationError.response?.status, authenticationError.message);
-        if (authenticationError.response?.status === 401) {
-          // Line 33: Clear invalid authentication data
+      } catch (err) {
+        console.error("Fetch user error:", err.response?.status, err.message);
+        if (err.response?.status === 401) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
-          setAuthenticationToken(null);
-          setCurrentUser(null);
+          setToken(null);
+          setUser(null);
         }
       } finally {
-        // Line 40: Always set loading to false
-        setIsAuthenticationLoading(false);
+        setLoading(false);
       }
     };
 
-    // Line 44: Execute authentication initialization
-    initializeUserAuthentication();
-  }, [authenticationToken]); // Dependency on authentication token
+    fetchUser();
+  }, [token]);
 
-  // Line 48: Login function with descriptive naming
-  const performUserLogin = async (userEmail, userPassword) => {
+  const login = async (email, password) => {
     try {
-      console.log("Attempting login with:", { email: userEmail });
+      console.log("Attempting login with:", { email });
+      const res = await axios.post("/api/auth/login", { email, password });
+      const { accessToken, user } = res.data;
       
-      // Line 52: API call for authentication
-      const loginResponse = await axios.post("/api/auth/login", { 
-        email: userEmail, 
-        password: userPassword 
-      });
-      
-      // Line 57: Extract authentication data
-      const { accessToken, user: authenticatedUser } = loginResponse.data;
-      
-      // Line 60: Store authentication token
       localStorage.setItem("token", accessToken);
-      setAuthenticationToken(accessToken);
+      setToken(accessToken);
       
-      // Line 64: Normalize user object from login
-      const normalizedUserProfile = {
-        id: authenticatedUser.id,
-        email: authenticatedUser.email,
-        role: authenticatedUser.role,
-        studentId: authenticatedUser.studentId,
+      const normalizedUser = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        studentId: user.studentId,
       };
       
-      // Line 72: Store user data in localStorage for persistence
-      localStorage.setItem("user", JSON.stringify(normalizedUserProfile));
-      setCurrentUser(normalizedUserProfile);
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
+      setUser(normalizedUser);
       
-      console.log("Login user:", normalizedUserProfile);
+      console.log("Login user:", normalizedUser);
       
       return true;
-    } catch (loginError) {
-      // Line 80: Handle login errors
-      console.error("Login error:", loginError.response?.status, loginError.message);
-      throw loginError;
+    } catch (err) {
+      console.error("Login error:", err.response?.status, err.message);
+      throw err;
     }
   };
 
-  // Line 85: Logout function with cleanup
-  const performUserLogout = () => {
+  const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    setAuthenticationToken(null);
-    setCurrentUser(null);
-    setIsAuthenticationLoading(false);
+    setToken(null);
+    setUser(null);
+    setLoading(false);
   };
 
-  // Line 93: Context value object with descriptive property names
-  const authenticationContextValue = {
-    user: currentUser,
-    token: authenticationToken,
-    loading: isAuthenticationLoading,
-    login: performUserLogin,
-    logout: performUserLogout
-  };
-
-  // Line 101: Return provider with context value
   return (
-    <AuthContext.Provider value={authenticationContextValue}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Line 108: Custom hook with FIXED useContext import reference
 export const useAuth = () => {
-  // Line 110: Use explicit useContext import instead of React.useContext
-  const authenticationContext = useContext(AuthContext);
-  
-  // Line 113: Validate context usage
-  if (!authenticationContext) {
+  const context = useContext(AuthContext);
+  if (!context) {
     throw new Error("useAuth must be used inside AuthProvider");
   }
-  
-  return authenticationContext;
+  return context;
 };

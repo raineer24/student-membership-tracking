@@ -1,4 +1,4 @@
-// Line 1: Complete DashboardPage.jsx - BJJ themed with SMS integration and FIXED navigation
+// Line 1-15: Complete DashboardPage.jsx - Final version with ALL fixes applied
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +10,7 @@ import StudentProfileView from "../components/StudentProfileView";
 import StudentEditForm from "./StudentEditForm";
 import { useToast } from "../hooks/useToast";
 
-// Line 13: SMS Credits Modal Component with BJJ theme
+// Line 15-85: SMS Credits Modal Component
 const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
   if (!isOpen) return null;
 
@@ -94,7 +94,7 @@ const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
   );
 };
 
-// Line 87: SMS History Modal Component with BJJ theme
+// Line 90-170: SMS History Modal Component
 const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
   if (!isOpen) return null;
 
@@ -176,7 +176,7 @@ const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
   );
 };
 
-// Line 159: Enhanced Logout Button with BJJ theme
+// Line 175-195: Enhanced Logout Button Component
 const LogoutButton = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -198,7 +198,7 @@ const LogoutButton = () => {
   );
 };
 
-// Line 178: Enhanced Student Status Badge with BJJ theme
+// Line 200-230: Enhanced Student Status Badge Component
 const StudentStatusBadge = ({ status }) => {
   const statusConfig = {
     active: { 
@@ -230,7 +230,7 @@ const StudentStatusBadge = ({ status }) => {
   );
 };
 
-// Line 207: Enhanced date formatting utility
+// Line 235-275: Enhanced date formatting utility
 const formatDueDate = (dateString) => {
   if (!dateString) return { text: "N/A", color: "text-gray-400" };
   
@@ -271,7 +271,7 @@ const formatDueDate = (dateString) => {
   }
 };
 
-// Line 245: Enhanced Student Table Row with BJJ theme
+// Line 280-360: Enhanced Student Table Row Component
 const StudentTableRow = ({ 
   student, 
   onProcessPayment, 
@@ -375,7 +375,7 @@ const StudentTableRow = ({
   );
 };
 
-// Line 337: Main Dashboard Component with BJJ theme
+// Line 365-375: Main Dashboard Component
 export default function DashboardPage() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
@@ -408,12 +408,12 @@ export default function DashboardPage() {
   const [modalLoading, setModalLoading] = useState(false);
   const [smsLoading, setSmsLoading] = useState(false);
 
-  // Line 367: Navigation handler for landing page
+  // Line 400-405: Navigation handler
   const handleGoToLanding = () => {
     navigate('/');
   };
 
-  // Line 371: SMS functionality hooks
+  // Line 410-480: SMS functionality hooks
   const canSendReminder = useCallback((student) => {
     if (!student?.phone) return false;
     
@@ -514,7 +514,7 @@ export default function DashboardPage() {
     }
   }, [token]);
 
-  // Line 459: Student status and filtering logic
+  // Line 485-520: FIXED Student status logic with consistent overdue calculation
   const getStudentStatus = useCallback((student) => {
     if (!student || !student.memberships || student.memberships.length === 0) {
       return "inactive";
@@ -539,6 +539,7 @@ export default function DashboardPage() {
     const timeDiff = today.getTime() - endDate.getTime();
     const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
 
+    // CONSISTENT LOGIC: Overdue = expired within 30 days
     if (daysDiff <= 30) {
       return "overdue";
     }
@@ -600,7 +601,7 @@ export default function DashboardPage() {
     return filtered;
   }, [students, activeTab, searchTerm, getStudentStatus]);
 
-  // Line 536: Data fetching and handlers
+  // Line 575-605: Enhanced data fetching
   const fetchDashboardData = useCallback(async () => {
     if (!token) return;
 
@@ -626,10 +627,12 @@ export default function DashboardPage() {
         studentsResponse.json()
       ]);
 
+      console.log("Dashboard Data Received:", dashboard);
       setDashboardData(dashboard);
       setStudents(studentsData);
 
     } catch (error) {
+      console.error("Dashboard fetch error:", error);
       setError("Failed to load dashboard data. Please try again.");
       showError("Failed to load dashboard data");
     } finally {
@@ -641,7 +644,7 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Line 568: Event handlers
+  // Line 610-700: Event handlers
   const handleSendReminder = async (student) => {
     const success = await sendReminder(student);
     if (success) {
@@ -723,7 +726,7 @@ export default function DashboardPage() {
     showSuccess("Student added successfully!");
   };
 
-  // Line 636: Loading and error states
+  // Line 705-730: Loading and error states
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
@@ -758,7 +761,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Line 668: Conditional view rendering for profile and edit
+  // Line 735-775: Conditional view rendering
   if (activeView === "profile" && selectedStudentId) {
     const selectedStudentData = students.find(s => s.id === selectedStudentId);
     
@@ -798,10 +801,10 @@ export default function DashboardPage() {
     );
   }
 
-  // Line 702: Main dashboard render with BJJ theme - FIXED: Single navigation only
+  // Line 780-1150: Main dashboard render with ALL FIXES APPLIED
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      {/* Header with SINGLE navigation only */}
+      {/* Header */}
       <header className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl border-b border-gray-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
@@ -823,7 +826,7 @@ export default function DashboardPage() {
               </div>
             </div>
             
-            {/* Right side - SMS controls and logout ONLY */}
+            {/* Right side - Controls and logout */}
             <div className="flex items-center space-x-4">
               {/* SMS Controls */}
               <button
@@ -857,8 +860,9 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Statistics Cards with BJJ theme */}
+        {/* FIXED Statistics Cards - All calculations corrected */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {/* Total Students Card - FIXED: Use local count primarily */}
           <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
             <div className="p-6">
               <div className="flex items-center">
@@ -871,7 +875,8 @@ export default function DashboardPage() {
                       Total Students
                     </dt>
                     <dd className="text-3xl font-bold text-white">
-                      {tabCounts.all}
+                      {/* ENHANCED: Prefer local student count for accuracy */}
+                      {students?.length || dashboardData?.summary?.totalStudents || 0}
                     </dd>
                     <dd className="text-sm text-gray-500">
                       All registered students
@@ -882,6 +887,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Active Students Card - FIXED: Use local calculation */}
           <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
             <div className="p-6">
               <div className="flex items-center">
@@ -894,7 +900,8 @@ export default function DashboardPage() {
                       Active
                     </dt>
                     <dd className="text-3xl font-bold text-green-400">
-                      {tabCounts.active}
+                      {/* ENHANCED: Prefer local calculation for accuracy */}
+                      {tabCounts.active || 0}
                     </dd>
                     <dd className="text-sm text-gray-500">
                       Currently enrolled
@@ -905,6 +912,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* FIXED Overdue Students Card - Use consistent frontend calculation */}
           <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
             <div className="p-6">
               <div className="flex items-center">
@@ -917,10 +925,11 @@ export default function DashboardPage() {
                       Overdue
                     </dt>
                     <dd className="text-3xl font-bold text-red-400">
-                      {tabCounts.overdue}
+                      {/* FIXED: Use frontend calculation that matches tab logic */}
+                      {tabCounts.overdue || 0}
                     </dd>
                     <dd className="text-sm text-gray-500">
-                      Payment required
+                      Expired within 30 days
                     </dd>
                   </dl>
                 </div>
@@ -928,6 +937,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* FIXED Revenue Card with proper data structure and Philippine Peso */}
           <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
             <div className="p-6">
               <div className="flex items-center">
@@ -940,10 +950,30 @@ export default function DashboardPage() {
                       Total Revenue
                     </dt>
                     <dd className="text-3xl font-bold text-white">
-                      ₱{dashboardData?.totalRevenue || "25,200"}
+                      {/* FIXED: Correct API path and Philippine Peso formatting */}
+                      ₱{(() => {
+                        const total = dashboardData?.summary?.totalRevenue;
+                        if (typeof total === 'number' && !isNaN(total)) {
+                          return total.toLocaleString('en-PH', { 
+                            minimumFractionDigits: 0, 
+                            maximumFractionDigits: 0 
+                          });
+                        }
+                        return "0";
+                      })()}
                     </dd>
                     <dd className="text-sm text-gray-500">
-                      ₱15,400 this month
+                      {/* FIXED: Correct monthly revenue path */}
+                      ₱{(() => {
+                        const monthly = dashboardData?.summary?.thisMonthRevenue;
+                        if (typeof monthly === 'number' && !isNaN(monthly)) {
+                          return monthly.toLocaleString('en-PH', { 
+                            minimumFractionDigits: 0, 
+                            maximumFractionDigits: 0 
+                          });
+                        }
+                        return "0";
+                      })()} this month
                     </dd>
                   </dl>
                 </div>
@@ -952,13 +982,13 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Students Management Section with BJJ theme */}
+        {/* Students Management Section */}
         <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl overflow-hidden rounded-xl border border-gray-600">
           <div className="px-6 py-4 border-b border-gray-600">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium text-white">Students</h3>
               
-              {/* Search bar with BJJ theme */}
+              {/* Search bar */}
               <div className="max-w-md">
                 <input
                   type="text"
@@ -970,7 +1000,7 @@ export default function DashboardPage() {
               </div>
             </div>
             
-            {/* Status tabs with BJJ theme */}
+            {/* Status tabs */}
             <div className="mt-4 flex space-x-1">
               {[
                 { key: "all", label: "All Students", count: tabCounts.all },
@@ -993,7 +1023,7 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          {/* Enhanced Students Table with BJJ theme */}
+          {/* Enhanced Students Table */}
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-600">
               <thead className="bg-gray-700">
@@ -1041,6 +1071,23 @@ export default function DashboardPage() {
             </table>
           </div>
         </div>
+
+        {/* Debug section - Development only */}
+        {process.env.NODE_ENV === 'development' && dashboardData && (
+          <div className="mt-8 bg-gray-800 bg-opacity-90 rounded-xl border border-gray-600 p-4">
+            <h4 className="text-white font-medium mb-2">Debug - Calculations:</h4>
+            <div className="grid grid-cols-2 gap-4 text-xs text-gray-300">
+              <div>
+                <strong>Frontend Counts:</strong>
+                <pre>{JSON.stringify(tabCounts, null, 2)}</pre>
+              </div>
+              <div>
+                <strong>API Summary:</strong>
+                <pre>{JSON.stringify(dashboardData?.summary, null, 2)}</pre>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* SMS Credits Modal */}
@@ -1065,16 +1112,16 @@ export default function DashboardPage() {
           isOpen={paymentModalOpen}
           onClose={() => setPaymentModalOpen(false)}
           student={selectedStudent}
-          onSuccess={handlePaymentSuccess}
+          onPaymentSuccess={handlePaymentSuccess}
         />
       )}
 
-      {/* Add Student Modal */}
+      {/* FIXED Add Student Modal with correct prop name */}
       {addStudentModalOpen && (
         <AddStudentModal
           isOpen={addStudentModalOpen}
           onClose={() => setAddStudentModalOpen(false)}
-          onSuccess={handleStudentAdded}
+          onStudentAdded={handleStudentAdded}
         />
       )}
     </div>
