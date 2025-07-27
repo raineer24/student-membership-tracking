@@ -1,8 +1,64 @@
-// Line 1: Payment API with enhanced membership integration and atomic transactions
+// Line 1-15: Complete Payment API with enhanced membership integration, atomic transactions, and grandfathered pricing
 import prisma from "../../utils/db";
 import { authenticate, authorizeRole } from "../../utils/auth";
 
-// Line 5: Main API handler with comprehensive routing
+// Line 5-30: Enhanced helper function for individual student pricing calculations
+const getPricingForStudent = (student) => {
+  const monthlyRate = student.monthlyRate || 1400; // Default to current standard rate
+  const yearlyRate = monthlyRate * 12; // Always calculate yearly as monthly × 12
+  
+  // Line 10-20: Determine pricing tier for display and validation
+  let pricingTier = "Standard";
+  if (student.isLegacyStudent) {
+    if (monthlyRate === 1000) pricingTier = "Founding Member";
+    else if (monthlyRate === 1200) pricingTier = "Early Adopter";
+    else pricingTier = "Legacy";
+  }
+  
+  return {
+    monthly: monthlyRate,
+    yearly: yearlyRate,
+    tier: pricingTier,
+    isLegacy: student.isLegacyStudent || false,
+    monthlyFormatted: `₱${monthlyRate.toLocaleString()}`,
+    yearlyFormatted: `₱${yearlyRate.toLocaleString()}`
+  };
+};
+
+// Line 35-45: Helper function for consistent date formatting in logs
+const formatDateForLog = (date) => {
+  return date.toISOString().split('T')[0];
+};
+
+// Line 50-65: Enhanced membership end date calculation with proper date arithmetic
+const calculateMembershipEndDate = (startDate, membershipType) => {
+  const start = new Date(startDate);
+  let end;
+  
+  if (membershipType === "YEARLY") {
+    // Add exactly 365 days for yearly membership
+    end = new Date(start);
+    end.setTime(start.getTime() + (365 * 24 * 60 * 60 * 1000));
+  } else {
+    // Add exactly 30 days for monthly membership using milliseconds
+    end = new Date(start);
+    end.setTime(start.getTime() + (30 * 24 * 60 * 60 * 1000));
+  }
+  
+  console.log(`📅 Membership calculation: ${formatDateForLog(start)} + ${membershipType === "YEARLY" ? "365" : "30"} days = ${formatDateForLog(end)}`);
+  return end;
+};
+
+// Line 70-80: Enhanced payment date parsing with proper timezone handling
+const parsePaymentDate = (dateString) => {
+  if (!dateString) return new Date();
+  
+  // Parse YYYY-MM-DD format and create date at noon local time to avoid timezone issues
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0); // Month is 0-indexed, set to noon
+};
+
+// Line 85-95: Main API handler with comprehensive routing
 export default async function handler(req, res) {
   const { method, query } = req;
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -13,7 +69,7 @@ export default async function handler(req, res) {
   const paymentsIndex = parts.indexOf("payments");
   const pathParts = paymentsIndex !== -1 ? parts.slice(paymentsIndex + 1) : [];
 
-  console.log("🔥 Payments API hit");
+  console.log("🔥 Enhanced Payments API with Grandfathered Pricing");
   console.log("REQ.URL:", req.url);
   console.log("PATHNAME:", pathname);
   console.log("PATH PARTS:", pathParts);
@@ -23,7 +79,7 @@ export default async function handler(req, res) {
   try {
     const user = await authenticate(req);
 
-    // Line 24: GET /api/payments – List all payments with enhanced filtering
+    // Line 110-135: GET /api/payments – List all payments with enhanced filtering
     if (method === "GET" && pathParts.length === 0) {
       await authorizeRole("ADMIN", user);
 
@@ -34,21 +90,29 @@ export default async function handler(req, res) {
               id: true,
               name: true,
               email: true,
-              phone: true
+              phone: true,
+              monthlyRate: true,
+              isLegacyStudent: true
             }
           }
         },
         orderBy: { paidAt: 'desc' }
       });
 
+      // Line 125-135: Enhance payments with pricing information
+      const enhancedPayments = payments.map(payment => ({
+        ...payment,
+        studentPricing: payment.student ? getPricingForStudent(payment.student) : null
+      }));
+
       return res.status(200).json({
         success: true,
-        count: payments.length,
-        payments
+        count: enhancedPayments.length,
+        payments: enhancedPayments
       });
     }
 
-    // Line 46: GET /api/payments/:id – Get specific payment details
+    // Line 140-170: GET /api/payments/:id – Get specific payment details with pricing info
     if (method === "GET" && pathParts.length === 1 && !isNaN(Number(pathParts[0]))) {
       await authorizeRole("ADMIN", user);
 
@@ -63,6 +127,8 @@ export default async function handler(req, res) {
               name: true,
               email: true,
               phone: true,
+              monthlyRate: true,
+              isLegacyStudent: true,
               memberships: {
                 orderBy: { endDate: 'desc' },
                 take: 1
@@ -72,12 +138,58 @@ export default async function handler(req, res) {
         }
       });
 
-      return payment
-        ? res.status(200).json({ success: true, payment })
-        : res.status(404).json({ success: false, error: "Payment not found" });
+      if (!payment) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Payment not found" 
+        });
+      }
+
+      const enhancedPayment = {
+        ...payment,
+        studentPricing: payment.student ? getPricingForStudent(payment.student) : null
+      };
+
+      return res.status(200).json({ 
+        success: true, 
+        payment: enhancedPayment 
+      });
     }
 
-    // Line 72: POST /api/payments/create – Enhanced payment creation with atomic membership extension
+    // Line 175-205: NEW: GET /api/payments/pricing/:studentId – Get student's pricing information
+    if (method === "GET" && pathParts.length === 2 && pathParts[0] === "pricing" && !isNaN(Number(pathParts[1]))) {
+      await authorizeRole("ADMIN", user);
+
+      const studentId = Number(pathParts[1]);
+      
+      const student = await prisma.student.findUnique({
+        where: { id: studentId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          monthlyRate: true,
+          isLegacyStudent: true
+        }
+      });
+
+      if (!student) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Student not found" 
+        });
+      }
+
+      const pricing = getPricingForStudent(student);
+      
+      return res.status(200).json({
+        success: true,
+        student: student,
+        pricing: pricing
+      });
+    }
+
+    // Line 210-320: ENHANCED POST /api/payments/create with individual pricing validation and atomic transactions
     if (method === "POST" && pathParts.length === 1 && pathParts[0] === "create") {
       await authorizeRole("ADMIN", user);
 
@@ -88,10 +200,10 @@ export default async function handler(req, res) {
         description = "", 
         extendMembership = true,
         membershipType = "MONTHLY",
-        paymentDate // NEW: Accept custom payment date
+        paymentDate // Accept custom payment date
       } = req.body;
 
-      // Line 86: Comprehensive input validation
+      // Line 225-240: Comprehensive input validation
       if (!studentId || !amount) {
         return res.status(400).json({ 
           success: false, 
@@ -122,7 +234,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // Line 112: Enhanced payment date validation
+      // Line 245-280: Enhanced payment date validation
       if (paymentDate) {
         // Validate date format (YYYY-MM-DD)
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -160,7 +272,7 @@ export default async function handler(req, res) {
         }
       }
 
-      // Line 143: Verify student exists and get current membership data
+      // Line 285-300: Verify student exists and get current membership + pricing data
       const student = await prisma.student.findUnique({
         where: { id: Number(studentId) },
         include: { 
@@ -177,71 +289,45 @@ export default async function handler(req, res) {
         });
       }
 
-      // Line 157: Membership pricing validation
-      const membershipPrices = {
-        MONTHLY: 1400,
-        YEARLY: 16800
-      };
-
+      // Line 305-325: ENHANCED: Individual pricing validation based on student's rates
       if (extendMembership) {
-        const expectedAmount = membershipPrices[membershipType];
-        if (parseFloat(amount) !== expectedAmount) {
+        const pricing = getPricingForStudent(student);
+        const expectedAmount = membershipType === "YEARLY" ? pricing.yearly : pricing.monthly;
+        const enteredAmount = parseFloat(amount);
+        
+        if (enteredAmount !== expectedAmount) {
           return res.status(400).json({
             success: false,
-            error: `${membershipType} membership must be exactly ₱${expectedAmount}. Received: ₱${amount}`
+            error: `${membershipType} membership for ${pricing.tier} rate must be exactly ${pricing.monthlyFormatted} (monthly) or ${pricing.yearlyFormatted} (yearly). Received: ₱${enteredAmount.toLocaleString()}`,
+            studentPricing: {
+              tier: pricing.tier,
+              monthly: pricing.monthly,
+              yearly: pricing.yearly,
+              isLegacy: pricing.isLegacy,
+              monthlyFormatted: pricing.monthlyFormatted,
+              yearlyFormatted: pricing.yearlyFormatted
+            }
           });
         }
       }
 
-      // Line 170: Helper function to parse payment date with proper timezone handling
-      const parsePaymentDate = (dateString) => {
-        if (!dateString) return new Date();
-        
-        // Parse YYYY-MM-DD format and create date at noon local time to avoid timezone issues
-        const [year, month, day] = dateString.split('-').map(Number);
-        return new Date(year, month - 1, day, 12, 0, 0); // Month is 0-indexed, set to noon
-      };
-
-      // Line 178: Helper function for consistent date formatting in logs
-      const formatDateForLog = (date) => {
-        return date.toISOString().split('T')[0];
-      };
-
-      // Line 183: FIXED membership end date calculation function
-      const calculateMembershipEndDate = (startDate, membershipType) => {
-        const start = new Date(startDate);
-        let end;
-        
-        if (membershipType === "YEARLY") {
-          // Add exactly 365 days for yearly membership
-          end = new Date(start);
-          end.setTime(start.getTime() + (365 * 24 * 60 * 60 * 1000));
-        } else {
-          // Add exactly 30 days for monthly membership using milliseconds
-          end = new Date(start);
-          end.setTime(start.getTime() + (30 * 24 * 60 * 60 * 1000));
-        }
-        
-        console.log(`📅 Membership calculation: ${formatDateForLog(start)} + ${membershipType === "YEARLY" ? "365" : "30"} days = ${formatDateForLog(end)}`);
-        return end;
-      };
-
-      // Line 200: Atomic transaction - payment creation with membership extension
+      // Line 330-420: Enhanced atomic transaction - payment creation with membership extension
       const result = await prisma.$transaction(async (tx) => {
-        // FIXED: Determine payment date with proper timezone handling
+        // Determine payment date with proper timezone handling
         const paidAtDate = parsePaymentDate(paymentDate);
         
-        // Create payment record
+        // Create payment record with enhanced description
+        const pricing = getPricingForStudent(student);
         const paymentData = {
           studentId: Number(studentId),
           amount: parseFloat(amount),
           method: method || "CASH",
-          description: description || `${membershipType} membership payment`,
+          description: description || `${membershipType} membership payment (${pricing.tier} rate)`,
           status: "COMPLETED",
-          paidAt: paidAtDate // FIXED: Use custom date if provided, otherwise current timestamp
+          paidAt: paidAtDate
         };
 
-        console.log("Creating payment with data:", paymentData);
+        console.log("Creating payment with enhanced data:", paymentData);
 
         const newPayment = await tx.payment.create({
           data: paymentData,
@@ -251,7 +337,9 @@ export default async function handler(req, res) {
                 id: true,
                 name: true,
                 email: true,
-                phone: true
+                phone: true,
+                monthlyRate: true,
+                isLegacyStudent: true
               }
             }
           }
@@ -261,7 +349,7 @@ export default async function handler(req, res) {
 
         let membershipResult = null;
 
-        // Line 229: Handle membership extension if requested
+        // Line 365-420: Handle membership extension if requested
         if (extendMembership) {
           try {
             // Find the most recent membership
@@ -274,7 +362,7 @@ export default async function handler(req, res) {
             const baseDate = paidAtDate;
             let startDate = new Date(baseDate);
 
-            // Line 241: Calculate membership dates based on existing membership
+            // Calculate membership dates based on existing membership
             if (latestMembership) {
               const membershipEndDate = new Date(latestMembership.endDate);
               
@@ -291,10 +379,10 @@ export default async function handler(req, res) {
               console.log(`🆕 New member - membership starts: ${formatDateForLog(startDate)}`);
             }
 
-            // FIXED: Calculate end date with proper date arithmetic using helper function
+            // Calculate end date with proper date arithmetic using helper function
             const endDate = calculateMembershipEndDate(startDate, membershipType);
 
-            // Line 258: Create new membership record (fixed schema compatibility)
+            // Create new membership record (enhanced with pricing context)
             const membershipData = {
               studentId: Number(studentId),
               type: membershipType,
@@ -326,16 +414,19 @@ export default async function handler(req, res) {
         };
       });
 
-      // Line 284: Enhanced response with complete transaction details
+      // Line 425-455: Enhanced response with complete transaction details and pricing information
+      const pricing = getPricingForStudent(result.payment.student);
+      
       const response = {
         success: true,
         message: "Payment processed successfully",
         payment: result.payment,
         student: result.payment.student,
+        studentPricing: pricing,
         membershipExtended: result.membershipExtended,
         amount: parseFloat(amount),
         method: method,
-        paymentDate: result.payment.paidAt // Include actual payment date in response
+        paymentDate: result.payment.paidAt
       };
 
       if (result.membership) {
@@ -350,12 +441,12 @@ export default async function handler(req, res) {
         response.endDate = result.membership.endDate;
       }
 
-      console.log("Sending response:", response);
+      console.log("Sending enhanced response:", response);
       
       return res.status(201).json(response);
     }
 
-    // Line 307: PUT /api/payments/:id – Update existing payment
+    // Line 460-530: PUT /api/payments/:id – Update existing payment with enhanced validation
     if (method === "PUT" && pathParts.length === 1 && !isNaN(Number(pathParts[0]))) {
       await authorizeRole("ADMIN", user);
 
@@ -364,7 +455,15 @@ export default async function handler(req, res) {
 
       // Check if payment exists
       const existingPayment = await prisma.payment.findUnique({
-        where: { id }
+        where: { id },
+        include: {
+          student: {
+            select: {
+              monthlyRate: true,
+              isLegacyStudent: true
+            }
+          }
+        }
       });
 
       if (!existingPayment) {
@@ -409,10 +508,9 @@ export default async function handler(req, res) {
         updateData.status = status;
       }
 
-      // FIXED: Handle payment date updates
+      // Handle payment date updates with enhanced timezone handling
       if (paymentDate !== undefined) {
         if (paymentDate) {
-          // Validate date format
           const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
           if (!dateRegex.test(paymentDate)) {
             return res.status(400).json({
@@ -421,11 +519,9 @@ export default async function handler(req, res) {
             });
           }
           
-          // Parse date with proper timezone handling
-          const [year, month, day] = paymentDate.split('-').map(Number);
-          updateData.paidAt = new Date(year, month - 1, day, 12, 0, 0);
+          updateData.paidAt = parsePaymentDate(paymentDate);
         } else {
-          updateData.paidAt = new Date(); // Reset to current time if paymentDate is null/empty
+          updateData.paidAt = new Date();
         }
       }
 
@@ -440,20 +536,27 @@ export default async function handler(req, res) {
               id: true,
               name: true,
               email: true,
-              phone: true
+              phone: true,
+              monthlyRate: true,
+              isLegacyStudent: true
             }
           }
         }
       });
 
+      const enhancedPayment = {
+        ...updatedPayment,
+        studentPricing: updatedPayment.student ? getPricingForStudent(updatedPayment.student) : null
+      };
+
       return res.status(200).json({
         success: true,
         message: "Payment updated successfully",
-        payment: updatedPayment
+        payment: enhancedPayment
       });
     }
 
-    // Line 389: DELETE /api/payments/:id – Delete payment (admin only)
+    // Line 535-555: DELETE /api/payments/:id – Delete payment (admin only)
     if (method === "DELETE" && pathParts.length === 1 && !isNaN(Number(pathParts[0]))) {
       await authorizeRole("ADMIN", user);
 
@@ -478,7 +581,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Line 412: GET /api/payments/student/:studentId – Get payments for specific student
+    // Line 560-590: GET /api/payments/student/:studentId – Get payments for specific student with pricing
     if (method === "GET" && pathParts.length === 2 && pathParts[0] === "student" && !isNaN(Number(pathParts[1]))) {
       await authorizeRole("ADMIN", user);
 
@@ -492,22 +595,29 @@ export default async function handler(req, res) {
               id: true,
               name: true,
               email: true,
-              phone: true
+              phone: true,
+              monthlyRate: true,
+              isLegacyStudent: true
             }
           }
         },
         orderBy: { paidAt: 'desc' }
       });
 
+      const enhancedPayments = payments.map(payment => ({
+        ...payment,
+        studentPricing: payment.student ? getPricingForStudent(payment.student) : null
+      }));
+
       return res.status(200).json({
         success: true,
-        count: payments.length,
+        count: enhancedPayments.length,
         studentId,
-        payments
+        payments: enhancedPayments
       });
     }
 
-    // Line 438: GET /api/payments/stats – Payment statistics and analytics
+    // Line 595-650: ENHANCED GET /api/payments/stats – Payment statistics with pricing breakdown
     if (method === "GET" && pathParts.length === 1 && pathParts[0] === "stats") {
       await authorizeRole("ADMIN", user);
 
@@ -522,7 +632,8 @@ export default async function handler(req, res) {
         totalRevenue, 
         monthlyRevenue, 
         yearlyRevenue,
-        recentPayments
+        recentPayments,
+        pricingBreakdown
       ] = await Promise.all([
         prisma.payment.count(),
         prisma.payment.count({
@@ -550,12 +661,47 @@ export default async function handler(req, res) {
               select: {
                 id: true,
                 name: true,
-                email: true
+                email: true,
+                monthlyRate: true,
+                isLegacyStudent: true
               }
             }
           }
+        }),
+        // NEW: Enhanced pricing breakdown by student rates
+        prisma.student.groupBy({
+          by: ['monthlyRate', 'isLegacyStudent'],
+          _count: { _all: true }
         })
       ]);
+
+      // Process pricing breakdown for frontend display
+      const processedPricingBreakdown = pricingBreakdown.map(group => {
+        const rate = group.monthlyRate;
+        let tier = "Standard";
+        
+        if (group.isLegacyStudent) {
+          if (rate === 1000) tier = "Founding Member";
+          else if (rate === 1200) tier = "Early Adopter";
+          else tier = "Legacy";
+        }
+        
+        return {
+          tier,
+          monthlyRate: rate,
+          yearlyRate: rate * 12,
+          studentCount: group._count._all,
+          isLegacy: group.isLegacyStudent,
+          monthlyFormatted: `₱${rate.toLocaleString()}`,
+          yearlyFormatted: `₱${(rate * 12).toLocaleString()}`
+        };
+      });
+
+      // Enhance recent payments with pricing information
+      const enhancedRecentPayments = recentPayments.map(payment => ({
+        ...payment,
+        studentPricing: payment.student ? getPricingForStudent(payment.student) : null
+      }));
 
       return res.status(200).json({
         success: true,
@@ -566,12 +712,13 @@ export default async function handler(req, res) {
           totalRevenue: totalRevenue._sum.amount || 0,
           monthlyRevenue: monthlyRevenue._sum.amount || 0,
           yearlyRevenue: yearlyRevenue._sum.amount || 0,
-          recentPayments
+          recentPayments: enhancedRecentPayments,
+          pricingBreakdown: processedPricingBreakdown
         }
       });
     }
 
-    // Line 492: GET /api/payments/verify/:paymentId – Verify payment and membership status
+    // Line 655-685: GET /api/payments/verify/:paymentId – Enhanced payment verification with pricing context
     if (method === "GET" && pathParts.length === 2 && pathParts[0] === "verify" && !isNaN(Number(pathParts[1]))) {
       await authorizeRole("ADMIN", user);
 
@@ -598,32 +745,53 @@ export default async function handler(req, res) {
         });
       }
 
-      // Check if payment amount matches any recent membership
+      // Check if payment amount matches any recent membership with pricing context
       const paymentDate = new Date(payment.paidAt);
+      const studentPricing = getPricingForStudent(payment.student);
+      
       const matchingMembership = payment.student.memberships.find(m => {
         const membershipDate = new Date(m.startDate);
         const timeDiff = Math.abs(membershipDate - paymentDate);
         const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
-        // Match memberships created within 1 day of payment
-        return daysDiff <= 1;
+        return daysDiff <= 1; // Match memberships created within 1 day of payment
       });
+
+      // Enhanced verification with pricing validation
+      const expectedMonthly = studentPricing.monthly;
+      const expectedYearly = studentPricing.yearly;
+      const paymentAmount = payment.amount;
+      
+      const amountMatchesExpected = paymentAmount === expectedMonthly || paymentAmount === expectedYearly;
 
       return res.status(200).json({
         success: true,
-        payment,
+        payment: {
+          ...payment,
+          studentPricing
+        },
         membershipFound: !!matchingMembership,
         membership: matchingMembership || null,
-        student: payment.student
+        student: payment.student,
+        verification: {
+          amountMatchesExpected,
+          expectedAmounts: {
+            monthly: expectedMonthly,
+            yearly: expectedYearly
+          },
+          actualAmount: paymentAmount,
+          pricingTier: studentPricing.tier
+        }
       });
     }
 
-    // Line 532: Unsupported route handler with helpful error message
+    // Line 690-710: Unsupported route handler with enhanced available routes list
     return res.status(404).json({ 
       success: false, 
       error: "Route not found",
       availableRoutes: [
         "GET /api/payments",
         "GET /api/payments/:id",
+        "GET /api/payments/pricing/:studentId",
         "POST /api/payments/create",
         "PUT /api/payments/:id",
         "DELETE /api/payments/:id",
@@ -634,9 +802,9 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error("❌ Payments API ERROR:", err);
+    console.error("❌ Enhanced Payments API ERROR:", err);
     
-    // Line 549: Comprehensive error handling with proper HTTP status codes
+    // Line 715-750: Comprehensive error handling with proper HTTP status codes
     if (err.message === "Authentication required") {
       return res.status(401).json({ 
         success: false, 
@@ -652,7 +820,7 @@ export default async function handler(req, res) {
     }
 
     if (err.code?.startsWith('P')) {
-      // Prisma error handling
+      // Enhanced Prisma error handling
       console.error("Prisma error details:", err);
       
       if (err.code === 'P2002') {

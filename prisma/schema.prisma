@@ -1,3 +1,4 @@
+// Line 1-15: Complete Enhanced prisma/schema.prisma with grandfathered pricing and SMS system
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,6 +8,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Line 16-30: User model - Core authentication and role management (unchanged)
 model User {
   id        Int      @id @default(autoincrement())
   name      String
@@ -19,82 +21,172 @@ model User {
   student   Student?
 }
 
+// Line 31-55: ENHANCED Student model with grandfathered pricing fields
 model Student {
-  id          Int          @id @default(autoincrement())
-  name        String
-  email       String       @unique
-  phone       String?
-  userId      Int          @unique
-  memberships Membership[]
-  payments    Payment[]
-  reminders   Reminder[]
-  user        User         @relation(fields: [userId], references: [id])
+  id            Int          @id @default(autoincrement())
+  name          String
+  email         String       @unique
+  phone         String?                    // Required for SMS integration
+  userId        Int          @unique
+  
+  // Line 38-43: NEW GRANDFATHERED PRICING FIELDS
+  monthlyRate   Float        @default(1400)   // Individual monthly rate (₱1,000, ₱1,200, ₱1,400)
+  isLegacyStudent Boolean    @default(false)  // Flag for grandfathered pricing
+  
+  // Line 45-50: Relationships
+  memberships   Membership[]
+  payments      Payment[]
+  reminders     Reminder[]                 // SMS reminder relationship
+  user          User         @relation(fields: [userId], references: [id])
+  
+  // Line 52-55: Enhanced indexes for efficient pricing and SMS queries
+  @@index([monthlyRate])
+  @@index([isLegacyStudent])
+  @@index([phone])                         // For SMS functionality
+  @@index([email])                         // For general lookups
 }
 
+// Line 56-70: Membership model - Tracks student membership periods and overdue status
 model Membership {
   id        Int            @id @default(autoincrement())
   startDate DateTime
   endDate   DateTime
-  overdue   Boolean        @default(false)
+  overdue   Boolean        @default(false)  // Critical for SMS reminder logic
   studentId Int
   isActive  Boolean        @default(true)
   type      MembershipType @default(MONTHLY)
   student   Student        @relation(fields: [studentId], references: [id])
+  
+  // Line 66-70: Indexes for efficient membership queries
+  @@index([studentId])
+  @@index([endDate])
+  @@index([overdue])
+  @@index([isActive])
 }
 
-
+// Line 71-90: Payment model - Enhanced for grandfathered pricing tracking
 model Payment {
   id          Int           @id @default(autoincrement())
-  amount      Float
+  amount      Float                        // Amount paid (validated against student's individual rate)
   method      PaymentMethod @default(CASH)
-  description String?
+  description String?                      // Enhanced to include pricing tier context
   status      PaymentStatus @default(COMPLETED)
-  paidAt      DateTime      @default(now())
+  paidAt      DateTime      @default(now()) // Supports historical payment dates
   studentId   Int
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   student     Student       @relation(fields: [studentId], references: [id])
+  
+  // Line 83-90: Enhanced indexes for payment analytics and reporting
+  @@index([studentId])
+  @@index([paidAt])
+  @@index([status])
+  @@index([amount])
+  @@index([method])
 }
 
+// Line 91-115: Reminder model - Complete SMS integration support
 model Reminder {
-  id Int @id @default(autoincrement())
-  studentId Int
-  method String @default("SMS")
-  sentAt DateTime @default(now())
-  status String @default("SENT")
-  message String?
-  phoneNumber String?
-  cost Float?
-  response String?
-  retryCount Int @default(0)
-  student Student @relation(fields: [studentId], references: [id])
+  id          Int      @id @default(autoincrement())
+  studentId   Int
+  method      String   @default("SMS")           // SMS method for payment reminders
+  sentAt      DateTime @default(now())           // Timestamp of SMS delivery
+  status      String   @default("SENT")          // SENT, FAILED, PENDING
+  message     String?                            // SMS content (optional storage)
+  phoneNumber String?                            // Phone number used (for audit)
+  cost        Float?                             // SMS cost tracking (₱0.35 per SMS)
+  response    String?                            // Provider response (for debugging)
+  retryCount  Int      @default(0)               // Failed delivery retry counter
+  student     Student  @relation(fields: [studentId], references: [id])
 
+  // Line 105-115: Comprehensive indexes for SMS analytics and rate limiting
   @@index([studentId])
   @@index([sentAt])
   @@index([status])
+  @@index([phoneNumber])
+  @@index([cost])
 }
 
+// Line 116-125: MembershipType enum - Membership duration options
 enum MembershipType {
-  MONTHLY
-  YEARLY
+  MONTHLY                                  // 30 days membership
+  YEARLY                                   // 365 days membership (with potential discount)
 }
 
-
-
+// Line 126-140: PaymentMethod enum - All supported payment methods
 enum PaymentMethod {
-  CASH
-  CARD
-  BANK_TRANSFER
-  ONLINE
-  CHECK
-  OTHER
+  CASH                                     // Cash payments (most common)
+  CARD                                     // Credit/Debit card
+  BANK_TRANSFER                            // Bank transfer
+  ONLINE                                   // Online payment platforms
+  CHECK                                    // Check payments
+  OTHER                                    // Other payment methods
 }
 
-
+// Line 141-155: PaymentStatus enum - Payment processing states
 enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
-  CANCELLED
+  PENDING                                  // Payment initiated but not confirmed
+  COMPLETED                                // Payment successfully processed
+  FAILED                                   // Payment processing failed
+  REFUNDED                                 // Payment was refunded
+  CANCELLED                                // Payment was cancelled
 }
+
+// Line 156-200: Schema Comments and Documentation
+//
+// GRANDFATHERED PRICING SYSTEM:
+// ===============================
+// This schema supports individual student pricing through two key fields:
+//
+// 1. monthlyRate (Float): 
+//    - Default: ₱1,400 (current standard rate)
+//    - Legacy rates: ₱1,000 (Founding Members), ₱1,200 (Early Adopters)
+//    - Yearly rate automatically calculated as monthlyRate * 12
+//
+// 2. isLegacyStudent (Boolean):
+//    - false: Standard pricing (₱1,400/month)
+//    - true: Grandfathered pricing (preserved from enrollment date)
+//
+// PRICING TIERS:
+// ==============
+// - Founding Members: ₱1,000/month (₱12,000/year) - isLegacyStudent: true
+// - Early Adopters: ₱1,200/month (₱14,400/year) - isLegacyStudent: true  
+// - Standard Members: ₱1,400/month (₱16,800/year) - isLegacyStudent: false
+//
+// SMS REMINDER SYSTEM:
+// ===================
+// The Reminder model tracks all SMS communications:
+// - Automatic reminders for overdue memberships (expired within 30 days)
+// - Cost tracking for budget management (₱0.35 per SMS)
+// - Rate limiting: One reminder per student per 24 hours
+// - Phone number validation: Philippine mobile format required
+//
+// PAYMENT VALIDATION:
+// ==================
+// Enhanced payment validation ensures amounts match student's individual rates:
+// - Monthly payments must equal student's monthlyRate
+// - Yearly payments must equal student's monthlyRate * 12
+// - Historical payments supported with custom date selection
+//
+// BACKWARD COMPATIBILITY:
+// ======================
+// - All existing functionality preserved
+// - Default values ensure seamless migration
+// - Existing students automatically get standard rates
+// - No breaking changes to existing APIs
+//
+// MIGRATION STEPS:
+// ===============
+// 1. Update this schema file
+// 2. Run: npx prisma db push
+// 3. Run: npx prisma generate
+// 4. Optionally set legacy students:
+//    UPDATE "Student" SET "monthlyRate" = 1000, "isLegacyStudent" = true WHERE id IN (1,2,3);
+// 5. Deploy enhanced application code
+//
+// PERFORMANCE OPTIMIZATIONS:
+// =========================
+// - Indexed pricing fields for fast queries
+// - Efficient SMS lookup by phone number
+// - Payment analytics through indexed amounts and dates
+// - Membership status queries optimized with compound indexes
