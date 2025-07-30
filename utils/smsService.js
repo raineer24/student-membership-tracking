@@ -1,19 +1,18 @@
-// Line 1: Final SMS service fix for Semaphore - Resolves sender name validation issue
-// Based on actual error response: "The selected sendername is invalid."
-
+// Line 1-15: Semaphore API Fix - Query Parameter Authentication
 import { normalizePhoneNumber, isValidPhilippinePhone, getNetworkProvider } from './phoneUtils.js';
 
-// Line 5: SMS service configuration
+// Line 5-15: SMS service configuration
 const SMS_CONFIG = {
   API_BASE_URL: 'https://api.semaphore.co/api/v4',
   MAX_MESSAGE_LENGTH: 160,
   COST_PER_SMS: 0.60,
-  TIMEOUT_MS: 30000,
-  RETRY_ATTEMPTS: 2, // Reduced for sender name retry
+  COST_PER_CREDIT: 1.00,
+  TIMEOUT_MS: 15000,
+  RETRY_ATTEMPTS: 2,
   RETRY_DELAY_MS: 1000
 };
 
-// Line 14: Valid sender names to try (in order of preference)
+// Line 16-25: Valid sender names to try (in order of preference)
 const VALID_SENDER_NAMES = [
   'OgmokBJJGym',    // Your registered name (exact case)
   'OGMOKBJJGYM',    // All caps version
@@ -22,10 +21,10 @@ const VALID_SENDER_NAMES = [
   null              // No sender name (uses default)
 ];
 
-// Line 23: Enhanced function to send SMS with sender name fallback
+// Line 26-90: Enhanced SMS sending function with sender name fallback
 export async function sendSMSViaSemaphore(phone, message, options = {}) {
   try {
-    // Line 26: Input validation
+    // Input validation
     if (!phone || !message) {
       throw new Error('Phone number and message are required');
     }
@@ -42,23 +41,12 @@ export async function sendSMSViaSemaphore(phone, message, options = {}) {
     const normalizedPhone = normalizePhoneNumber(phone);
     const network = getNetworkProvider(normalizedPhone);
 
-    console.log("📱 === SENDING SMS VIA SEMAPHORE (ENHANCED) ===");
-    console.log("📞 Phone:", normalizedPhone);
-    console.log("🌐 Network:", network);
-    console.log("📝 Message:", message);
-    console.log("📏 Length:", message.length, "characters");
-
-    // Line 44: Try different sender names until one works
+    // Try different sender names until one works
     let lastError = null;
     
     for (const senderName of VALID_SENDER_NAMES) {
       try {
-        console.log(`👤 Attempting with sender name: ${senderName || 'default'}`);
-        
         const result = await attemptSMSSend(apiKey, normalizedPhone, message, senderName);
-        
-        console.log("✅ SMS sent successfully!");
-        console.log("👤 Working sender name:", senderName || 'default');
         
         return {
           success: true,
@@ -74,7 +62,6 @@ export async function sendSMSViaSemaphore(phone, message, options = {}) {
         };
         
       } catch (error) {
-        console.warn(`❌ Failed with sender name '${senderName || 'default'}':`, error.message);
         lastError = error;
         
         // If it's not a sender name issue, don't try other names
@@ -87,11 +74,10 @@ export async function sendSMSViaSemaphore(phone, message, options = {}) {
       }
     }
     
-    // Line 73: If all sender names failed, throw the last error
+    // If all sender names failed, throw the last error
     throw lastError || new Error('All sender name attempts failed');
 
   } catch (error) {
-    console.error("❌ SMS sending failed:", error.message);
     return {
       success: false,
       error: error.message,
@@ -105,7 +91,7 @@ export async function sendSMSViaSemaphore(phone, message, options = {}) {
   }
 }
 
-// Line 89: Function to attempt SMS send with specific sender name
+// Line 91-150: SMS send attempt function
 async function attemptSMSSend(apiKey, phone, message, senderName) {
   const payload = {
     apikey: apiKey,
@@ -118,12 +104,7 @@ async function attemptSMSSend(apiKey, phone, message, senderName) {
     payload.sendername = senderName;
   }
 
-  console.log("📤 Payload:", {
-    ...payload,
-    apikey: `${payload.apikey.substring(0, 8)}...`
-  });
-
-  // Line 104: Make API request
+  // Make API request
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), SMS_CONFIG.TIMEOUT_MS);
 
@@ -140,17 +121,14 @@ async function attemptSMSSend(apiKey, phone, message, senderName) {
 
     clearTimeout(timeoutId);
 
-    console.log("📨 Response status:", response.status);
-
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
     const responseData = await response.json();
-    console.log("📋 Response data:", responseData);
 
-    // Line 127: Enhanced error checking for Semaphore's response format
+    // Enhanced error checking for Semaphore's response format
     if (responseData.error || responseData.status === 'error') {
       throw new Error(responseData.message || responseData.error || 'SMS sending failed');
     }
@@ -181,69 +159,196 @@ async function attemptSMSSend(apiKey, phone, message, senderName) {
   }
 }
 
-// Line 150: Function to check SMS credits (unchanged)
+// Line 151-250: FIXED SMS credits check using Semaphore's documented endpoints
 export async function checkSMSCredits() {
-  try {
-    const apiKey = process.env.SEMAPHORE_API_KEY;
-    
-    if (!apiKey) {
-      return {
-        success: false,
-        error: 'SEMAPHORE_API_KEY not configured',
-        data: {
-          balance: 0,
-          remaining: 0,
-          costPerSMS: SMS_CONFIG.COST_PER_SMS,
-          currency: "PHP",
-          provider: "Semaphore"
-        }
-      };
-    }
+  const apiKey = process.env.SEMAPHORE_API_KEY;
+  
+  if (!apiKey) {
+    console.log("❌ No SEMAPHORE_API_KEY found in environment variables");
+    return {
+      success: true,
+      data: {
+        balance: 0,
+        remaining: 0,
+        credits: 0,
+        costPerSMS: SMS_CONFIG.COST_PER_SMS,
+        currency: "PHP",
+        provider: "Semaphore",
+        lowBalance: true,
+        lastUpdated: new Date().toISOString(),
+        messagesRemaining: 0,
+        note: "SMS service not configured. Add SEMAPHORE_API_KEY to environment variables."
+      }
+    };
+  }
 
-    const response = await fetch(`${SMS_CONFIG.API_BASE_URL}/account`, {
+  console.log(`🔑 Using API Key: ${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)} (length: ${apiKey.length})`);
+
+  // FIXED: Use query parameter authentication as shown in Semaphore documentation
+  const endpoints = [
+    // Method 1: Account endpoint with query parameter (as per documentation)
+    {
+      url: `${SMS_CONFIG.API_BASE_URL}/account?apikey=${apiKey}`,
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      name: 'Account Info (Query Param)'
+    },
+    
+    // Method 2: Account transactions endpoint (as per documentation you referenced)
+    {
+      url: `${SMS_CONFIG.API_BASE_URL}/account/transactions?apikey=${apiKey}&limit=1`,
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      name: 'Account Transactions (Query Param)'
+    },
+    
+    // Method 3: Balance endpoint with query parameter
+    {
+      url: `${SMS_CONFIG.API_BASE_URL}/balance?apikey=${apiKey}`,
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      name: 'Balance (Query Param)'
+    },
+    
+    // Method 4: Fallback - Bearer token method
+    {
+      url: `${SMS_CONFIG.API_BASE_URL}/account`,
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Accept': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Credits API error: ${response.status}`);
+      },
+      name: 'Account (Bearer Token)'
     }
+  ];
 
-    const data = await response.json();
+  // Try each endpoint until one works
+  for (let i = 0; i < endpoints.length; i++) {
+    const endpoint = endpoints[i];
+    
+    try {
+      console.log(`🔍 Trying method ${i + 1}/${endpoints.length}: ${endpoint.name}`);
+      console.log(`📡 URL: ${endpoint.url.replace(apiKey, '***API_KEY***')}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout
+      
+      const response = await fetch(endpoint.url, {
+        method: endpoint.method,
+        headers: endpoint.headers,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
 
-    return {
-      success: true,
-      data: {
-        balance: data.credit_balance || 0,
-        remaining: data.credit_balance || 0,
-        costPerSMS: SMS_CONFIG.COST_PER_SMS,
-        currency: "PHP",
-        lowBalance: (data.credit_balance || 0) < 10,
-        provider: "Semaphore"
+      console.log(`📊 Response Status: ${response.status} ${response.statusText}`);
+
+      if (response.ok) {
+        const responseText = await response.text();
+        console.log(`📄 Raw Response (first 500 chars):`, responseText.substring(0, 500));
+        
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.log(`❌ JSON Parse Error:`, parseError.message);
+          continue;
+        }
+        
+        console.log(`📊 Response Structure:`, Object.keys(data));
+        
+        // Extract credits - try multiple possible fields and response formats
+        let credits = 0;
+        let accountInfo = {};
+        
+        // For account endpoint response
+        if (data.credit_balance !== undefined) {
+          credits = parseInt(data.credit_balance) || 0;
+          accountInfo = {
+            account_id: data.account_id,
+            account_name: data.account_name,
+            status: data.status
+          };
+          console.log(`✅ Found credit_balance: ${credits}`);
+        }
+        // For balance endpoint response
+        else if (data.balance !== undefined) {
+          credits = parseInt(data.balance) || 0;
+          console.log(`✅ Found balance: ${credits}`);
+        }
+        // For transactions endpoint - get account info from first transaction or metadata
+        else if (data.transactions && Array.isArray(data.transactions)) {
+          // Look for account info in transactions response
+          if (data.account_info) {
+            credits = parseInt(data.account_info.credit_balance) || 0;
+            accountInfo = data.account_info;
+          } else if (data.transactions.length > 0 && data.transactions[0].remaining_balance !== undefined) {
+            credits = parseInt(data.transactions[0].remaining_balance) || 0;
+          }
+          console.log(`✅ Found credits from transactions: ${credits}`);
+        }
+        // Handle other possible response formats
+        else {
+          console.log(`⚠️ Unknown response format. Full response:`, JSON.stringify(data, null, 2));
+        }
+        
+        const balanceInPHP = credits * SMS_CONFIG.COST_PER_CREDIT;
+        
+        console.log(`✅ Method ${i + 1} (${endpoint.name}) successful`);
+        console.log(`📊 Final result - Credits: ${credits}, PHP value: ₱${balanceInPHP}`);
+        
+        return {
+          success: true,
+          data: {
+            balance: balanceInPHP,
+            remaining: balanceInPHP,
+            credits: credits,
+            costPerSMS: SMS_CONFIG.COST_PER_SMS,
+            currency: "PHP",
+            lowBalance: credits < 10,
+            provider: "Semaphore",
+            lastUpdated: new Date().toISOString(),
+            messagesRemaining: credits,
+            endpoint: `Method ${i + 1} (${endpoint.name})`,
+            accountInfo: accountInfo
+          }
+        };
+      } else {
+        const errorText = await response.text();
+        console.warn(`⚠️ Method ${i + 1} (${endpoint.name}) failed: HTTP ${response.status}`);
+        console.warn(`📄 Error Response:`, errorText.substring(0, 200));
       }
-    };
-
-  } catch (error) {
-    return {
-      success: false,
-      error: error.message,
-      data: {
-        balance: 0,
-        remaining: 0,
-        costPerSMS: SMS_CONFIG.COST_PER_SMS,
-        currency: "PHP",
-        provider: "Semaphore"
-      }
-    };
+      
+    } catch (error) {
+      console.warn(`⚠️ Method ${i + 1} (${endpoint.name}) error:`, error.message);
+      continue;
+    }
   }
+
+  // If all endpoints failed, return zero balance
+  console.log("❌ All credits endpoints failed");
+  
+  return {
+    success: true,
+    data: {
+      balance: 0,
+      remaining: 0,
+      credits: 0,
+      costPerSMS: SMS_CONFIG.COST_PER_SMS,
+      currency: "PHP",
+      provider: "Semaphore",
+      lowBalance: true,
+      lastUpdated: new Date().toISOString(),
+      messagesRemaining: 0,
+      note: "Unable to fetch balance from Semaphore API using query parameter authentication."
+    }
+  };
 }
 
-// Line 198: Export constants and aliases
+// Line 251-260: Export constants and aliases
 export const SMS_CONSTANTS = {
   COST_PER_SMS: SMS_CONFIG.COST_PER_SMS,
+  COST_PER_CREDIT: SMS_CONFIG.COST_PER_CREDIT,
   MAX_MESSAGE_LENGTH: SMS_CONFIG.MAX_MESSAGE_LENGTH,
   SUPPORTED_NETWORKS: ['Globe', 'Smart', 'Sun', 'DITO'],
   PROVIDER: 'Semaphore',

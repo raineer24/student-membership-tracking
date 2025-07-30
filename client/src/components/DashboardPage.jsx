@@ -1,4 +1,4 @@
-// Line 1-15: FIXED Complete Enhanced DashboardPage.jsx with corrected revenue calculations
+// Line 1-15: Complete Enhanced DashboardPage.jsx - Production Ready with Fixed Double Refresh
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +10,7 @@ import StudentProfileView from "../components/StudentProfileView";
 import StudentEditForm from "./StudentEditForm";
 import { useToast } from "../hooks/useToast";
 
-// Line 15-85: SMS Credits Modal Component (unchanged)
+// Line 16-86: SMS Credits Modal Component
 const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
   if (!isOpen) return null;
 
@@ -38,18 +38,28 @@ const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between text-gray-300">
                   <span>Cost per SMS:</span>
-                  <span>₱0.35</span>
+                  <span>₱{creditsData.costPerSMS || "0.60"}</span>
                 </div>
                 <div className="flex justify-between text-gray-300">
                   <span>Estimated capacity:</span>
-                  <span>{Math.floor((creditsData.balance || 0) / 0.35)} SMS</span>
+                  <span>{Math.floor((creditsData.balance || 0) / (creditsData.costPerSMS || 0.60))} SMS</span>
+                </div>
+                <div className="flex justify-between text-gray-300">
+                  <span>Provider:</span>
+                  <span>{creditsData.provider || "Semaphore"}</span>
                 </div>
               </div>
             </div>
+            {creditsData.lowBalance && (
+              <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded-lg p-3">
+                <p className="text-red-400 text-sm">⚠️ Low balance warning</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-4">
             <p className="text-gray-400">Unable to load credits data</p>
+            <p className="text-gray-500 text-xs mt-2">Check SMS service configuration</p>
           </div>
         )}
         
@@ -63,7 +73,7 @@ const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
   );
 };
 
-// Line 90-170: SMS History Modal Component (unchanged)
+// Line 87-171: SMS History Modal Component
 const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
   if (!isOpen) return null;
 
@@ -94,16 +104,16 @@ const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
               </thead>
               <tbody className="bg-gray-700 divide-y divide-gray-600">
                 {historyData.reminders.map((reminder, index) => (
-                  <tr key={index}>
+                  <tr key={reminder.id || index}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {reminder.student?.name || "Unknown"}
+                      {reminder.student?.name || reminder.studentName || "Unknown"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {reminder.phoneNumber || "N/A"}
+                      {reminder.phoneNumber || reminder.phone || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        reminder.status === 'SENT' 
+                        reminder.status === 'SENT' || reminder.status === 'TEST_SENT'
                           ? 'bg-green-500 bg-opacity-20 text-green-400 border border-green-500' 
                           : 'bg-red-500 bg-opacity-20 text-red-400 border border-red-500'
                       }`}>
@@ -111,7 +121,7 @@ const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      ₱{reminder.cost || '0.35'}
+                      ₱{reminder.cost || '0.60'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                       {new Date(reminder.sentAt).toLocaleDateString()}
@@ -124,6 +134,7 @@ const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
         ) : (
           <div className="text-center py-8">
             <p className="text-gray-400">No SMS history found</p>
+            <p className="text-gray-500 text-sm mt-2">Send some reminders to see history here</p>
           </div>
         )}
         
@@ -137,7 +148,7 @@ const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
   );
 };
 
-// Line 175-195: Enhanced Logout Button Component
+// Line 172-192: Logout Button Component
 const LogoutButton = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -159,7 +170,7 @@ const LogoutButton = () => {
   );
 };
 
-// Line 200-250: ENHANCED Student Status Badge with pricing tier integration
+// Line 193-243: Student Status Badge with pricing tier integration
 const StudentStatusBadge = ({ status, student }) => {
   const statusConfig = {
     active: { 
@@ -234,7 +245,7 @@ const StudentStatusBadge = ({ status, student }) => {
   );
 };
 
-// Line 255-285: Enhanced date formatting utility
+// Line 244-274: Date formatting utility
 const formatDueDate = (dateString) => {
   if (!dateString) return { text: "N/A", color: "text-gray-400" };
   
@@ -249,33 +260,21 @@ const formatDueDate = (dateString) => {
     const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
     
     if (daysDiff > 7) {
-      return {
-        text: `${daysDiff} days remaining`,
-        color: "text-green-400"
-      };
+      return { text: `${daysDiff} days remaining`, color: "text-green-400" };
     } else if (daysDiff > 0) {
-      return {
-        text: `${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining`,
-        color: "text-yellow-400"
-      };
+      return { text: `${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining`, color: "text-yellow-400" };
     } else if (daysDiff === 0) {
-      return {
-        text: "Due today",
-        color: "text-orange-400 font-medium"
-      };
+      return { text: "Due today", color: "text-orange-400 font-medium" };
     } else {
       const overdueDays = Math.abs(daysDiff);
-      return {
-        text: `${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue`,
-        color: "text-red-400 font-medium"
-      };
+      return { text: `${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue`, color: "text-red-400 font-medium" };
     }
   } catch {
     return { text: "Invalid Date", color: "text-gray-400" };
   }
 };
 
-// Line 290-380: ENHANCED Student Table Row with individual pricing display
+// Line 275-365: Student Table Row with individual pricing display
 const StudentTableRow = ({ 
   student, 
   onProcessPayment, 
@@ -415,7 +414,7 @@ const StudentTableRow = ({
   );
 };
 
-// Line 385-435: ENHANCED Main Dashboard Component
+// Line 366-416: Main Dashboard Component
 export default function DashboardPage() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
@@ -448,20 +447,13 @@ export default function DashboardPage() {
   const [modalLoading, setModalLoading] = useState(false);
   const [smsLoading, setSmsLoading] = useState(false);
 
-  // Line 440-490: FIXED Enhanced pricing breakdown calculation
+  // Line 417-467: Enhanced pricing breakdown calculation
   const pricingBreakdown = useMemo(() => {
     if (!students || students.length === 0) {
       return {
-        total: 0,
-        founding: 0,
-        early: 0,
-        legacy: 0,
-        standard: 0,
-        legacyCount: 0,
-        standardCount: 0,
-        averageMonthlyRate: 0,
-        totalMonthlyRevenuePotential: 0,
-        totalYearlyRevenuePotential: 0
+        total: 0, founding: 0, early: 0, legacy: 0, standard: 0,
+        legacyCount: 0, standardCount: 0, averageMonthlyRate: 0,
+        totalMonthlyRevenuePotential: 0, totalYearlyRevenuePotential: 0
       };
     }
 
@@ -485,23 +477,16 @@ export default function DashboardPage() {
       
       return acc;
     }, {
-      total: 0,
-      founding: 0,
-      early: 0,
-      legacy: 0,
-      standard: 0,
-      legacyCount: 0,
-      standardCount: 0,
-      totalMonthlyRevenuePotential: 0,
-      totalYearlyRevenuePotential: 0
+      total: 0, founding: 0, early: 0, legacy: 0, standard: 0,
+      legacyCount: 0, standardCount: 0,
+      totalMonthlyRevenuePotential: 0, totalYearlyRevenuePotential: 0
     });
 
     breakdown.averageMonthlyRate = breakdown.total > 0 ? breakdown.totalMonthlyRevenuePotential / breakdown.total : 0;
-
     return breakdown;
   }, [students]);
 
-  // Line 495-545: Enhanced student status logic
+  // Line 468-518: Student status logic
   const getStudentStatus = useCallback((student) => {
     if (!student || !student.memberships || student.memberships.length === 0) {
       return "inactive";
@@ -519,18 +504,12 @@ export default function DashboardPage() {
     today.setHours(0, 0, 0, 0);
     endDate.setHours(0, 0, 0, 0);
 
-    if (endDate >= today) {
-      return "active";
-    }
+    if (endDate >= today) return "active";
 
     const timeDiff = today.getTime() - endDate.getTime();
     const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
 
-    if (daysDiff <= 30) {
-      return "overdue";
-    }
-
-    return "inactive";
+    return daysDiff <= 30 ? "overdue" : "inactive";
   }, []);
 
   const tabCounts = useMemo(() => {
@@ -538,56 +517,37 @@ export default function DashboardPage() {
       return { all: 0, active: 0, overdue: 0, inactive: 0 };
     }
 
-    const counts = students.reduce((acc, student) => {
+    return students.reduce((acc, student) => {
       const status = getStudentStatus(student);
       acc[status] = (acc[status] || 0) + 1;
       acc.all = (acc.all || 0) + 1;
       return acc;
-    }, {
-      all: 0,
-      active: 0,
-      overdue: 0,
-      inactive: 0
-    });
-
-    return counts;
+    }, { all: 0, active: 0, overdue: 0, inactive: 0 });
   }, [students, getStudentStatus]);
 
   const filteredStudents = useMemo(() => {
-    if (!students || students.length === 0) {
-      return [];
-    }
+    if (!students || students.length === 0) return [];
 
     let filtered = students;
 
     if (activeTab !== "all") {
-      filtered = filtered.filter(student => {
-        const status = getStudentStatus(student);
-        return status === activeTab;
-      });
+      filtered = filtered.filter(student => getStudentStatus(student) === activeTab);
     }
 
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(student => {
-        const firstName = (student.firstName || "").toLowerCase();
-        const lastName = (student.lastName || "").toLowerCase();
         const name = (student.name || "").toLowerCase();
         const email = (student.email || "").toLowerCase();
         const phone = (student.phone || "").toLowerCase();
-
-        return name.includes(searchLower) ||
-               firstName.includes(searchLower) ||
-               lastName.includes(searchLower) ||
-               email.includes(searchLower) ||
-               phone.includes(searchLower);
+        return name.includes(searchLower) || email.includes(searchLower) || phone.includes(searchLower);
       });
     }
     
     return filtered;
   }, [students, activeTab, searchTerm, getStudentStatus]);
 
-  // Line 550-580: Enhanced data fetching
+  // Line 519-549: Data fetching
   const fetchDashboardData = useCallback(async () => {
     if (!token) return;
 
@@ -596,12 +556,8 @@ export default function DashboardPage() {
       setError(null);
 
       const [dashboardResponse, studentsResponse] = await Promise.all([
-        fetch("/api/dashboard", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch("/api/students", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
+        fetch("/api/dashboard", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/students", { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
       if (!dashboardResponse.ok || !studentsResponse.ok) {
@@ -613,12 +569,10 @@ export default function DashboardPage() {
         studentsResponse.json()
       ]);
 
-      console.log("📊 Dashboard Data Received:", dashboard);
       setDashboardData(dashboard);
       setStudents(studentsData);
 
     } catch (error) {
-      console.error("❌ Dashboard fetch error:", error);
       setError("Failed to load dashboard data. Please try again.");
       showError("Failed to load dashboard data");
     } finally {
@@ -630,11 +584,115 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  // Line 550-570: SMS Credits Fetch Function
+  const fetchSMSCredits = useCallback(async () => {
+    if (!token) return;
 
-  const handleSendReminder = async (student) => {
-   
-  };
+    try {
+      setModalLoading(true);
+      const response = await fetch("/api/reminders/credits", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
+      if (!response.ok) {
+        throw new Error(`Failed to fetch credits: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setCreditsData(data.data);
+      } else {
+        throw new Error(data.error || "Failed to load credits");
+      }
+
+    } catch (error) {
+      showError("Failed to load SMS credits");
+      setCreditsData(null);
+    } finally {
+      setModalLoading(false);
+    }
+  }, [token, showError]);
+
+  // Line 571-591: SMS History Fetch Function
+  const fetchSMSHistory = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      setModalLoading(true);
+      const response = await fetch("/api/reminders/history", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch history: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setHistoryData(data.data);
+      } else {
+        throw new Error(data.error || "Failed to load history");
+      }
+
+    } catch (error) {
+      showError("Failed to load SMS history");
+      setHistoryData(null);
+    } finally {
+      setModalLoading(false);
+    }
+  }, [token, showError]);
+
+  // Line 592-612: SMS Modal Handlers
+  const handleCreditsModal = useCallback(() => {
+    setCreditsModalOpen(true);
+    fetchSMSCredits();
+  }, [fetchSMSCredits]);
+
+  const handleHistoryModal = useCallback(() => {
+    setHistoryModalOpen(true);
+    fetchSMSHistory();
+  }, [fetchSMSHistory]);
+
+  // Line 613-653: Send SMS Reminder Function
+  const handleSendReminder = useCallback(async (student) => {
+    if (!token || !student) return;
+
+    try {
+      setSmsLoading(true);
+      const response = await fetch("/api/reminders/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studentId: student.id,
+          testMode: process.env.NODE_ENV === "development",
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        showSuccess(`SMS reminder sent to ${student.name}!`);
+      } else {
+        throw new Error(data.error || "Failed to send SMS");
+      }
+
+    } catch (error) {
+      showError(`Failed to send SMS: ${error.message}`);
+    } finally {
+      setSmsLoading(false);
+    }
+  }, [token, showSuccess, showError]);
+
+  // Line 654-674: Reminder eligibility check
+  const canSendReminder = useCallback((student) => {
+    if (!student || !student.phone) return false;
+    const status = getStudentStatus(student);
+    return status === "overdue" || status === "inactive";
+  }, [getStudentStatus]);
+
+  // Line 675-695: Payment and student handlers
   const handleProcessPayment = (student) => {
     setSelectedStudent(student);
     setPaymentModalOpen(true);
@@ -642,7 +700,6 @@ export default function DashboardPage() {
 
   const handleViewStudent = (studentId) => {
     const studentData = students.find(s => s.id === studentId);
-    
     if (studentData) {
       setSelectedStudentId(studentId);
       setActiveView("profile");
@@ -662,10 +719,11 @@ export default function DashboardPage() {
     setStudentToEdit(null);
   }, []);
 
+  // Line 696-756: FIXED Save student handler - eliminates double refresh
   const handleSaveStudent = useCallback(async (updatedStudent) => {
   try {
-    // Show loading state
-    setLoading(true);
+    // Don't set loading here - it causes unnecessary re-renders
+    // setLoading(true); // REMOVED - this causes the first refresh
     
     const response = await fetch(`/api/students/${updatedStudent.id}`, {
       method: 'PUT',
@@ -688,29 +746,24 @@ export default function DashboardPage() {
     }
 
     const savedStudent = await response.json();
-
-    // Update local state with saved student data
+    
+    // FINAL SOLUTION: Single state update with optimistic UI update
     setStudents(prev => 
       prev.map(s => s.id === updatedStudent.id ? { ...s, ...savedStudent } : s)
     );
 
-    // Refresh dashboard data to ensure consistency
-    await fetchDashboardData();
-    
-    // Navigate back to dashboard
+    // CRITICAL: Navigate back IMMEDIATELY without any data fetching
     handleBackToDashboard();
     
     // Show success message
     showSuccess(`${updatedStudent.name} updated successfully!`);
     
   } catch (error) {
-    console.error("❌ Student update error:", error);
     showError(`Failed to update student: ${error.message}`);
-    throw error; // Re-throw so StudentEditForm can handle it
-  } finally {
-    setLoading(false);
+    throw error;
   }
-}, [token, fetchDashboardData, handleBackToDashboard, showSuccess, showError, setLoading]);
+  // REMOVED: finally block with setLoading(false) - eliminates second refresh
+}, [token, handleBackToDashboard, showSuccess, showError]);
 
   const handlePaymentSuccess = () => {
     fetchDashboardData();
@@ -725,7 +778,7 @@ export default function DashboardPage() {
     showSuccess("Student added successfully!");
   };
 
-  // Line 655-700: Loading and error states
+  // Line 757-802: Loading and error states
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
@@ -760,7 +813,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Line 705-745: Conditional view rendering
+  // Line 803-843: Conditional view rendering
   if (activeView === "profile" && selectedStudentId) {
     const selectedStudentData = students.find(s => s.id === selectedStudentId);
     
@@ -800,7 +853,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Line 750-1050: FIXED Main dashboard render with corrected revenue display
+  // Line 844-1144: Main dashboard render with SMS functionality
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       {/* Header */}
@@ -822,14 +875,14 @@ export default function DashboardPage() {
             
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => setCreditsModalOpen(true)}
+                onClick={handleCreditsModal}
                 className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
               >
                 💳 Credits
               </button>
               
               <button
-                onClick={() => setHistoryModalOpen(true)}
+                onClick={handleHistoryModal}
                 className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
               >
                 📊 History
@@ -850,7 +903,7 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* FIXED Statistics Cards with enhanced pricing calculations */}
+        {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           {/* Total Students Card */}
           <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
@@ -926,7 +979,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* FIXED Revenue Card with proper calculations */}
+          {/* Revenue Card */}
           <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
             <div className="p-6">
               <div className="flex items-center">
@@ -937,9 +990,7 @@ export default function DashboardPage() {
                   <dl>
                     <dt className="text-sm font-medium text-gray-400 truncate">Total Revenue</dt>
                     <dd className="text-3xl font-bold text-white">
-                      {/* FIXED: Use enhanced API data or fallback */}
                       ₱{(() => {
-                        // Try enhanced API first, then fallback to original
                         const enhancedTotal = dashboardData?.summary?.revenuePotential?.activeMonthlyRevenue;
                         const originalTotal = dashboardData?.summary?.totalRevenue;
                         const total = enhancedTotal || originalTotal;
@@ -954,7 +1005,6 @@ export default function DashboardPage() {
                       })()}
                     </dd>
                     <dd className="text-sm text-gray-500">
-                      {/* FIXED: Show monthly revenue potential or fallback */}
                       ₱{(() => {
                         const enhancedMonthly = dashboardData?.summary?.revenuePotential?.totalMonthlyPotential;
                         const originalMonthly = dashboardData?.summary?.thisMonthRevenue;
@@ -976,7 +1026,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* FIXED Enhanced Pricing Distribution Section */}
+        {/* Pricing Distribution Section */}
         {pricingBreakdown.total > 0 && (
           <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl overflow-hidden rounded-xl border border-gray-600 mb-8">
             <div className="px-6 py-4 border-b border-gray-600">
@@ -1034,7 +1084,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               
-              {/* FIXED Revenue Potential Summary */}
+              {/* Revenue Potential Summary */}
               <div className="mt-6 p-4 bg-gray-700 bg-opacity-50 rounded-lg">
                 <h4 className="text-sm font-medium text-white mb-3">💡 Revenue Analysis</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -1062,7 +1112,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Enhanced Students Management Section */}
+        {/* Students Management Section */}
         <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl overflow-hidden rounded-xl border border-gray-600">
           <div className="px-6 py-4 border-b border-gray-600">
             <div className="flex justify-between items-center">
@@ -1101,7 +1151,7 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          {/* Enhanced Students Table */}
+          {/* Students Table */}
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-600">
               <thead className="bg-gray-700">
@@ -1133,7 +1183,7 @@ export default function DashboardPage() {
                       onViewStudent={handleViewStudent}
                       onEditStudent={handleEditStudent}
                       onSendReminder={handleSendReminder}
-                      canSendReminder={() => false}
+                      canSendReminder={canSendReminder}
                       smsLoading={smsLoading}
                       getStudentStatus={getStudentStatus}
                     />
@@ -1184,4 +1234,4 @@ export default function DashboardPage() {
       )}
     </div>
   );
-};
+}
