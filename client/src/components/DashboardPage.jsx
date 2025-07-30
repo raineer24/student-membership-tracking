@@ -630,9 +630,9 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Line 585-650: Event handlers
+
   const handleSendReminder = async (student) => {
-    // SMS functionality implementation here
+   
   };
 
   const handleProcessPayment = (student) => {
@@ -661,6 +661,56 @@ export default function DashboardPage() {
     setSelectedStudentId(null);
     setStudentToEdit(null);
   }, []);
+
+  const handleSaveStudent = useCallback(async (updatedStudent) => {
+  try {
+    // Show loading state
+    setLoading(true);
+    
+    const response = await fetch(`/api/students/${updatedStudent.id}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: updatedStudent.name,
+        email: updatedStudent.email,
+        phone: updatedStudent.phone,
+        monthlyRate: updatedStudent.monthlyRate,
+        isLegacyStudent: updatedStudent.isLegacyStudent
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    const savedStudent = await response.json();
+
+    // Update local state with saved student data
+    setStudents(prev => 
+      prev.map(s => s.id === updatedStudent.id ? { ...s, ...savedStudent } : s)
+    );
+
+    // Refresh dashboard data to ensure consistency
+    await fetchDashboardData();
+    
+    // Navigate back to dashboard
+    handleBackToDashboard();
+    
+    // Show success message
+    showSuccess(`${updatedStudent.name} updated successfully!`);
+    
+  } catch (error) {
+    console.error("❌ Student update error:", error);
+    showError(`Failed to update student: ${error.message}`);
+    throw error; // Re-throw so StudentEditForm can handle it
+  } finally {
+    setLoading(false);
+  }
+}, [token, fetchDashboardData, handleBackToDashboard, showSuccess, showError, setLoading]);
 
   const handlePaymentSuccess = () => {
     fetchDashboardData();
