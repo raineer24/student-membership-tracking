@@ -1,39 +1,36 @@
-import {prisma } from "../../utils/db";
+// api/students/[[...slug]].js - MINIMAL WORKING VERSION
+import { prisma } from "../../utils/db";
 import { authenticate } from "../../utils/auth";
-import bcrypt from "bcryptjs";
 import { parse } from "url";
 
 export default async function handler(req, res) {
-  console.log("HANDLER HIT 🚀");
-  console.log("req.url =", req.url);
-
-  const parsedUrl = parse(req.url || "", true);
-  const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
-  const slug = pathParts.length > 2 ? pathParts.slice(2) : [];
-
-  console.log("Parsed slug:", slug);
+  console.log("✅ Students API Minimal:", req.method, req.url);
 
   try {
-    const decoded = await authenticate(req); // This decodes JWT
+    const parsedUrl = parse(req.url || "", true);
+    const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
+    const slug = pathParts.length > 2 ? pathParts.slice(2) : [];
 
+    const decoded = await authenticate(req);
     const method = req.method;
 
-    // ✅ STUDENT SELF VIEW: GET /api/students/me
+    // STUDENT ENDPOINT: /api/students/me (STUDENTS ONLY)
     if (method === "GET" && slug[0] === "me") {
-      if (!["STUDENT", "ADMIN"].includes(decoded.role)) {
-        return res.status(403).json({ error: "Unauthorized" });
+      if (decoded.role !== "STUDENT") {
+        return res.status(403).json({ 
+          error: "Students only - Use /api/students for admin access"
+        });
       }
 
       const studentId = decoded.studentId;
-
       if (!studentId) {
-        return res.status(404).json({ error: "Student not found" });
+        return res.status(400).json({ error: "Missing studentId in token" });
       }
 
       const student = await prisma.student.findUnique({
         where: { id: studentId },
         include: {
-          user: true,
+          user: { select: { id: true, email: true, role: true } },
           memberships: true,
           payments: true,
         },
@@ -46,29 +43,48 @@ export default async function handler(req, res) {
       return res.json(student);
     }
 
-    // -----------------------------
-    // 👤 Admin-Only Routes Below
-    // -----------------------------
-
-    // Ensure only admins proceed
+    // ADMIN ENDPOINTS BELOW
     if (decoded.role !== "ADMIN") {
-      return res.status(403).json({ error: "Forbidden: Admin only" });
+      return res.status(403).json({ error: "Admin access required" });
     }
 
-    // ✅ GET /api/students – List all students
+    // GET /api/students - List all students (ADMIN ONLY)
     if (slug.length === 0 && method === "GET") {
+      console.log("📋 Admin fetching all students...");
+
       const students = await prisma.student.findMany({
         include: {
-          user: true,
+          user: {
+            select: { id: true, email: true, role: true }
+          },
           memberships: true,
-          payments: true,
+          payments: {
+            orderBy: { id: 'desc' },
+            take: 3
+          },
         },
+        orderBy: { id: 'desc' }  // Use id instead of createdAt
       });
 
-      return res.json(students);
+      console.log(`✅ Found ${students.length} students`);
+
+      // Add computed status
+      const studentsWithStatus = students.map(student => {
+        const activeMembership = student.memberships.find(m => 
+          m.isActive && new Date(m.endDate) > new Date()
+        );
+        
+        return {
+          ...student,
+          status: activeMembership ? 'ACTIVE' : 'EXPIRED',
+          activeMembership
+        };
+      });
+
+      return res.json(studentsWithStatus);
     }
 
-    // ✅ GET /api/students/:id – View specific student
+    // GET /api/students/:id - Get specific student (ADMIN ONLY)
     if (slug.length === 1 && method === "GET") {
       const studentId = parseInt(slug[0], 10);
 
@@ -79,9 +95,9 @@ export default async function handler(req, res) {
       const student = await prisma.student.findUnique({
         where: { id: studentId },
         include: {
-          user: true,
-          memberships: true,
-          payments: true,
+          user: { select: { id: true, email: true, role: true } },
+          memberships: { orderBy: { id: 'desc' } },
+          payments: { orderBy: { id: 'desc' } },
         },
       });
 
@@ -92,93 +108,110 @@ export default async function handler(req, res) {
       return res.json(student);
     }
 
-// ✅ POST /api/students – Create new student (FIXED VERSION)
-if (slug.length === 0 && method === "POST") {
-  const { name, email, password, phone } = req.body; // Added phone extraction
+    // POST /api/students - Create new student (ADMIN ONLY)
+    if (slug.length === 0 && method === "POST") {
+      const { name, email, phone, password } = req.body;
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
+      if (!name || !email || !password) {
+        return res.status(400).json({ 
+          error: "Missing required fields: name, email, password" 
+        });
+      }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+      // Check if email exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email }
+      });
 
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hashedPassword,
-      role: "STUDENT",
-    },
-  });
+      if (existingUser) {
+        return res.status(409).json({ 
+          error: "Email already exists" 
+        });
+      }
 
-  const student = await prisma.student.create({
-    data: {
-      name,
-      email,
-      phone: phone || null, // Added phone field with null fallback
-      userId: user.id,
-    },
-  });
+      // Create user and student in transaction
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash(password, 12);
 
-  return res.status(201).json(student);
-}
+      const result = await prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            name,
+            email,
+            password: hashedPassword,
+            role: "STUDENT",
+          },
+        });
 
-    // ✅ PUT /api/students/:id – Update student
-if (slug.length === 1 && method === "PUT") {
-  const studentId = parseInt(slug[0], 10);
+        const student = await tx.student.create({
+          data: {
+            name,
+            phone: phone || null,
+            email, // Add email to student model
+            userId: user.id,
+          },
+          include: {
+            user: { select: { id: true, email: true, role: true } }
+          }
+        });
 
-  if (isNaN(studentId)) {
-    return res.status(400).json({ error: "Invalid student ID" });
-  }
+        return student;
+      });
 
-  const { name, email, password, phone } = req.body; // Added phone extraction
-
-  if (!name || !email) {
-    return res.status(400).json({ error: "Name and email are required" });
-  }
-
-  const student = await prisma.student.findUnique({
-    where: { id: studentId },
-    include: { user: true }
-  });
-
-  if (!student) {
-    return res.status(404).json({ error: "Student not found" });
-  }
-
-  const updateStudentPromise = prisma.student.update({
-    where: { id: studentId },
-    data: { 
-      name, 
-      email,
-      phone: phone || null // Added phone field handling
+      return res.status(201).json(result);
     }
-  });
 
-  let updatePasswordPromise = null;
+    // PUT /api/students/:id - Update student (ADMIN ONLY)
+    if (slug.length === 1 && method === "PUT") {
+      const studentId = parseInt(slug[0], 10);
+      const { name, phone, email } = req.body;
 
-  if (password) {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    updatePasswordPromise = prisma.user.update({
-      where: { id: student.userId },
-      data: { password: hashedPassword }
-    });
-  }
+      if (isNaN(studentId)) {
+        return res.status(400).json({ error: "Invalid student ID" });
+      }
 
-  try {
-    const [updatedStudent] = await Promise.all([
-      updateStudentPromise,
-      updatePasswordPromise
-    ].filter(Boolean));
+      console.log(`📝 Updating student ${studentId}:`, { name, phone, email });
 
-    return res.json(updatedStudent);
-  } catch (err) {
-    console.error("Error updating:", err);
-    return res.status(500).json({ error: "Failed to update student" });
-  }
-}
+      try {
+        // Update student and optionally user email
+        const updateData = {
+          name,
+          phone,
+          ...(email && { email }) // Update student email if provided
+        };
 
-    // ✅ DELETE /api/students/:id – Delete student
+        const updatedStudent = await prisma.student.update({
+          where: { id: studentId },
+          data: updateData,
+          include: {
+            user: { select: { id: true, email: true, role: true } },
+            memberships: true,
+            payments: { take: 3, orderBy: { id: 'desc' } }
+          }
+        });
+
+        // Also update user email if provided
+        if (email && updatedStudent.userId) {
+          await prisma.user.update({
+            where: { id: updatedStudent.userId },
+            data: { email, name }
+          });
+        }
+
+        console.log(`✅ Student ${studentId} updated successfully`);
+        return res.json(updatedStudent);
+
+      } catch (updateError) {
+        if (updateError.code === 'P2002') {
+          return res.status(409).json({ 
+            error: "Email already exists" 
+          });
+        }
+        throw updateError;
+      }
+    }
+
+    // DELETE /api/students/:id - Delete student (ADMIN ONLY)
     if (slug.length === 1 && method === "DELETE") {
       const studentId = parseInt(slug[0], 10);
 
@@ -186,31 +219,74 @@ if (slug.length === 1 && method === "PUT") {
         return res.status(400).json({ error: "Invalid student ID" });
       }
 
-      const student = await prisma.student.findUnique({
-        where: { id: studentId },
-        include: { user: true }
-      });
-
-      if (!student) {
-        return res.status(404).json({ error: "Student not found" });
-      }
+      console.log(`🗑️ Deleting student ${studentId}`);
 
       try {
-        await prisma.student.delete({ where: { id: studentId } });
-        await prisma.user.delete({ where: { id: student.userId } });
+        // Get student first to get userId
+        const student = await prisma.student.findUnique({
+          where: { id: studentId },
+          select: { userId: true, name: true }
+        });
 
-        return res.status(204).end();
-      } catch (err) {
-        console.error("Delete error:", err);
-        return res.status(500).json({ error: "Failed to delete student" });
+        if (!student) {
+          return res.status(404).json({ error: "Student not found" });
+        }
+
+        // Delete in transaction (student first, then user)
+        await prisma.$transaction(async (tx) => {
+          await tx.student.delete({
+            where: { id: studentId }
+          });
+
+          if (student.userId) {
+            await tx.user.delete({
+              where: { id: student.userId }
+            });
+          }
+        });
+
+        console.log(`✅ Student ${student.name} deleted successfully`);
+        return res.json({
+          message: "Student deleted successfully",
+          deletedStudent: { id: studentId, name: student.name }
+        });
+
+      } catch (deleteError) {
+        if (deleteError.code === 'P2003') {
+          return res.status(400).json({ 
+            error: "Cannot delete student with existing memberships or payments" 
+          });
+        }
+        throw deleteError;
       }
     }
 
-    // ❌ Method Not Allowed
-    return res.status(405).json({ error: "Method not allowed" });
+    // Method not supported
+    return res.status(405).json({ 
+      error: `Method ${method} not allowed`,
+      supported: ["GET", "POST", "PUT", "DELETE"]
+    });
 
-  } catch (err) {
-    console.error(err);
-    return res.status(401).json({ error: err.message });
+  } catch (error) {
+    console.error("❌ Students API Error:", error.message);
+
+    // Auth errors
+    if (error.message.includes("token") || error.message.includes("Authentication")) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // Prisma errors
+    if (error.code?.startsWith('P')) {
+      return res.status(500).json({ 
+        error: "Database error",
+        code: error.code
+      });
+    }
+
+    // Generic error
+    return res.status(500).json({ 
+      error: "Internal server error",
+      message: process.env.NODE_ENV === 'development' ? error.message : "Something went wrong"
+    });
   }
 }
