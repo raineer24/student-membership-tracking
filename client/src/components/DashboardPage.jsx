@@ -1,4 +1,4 @@
-// Line 1-15: Complete Enhanced DashboardPage.jsx - Production Ready with Fixed Double Refresh
+// Line 1-15: Complete Enhanced DashboardPage.jsx - Fixed Infinite Toast Loop
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -446,6 +446,7 @@ export default function DashboardPage() {
   const [historyData, setHistoryData] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [smsLoading, setSmsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Line 417-467: Enhanced pricing breakdown calculation
   const pricingBreakdown = useMemo(() => {
@@ -547,7 +548,7 @@ export default function DashboardPage() {
     return filtered;
   }, [students, activeTab, searchTerm, getStudentStatus]);
 
-  // Line 519-549: Data fetching
+  // Line 519-549: FIXED Data fetching - Eliminates circular dependency
   const fetchDashboardData = useCallback(async () => {
     if (!token) return;
 
@@ -573,18 +574,26 @@ export default function DashboardPage() {
       setStudents(studentsData);
 
     } catch (error) {
+      console.error("Dashboard fetch error:", error);
+      // FIXED: Set error state instead of calling showError to avoid dependency
       setError("Failed to load dashboard data. Please try again.");
-      showError("Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
-  }, [token, showError]);
+  }, [token]); // ONLY token dependency - no toast functions
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Line 550-570: SMS Credits Fetch Function
+  // ADDED: Separate effect to show error toasts - prevents dependency cycle
+  useEffect(() => {
+    if (error) {
+      showError(error);
+    }
+  }, [error, showError]);
+
+  // Line 570-590: SMS Credits Fetch Function
   const fetchSMSCredits = useCallback(async () => {
     if (!token) return;
 
@@ -613,7 +622,7 @@ export default function DashboardPage() {
     }
   }, [token, showError]);
 
-  // Line 571-591: SMS History Fetch Function
+  // Line 591-611: SMS History Fetch Function
   const fetchSMSHistory = useCallback(async () => {
     if (!token) return;
 
@@ -642,7 +651,7 @@ export default function DashboardPage() {
     }
   }, [token, showError]);
 
-  // Line 592-612: SMS Modal Handlers
+  // Line 612-632: SMS Modal Handlers
   const handleCreditsModal = useCallback(() => {
     setCreditsModalOpen(true);
     fetchSMSCredits();
@@ -653,7 +662,7 @@ export default function DashboardPage() {
     fetchSMSHistory();
   }, [fetchSMSHistory]);
 
-  // Line 613-653: Send SMS Reminder Function
+  // Line 633-673: Send SMS Reminder Function
   const handleSendReminder = useCallback(async (student) => {
     if (!token || !student) return;
 
@@ -685,14 +694,14 @@ export default function DashboardPage() {
     }
   }, [token, showSuccess, showError]);
 
-  // Line 654-674: Reminder eligibility check
+  // Line 674-694: Reminder eligibility check
   const canSendReminder = useCallback((student) => {
     if (!student || !student.phone) return false;
     const status = getStudentStatus(student);
     return status === "overdue" || status === "inactive";
   }, [getStudentStatus]);
 
-  // Line 675-695: Payment and student handlers
+  // Line 695-715: Payment and student handlers
   const handleProcessPayment = (student) => {
     setSelectedStudent(student);
     setPaymentModalOpen(true);
@@ -719,11 +728,17 @@ export default function DashboardPage() {
     setStudentToEdit(null);
   }, []);
 
-  // Line 696-756: FIXED Save student handler - eliminates double refresh
-  const handleSaveStudent = useCallback(async (updatedStudent) => {
+
+const handleSaveStudent = useCallback(async (updatedStudent) => {
+  // CRITICAL: Prevent multiple simultaneous calls
+  if (isSaving) {
+    console.log("handleSaveStudent: Already saving, ignoring duplicate call");
+    return;
+  }
+
   try {
-    // Don't set loading here - it causes unnecessary re-renders
-    // setLoading(true); // REMOVED - this causes the first refresh
+    console.log("handleSaveStudent: Starting save process for", updatedStudent.name);
+    setIsSaving(true);
     
     const response = await fetch(`/api/students/${updatedStudent.id}`, {
       method: 'PUT',
@@ -746,24 +761,35 @@ export default function DashboardPage() {
     }
 
     const savedStudent = await response.json();
+    console.log("handleSaveStudent: Successfully saved student", savedStudent);
     
-    // FINAL SOLUTION: Single state update with optimistic UI update
+    // FIXED: Update local state immediately without refetching
     setStudents(prev => 
       prev.map(s => s.id === updatedStudent.id ? { ...s, ...savedStudent } : s)
     );
 
-    // CRITICAL: Navigate back IMMEDIATELY without any data fetching
-    handleBackToDashboard();
+    // Navigate back immediately - no async dependency
+    setActiveView("dashboard");
+    setSelectedStudentId(null);
+    setStudentToEdit(null);
     
-    // Show success message
-    showSuccess(`${updatedStudent.name} updated successfully!`);
+    // CRITICAL FIX: Use primitive string value only - no object references
+    const successMessage = `${String(updatedStudent.name)} updated successfully!`;
+    console.log("handleSaveStudent: Showing success message:", successMessage);
+    
+    // Call showSuccess with primitive value only
+    showSuccess(successMessage);
     
   } catch (error) {
-    showError(`Failed to update student: ${error.message}`);
+    console.error("handleSaveStudent: Error occurred", error);
+    const errorMessage = `Failed to update student: ${String(error.message)}`;
+    showError(errorMessage);
     throw error;
+  } finally {
+    console.log("handleSaveStudent: Cleanup - setting isSaving to false");
+    setIsSaving(false);
   }
-  // REMOVED: finally block with setLoading(false) - eliminates second refresh
-}, [token, handleBackToDashboard, showSuccess, showError]);
+}, [token, isSaving, showSuccess, showError]); 
 
   const handlePaymentSuccess = () => {
     fetchDashboardData();
@@ -853,7 +879,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Line 844-1144: Main dashboard render with SMS functionality
+  // Line 844-1300: Main dashboard render with SMS functionality
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       {/* Header */}
@@ -1212,7 +1238,7 @@ export default function DashboardPage() {
       <SMSHistoryModal
         isOpen={historyModalOpen}
         onClose={() => setHistoryModalOpen(false)}
-        historyData={historyData}
+        historyData={historyData}  
         loading={modalLoading}
       />
 
@@ -1234,4 +1260,4 @@ export default function DashboardPage() {
       )}
     </div>
   );
-}
+};
