@@ -1,4 +1,5 @@
-// Line 1-15: Complete Enhanced DashboardPage.jsx - Fixed Infinite Toast Loop
+// client/src/components/DashboardPage.jsx
+// Lines 1-20: Complete Enhanced DashboardPage.jsx - Fixed Auth Interceptors
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +11,11 @@ import StudentProfileView from "../components/StudentProfileView";
 import StudentEditForm from "./StudentEditForm";
 import { useToast } from "../hooks/useToast";
 
-// Line 16-86: SMS Credits Modal Component
+// ✅ FIXED: Import adminApi and apiClient with interceptors
+import { adminApi } from "../services/adminApi";
+import apiClient from "../utils/api";
+
+// Line 21-91: SMS Credits Modal Component
 const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
   if (!isOpen) return null;
 
@@ -73,7 +78,7 @@ const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
   );
 };
 
-// Line 87-171: SMS History Modal Component
+// Line 92-176: SMS History Modal Component
 const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
   if (!isOpen) return null;
 
@@ -148,7 +153,7 @@ const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
   );
 };
 
-// Line 172-192: Logout Button Component
+// Line 177-197: Logout Button Component
 const LogoutButton = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -170,7 +175,7 @@ const LogoutButton = () => {
   );
 };
 
-// Line 193-243: Student Status Badge with pricing tier integration
+// Line 198-248: Student Status Badge with pricing tier integration
 const StudentStatusBadge = ({ status, student }) => {
   const statusConfig = {
     active: { 
@@ -245,7 +250,7 @@ const StudentStatusBadge = ({ status, student }) => {
   );
 };
 
-// Line 244-274: Date formatting utility
+// Line 249-279: Date formatting utility
 const formatDueDate = (dateString) => {
   if (!dateString) return { text: "N/A", color: "text-gray-400" };
   
@@ -274,7 +279,7 @@ const formatDueDate = (dateString) => {
   }
 };
 
-// Line 275-365: Student Table Row with individual pricing display
+// Line 280-370: Student Table Row with individual pricing display
 const StudentTableRow = ({ 
   student, 
   onProcessPayment, 
@@ -414,7 +419,7 @@ const StudentTableRow = ({
   );
 };
 
-// Line 366-416: Main Dashboard Component
+// Line 371-421: Main Dashboard Component
 export default function DashboardPage() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
@@ -448,7 +453,7 @@ export default function DashboardPage() {
   const [smsLoading, setSmsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Line 417-467: Enhanced pricing breakdown calculation
+  // Line 422-472: Enhanced pricing breakdown calculation
   const pricingBreakdown = useMemo(() => {
     if (!students || students.length === 0) {
       return {
@@ -487,7 +492,7 @@ export default function DashboardPage() {
     return breakdown;
   }, [students]);
 
-  // Line 468-518: Student status logic
+  // Line 473-523: Student status logic
   const getStudentStatus = useCallback((student) => {
     if (!student || !student.memberships || student.memberships.length === 0) {
       return "inactive";
@@ -548,7 +553,7 @@ export default function DashboardPage() {
     return filtered;
   }, [students, activeTab, searchTerm, getStudentStatus]);
 
-  // Line 519-549: FIXED Data fetching - Eliminates circular dependency
+  // Line 524-554: ✅ FIXED Data fetching - Uses adminApi with interceptors
   const fetchDashboardData = useCallback(async () => {
     if (!token) return;
 
@@ -556,102 +561,94 @@ export default function DashboardPage() {
       setLoading(true);
       setError(null);
 
-      const [dashboardResponse, studentsResponse] = await Promise.all([
-        fetch("/api/dashboard", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/students", { headers: { Authorization: `Bearer ${token}` } })
-      ]);
+      console.log("🔄 Fetching dashboard data using adminApi with interceptors...");
 
-      if (!dashboardResponse.ok || !studentsResponse.ok) {
-        throw new Error("Failed to fetch dashboard data");
-      }
-
+      // ✅ FIXED: Use adminApi which uses apiClient with interceptors
       const [dashboard, studentsData] = await Promise.all([
-        dashboardResponse.json(),
-        studentsResponse.json()
+        adminApi.getDashboardData(),
+        adminApi.getAllStudents()
       ]);
 
+      console.log("✅ Dashboard data fetched successfully via interceptors");
       setDashboardData(dashboard);
       setStudents(studentsData);
 
     } catch (error) {
-      console.error("Dashboard fetch error:", error);
-      // FIXED: Set error state instead of calling showError to avoid dependency
+      console.error("❌ Dashboard fetch error:", error);
+      // adminApi automatically handles 401s with interceptors
+      // If we get here, it's a different error
       setError("Failed to load dashboard data. Please try again.");
     } finally {
       setLoading(false);
     }
-  }, [token]); // ONLY token dependency - no toast functions
+  }, [token]); // Only token dependency
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // ADDED: Separate effect to show error toasts - prevents dependency cycle
+  // Separate effect to show error toasts - prevents dependency cycle
   useEffect(() => {
     if (error) {
       showError(error);
     }
   }, [error, showError]);
 
-  // Line 570-590: SMS Credits Fetch Function
+  // Line 575-595: ✅ FIXED SMS Credits Fetch Function - Uses apiClient
   const fetchSMSCredits = useCallback(async () => {
     if (!token) return;
 
     try {
       setModalLoading(true);
-      const response = await fetch("/api/reminders/credits", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch credits: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        setCreditsData(data.data);
+      console.log("🔄 Fetching SMS credits using apiClient with interceptors...");
+      
+      // ✅ FIXED: Use apiClient with interceptors instead of fetch
+      const response = await apiClient.get("/reminders/credits");
+      
+      if (response.data.success) {
+        setCreditsData(response.data.data);
+        console.log("✅ SMS credits fetched successfully via interceptors");
       } else {
-        throw new Error(data.error || "Failed to load credits");
+        throw new Error(response.data.error || "Failed to load credits");
       }
 
     } catch (error) {
+      console.error("❌ SMS credits error:", error);
       showError("Failed to load SMS credits");
       setCreditsData(null);
     } finally {
       setModalLoading(false);
     }
-  }, [token, showError]);
+  }, [showError]);
 
-  // Line 591-611: SMS History Fetch Function
+  // Line 596-616: ✅ FIXED SMS History Fetch Function - Uses apiClient
   const fetchSMSHistory = useCallback(async () => {
     if (!token) return;
 
     try {
       setModalLoading(true);
-      const response = await fetch("/api/reminders/history", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      console.log("🔄 Fetching SMS history using apiClient with interceptors...");
+      
+      // ✅ FIXED: Use apiClient with interceptors instead of fetch
+      const response = await apiClient.get("/reminders/history");
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch history: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        setHistoryData(data.data);
+      if (response.data.success) {
+        setHistoryData(response.data.data);
+        console.log("✅ SMS history fetched successfully via interceptors");
       } else {
-        throw new Error(data.error || "Failed to load history");
+        throw new Error(response.data.error || "Failed to load history");
       }
 
     } catch (error) {
+      console.error("❌ SMS history error:", error);
       showError("Failed to load SMS history");
       setHistoryData(null);
     } finally {
       setModalLoading(false);
     }
-  }, [token, showError]);
+  }, [showError]);
 
-  // Line 612-632: SMS Modal Handlers
+  // Line 617-637: SMS Modal Handlers
   const handleCreditsModal = useCallback(() => {
     setCreditsModalOpen(true);
     fetchSMSCredits();
@@ -662,46 +659,43 @@ export default function DashboardPage() {
     fetchSMSHistory();
   }, [fetchSMSHistory]);
 
-  // Line 633-673: Send SMS Reminder Function
+  // Line 638-668: ✅ FIXED Send SMS Reminder Function - Uses apiClient
   const handleSendReminder = useCallback(async (student) => {
     if (!token || !student) return;
 
     try {
       setSmsLoading(true);
-      const response = await fetch("/api/reminders/send", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          studentId: student.id,
-          testMode: process.env.NODE_ENV === "development",
-        }),
+      console.log("🔄 Sending SMS reminder using apiClient with interceptors...");
+      
+      // ✅ FIXED: Use apiClient with interceptors instead of fetch
+      const response = await apiClient.post("/reminders/send", {
+        studentId: student.id,
+        testMode: process.env.NODE_ENV === "development",
       });
 
-      const data = await response.json();
-      if (data.success) {
+      if (response.data.success) {
+        console.log("✅ SMS reminder sent successfully via interceptors");
         showSuccess(`SMS reminder sent to ${student.name}!`);
       } else {
-        throw new Error(data.error || "Failed to send SMS");
+        throw new Error(response.data.error || "Failed to send SMS");
       }
 
     } catch (error) {
+      console.error("❌ SMS reminder error:", error);
       showError(`Failed to send SMS: ${error.message}`);
     } finally {
       setSmsLoading(false);
     }
-  }, [token, showSuccess, showError]);
+  }, [showSuccess, showError]);
 
-  // Line 674-694: Reminder eligibility check
+  // Line 669-689: Reminder eligibility check
   const canSendReminder = useCallback((student) => {
     if (!student || !student.phone) return false;
     const status = getStudentStatus(student);
     return status === "overdue" || status === "inactive";
   }, [getStudentStatus]);
 
-  // Line 695-715: Payment and student handlers
+  // Line 690-710: Payment and student handlers
   const handleProcessPayment = (student) => {
     setSelectedStudent(student);
     setPaymentModalOpen(true);
@@ -728,68 +722,56 @@ export default function DashboardPage() {
     setStudentToEdit(null);
   }, []);
 
+  // Line 711-751: ✅ FIXED handleSaveStudent - Uses adminApi with interceptors
+  const handleSaveStudent = useCallback(async (updatedStudent) => {
+    // CRITICAL: Prevent multiple simultaneous calls
+    if (isSaving) {
+      console.log("handleSaveStudent: Already saving, ignoring duplicate call");
+      return;
+    }
 
-const handleSaveStudent = useCallback(async (updatedStudent) => {
-  // CRITICAL: Prevent multiple simultaneous calls
-  if (isSaving) {
-    console.log("handleSaveStudent: Already saving, ignoring duplicate call");
-    return;
-  }
-
-  try {
-    console.log("handleSaveStudent: Starting save process for", updatedStudent.name);
-    setIsSaving(true);
-    
-    const response = await fetch(`/api/students/${updatedStudent.id}`, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    try {
+      console.log("handleSaveStudent: Starting save process for", updatedStudent.name);
+      setIsSaving(true);
+      
+      // ✅ FIXED: Use adminApi with interceptors instead of fetch
+      const savedStudent = await adminApi.updateStudent(updatedStudent.id, {
         name: updatedStudent.name,
         email: updatedStudent.email,
         phone: updatedStudent.phone,
         monthlyRate: updatedStudent.monthlyRate,
         isLegacyStudent: updatedStudent.isLegacyStudent
-      }),
-    });
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      console.log("handleSaveStudent: Successfully saved student via interceptors", savedStudent);
+      
+      // Update local state immediately without refetching
+      setStudents(prev => 
+        prev.map(s => s.id === updatedStudent.id ? { ...s, ...savedStudent } : s)
+      );
+
+      // Navigate back immediately - no async dependency
+      setActiveView("dashboard");
+      setSelectedStudentId(null);
+      setStudentToEdit(null);
+      
+      // CRITICAL FIX: Use primitive string value only - no object references
+      const successMessage = `${String(updatedStudent.name)} updated successfully!`;
+      console.log("handleSaveStudent: Showing success message:", successMessage);
+      
+      // Call showSuccess with primitive value only
+      showSuccess(successMessage);
+      
+    } catch (error) {
+      console.error("handleSaveStudent: Error occurred", error);
+      const errorMessage = `Failed to update student: ${String(error.message)}`;
+      showError(errorMessage);
+      throw error;
+    } finally {
+      console.log("handleSaveStudent: Cleanup - setting isSaving to false");
+      setIsSaving(false);
     }
-
-    const savedStudent = await response.json();
-    console.log("handleSaveStudent: Successfully saved student", savedStudent);
-    
-    // FIXED: Update local state immediately without refetching
-    setStudents(prev => 
-      prev.map(s => s.id === updatedStudent.id ? { ...s, ...savedStudent } : s)
-    );
-
-    // Navigate back immediately - no async dependency
-    setActiveView("dashboard");
-    setSelectedStudentId(null);
-    setStudentToEdit(null);
-    
-    // CRITICAL FIX: Use primitive string value only - no object references
-    const successMessage = `${String(updatedStudent.name)} updated successfully!`;
-    console.log("handleSaveStudent: Showing success message:", successMessage);
-    
-    // Call showSuccess with primitive value only
-    showSuccess(successMessage);
-    
-  } catch (error) {
-    console.error("handleSaveStudent: Error occurred", error);
-    const errorMessage = `Failed to update student: ${String(error.message)}`;
-    showError(errorMessage);
-    throw error;
-  } finally {
-    console.log("handleSaveStudent: Cleanup - setting isSaving to false");
-    setIsSaving(false);
-  }
-}, [token, isSaving, showSuccess, showError]); 
+  }, [isSaving, showSuccess, showError]); 
 
   const handlePaymentSuccess = () => {
     fetchDashboardData();
@@ -804,13 +786,14 @@ const handleSaveStudent = useCallback(async (updatedStudent) => {
     showSuccess("Student added successfully!");
   };
 
-  // Line 757-802: Loading and error states
+  // Line 752-797: Loading and error states
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
           <p className="text-white text-lg">Loading dashboard...</p>
+          <p className="text-gray-400 text-sm mt-2">Using enhanced auth interceptors...</p>
         </div>
       </div>
     );
@@ -839,7 +822,7 @@ const handleSaveStudent = useCallback(async (updatedStudent) => {
     );
   }
 
-  // Line 803-843: Conditional view rendering
+  // Line 798-838: Conditional view rendering
   if (activeView === "profile" && selectedStudentId) {
     const selectedStudentData = students.find(s => s.id === selectedStudentId);
     
@@ -879,7 +862,7 @@ const handleSaveStudent = useCallback(async (updatedStudent) => {
     );
   }
 
-  // Line 844-1300: Main dashboard render with SMS functionality
+  // Line 839-950: Main dashboard render with SMS functionality
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       {/* Header */}
@@ -902,23 +885,26 @@ const handleSaveStudent = useCallback(async (updatedStudent) => {
             <div className="flex items-center space-x-4">
               <button
                 onClick={handleCreditsModal}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
               >
-                💳 Credits
+                <span>💳</span>
+                <span>Credits</span>
               </button>
               
               <button
                 onClick={handleHistoryModal}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
               >
-                📊 History
+                <span>📊</span>
+                <span>History</span>
               </button>
               
               <button
                 onClick={() => setAddStudentModalOpen(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
               >
-                + Add Student
+                <span>+</span>
+                <span>Add Student</span>
               </button>
               
               <LogoutButton />
