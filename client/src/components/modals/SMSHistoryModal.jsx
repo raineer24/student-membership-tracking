@@ -1,10 +1,6 @@
-// components/modals/SMSHistoryModal.jsx - Lines 92-176 extracted
+// components/modals/SMSHistoryModal.jsx - FIXED VERSION
 import React from 'react';
 
-/**
- * Modal component for displaying SMS history
- * Lines 92-176 extracted from DashboardPage.jsx
- */
 const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
   if (!isOpen) return null;
 
@@ -27,53 +23,53 @@ const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
             <p className="text-gray-400">Loading SMS history...</p>
           </div>
-        ) : historyData && historyData.length > 0 ? (
+        ) : historyData?.reminders?.length > 0 ? (
           <div className="overflow-y-auto max-h-[60vh]">
             <div className="space-y-3">
-              {historyData.map((message, index) => (
+              {historyData.reminders.map((reminder, index) => (
                 <div 
-                  key={message.id || index} 
+                  key={reminder.id || index} 
                   className="bg-gray-700 bg-opacity-50 rounded-lg p-4"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
                       <div className="text-white font-medium">
-                        {message.recipient || message.phoneNumber || 'Unknown'}
+                        {reminder.student?.name || reminder.studentName || 'Unknown'}
                       </div>
                       <div className="text-sm text-gray-400">
-                        {message.studentName && `Student: ${message.studentName}`}
+                        Phone: {reminder.phoneNumber || reminder.phone || 'N/A'}
                       </div>
                     </div>
                     <div className="text-right">
                       <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                        message.status === 'sent' || message.status === 'delivered' 
+                        reminder.status === 'SENT' || reminder.status === 'TEST_SENT' || reminder.status === 'sent'
                           ? 'bg-green-500 bg-opacity-20 text-green-400' 
-                          : message.status === 'failed'
+                          : reminder.status === 'FAILED' || reminder.status === 'failed'
                           ? 'bg-red-500 bg-opacity-20 text-red-400'
                           : 'bg-yellow-500 bg-opacity-20 text-yellow-400'
                       }`}>
-                        {message.status || 'pending'}
+                        {reminder.status || 'pending'}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
-                        {message.sentAt 
-                          ? new Date(message.sentAt).toLocaleString()
+                        {reminder.sentAt 
+                          ? new Date(reminder.sentAt).toLocaleString()
                           : 'Unknown time'
                         }
                       </div>
                     </div>
                   </div>
                   
-                  {message.message && (
+                  {reminder.message && (
                     <div className="bg-gray-800 bg-opacity-50 rounded p-3 mt-2">
                       <div className="text-sm text-gray-300">
-                        {message.message}
+                        {reminder.message}
                       </div>
                     </div>
                   )}
 
-                  {message.cost && (
+                  {reminder.cost && (
                     <div className="text-xs text-gray-500 mt-2">
-                      Cost: ₱{message.cost}
+                      Cost: ₱{reminder.cost}
                     </div>
                   )}
                 </div>
