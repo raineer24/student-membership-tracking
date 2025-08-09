@@ -10,6 +10,12 @@ import AddStudentModal from "../components/AddStudentModal";
 import StudentProfileView from "../components/StudentProfileView";
 import StudentEditForm from "./StudentEditForm";
 import { useToast } from "../hooks/useToast";
+import { formatDueDate, isOverdue } from '../utils/dateUtils';
+import { 
+  getStudentPricingDisplay, 
+  getPricingTier, 
+  calculatePricingBreakdown 
+} from '../utils/studentPricingUtils';
 
 // ✅ FIXED: Import adminApi and apiClient with interceptors
 import { adminApi } from "../services/adminApi";
@@ -201,38 +207,38 @@ const StudentStatusBadge = ({ status, student }) => {
   const config = statusConfig[status] || statusConfig.inactive;
   
   // Enhanced pricing tier determination
-  const getPricingTier = (student) => {
-    if (!student) return null;
+  // const getPricingTier = (student) => {
+  //   if (!student) return null;
     
-    const monthlyRate = student.monthlyRate || 1400;
-    const isLegacy = student.isLegacyStudent || false;
+  //   const monthlyRate = student.monthlyRate || 1400;
+  //   const isLegacy = student.isLegacyStudent || false;
     
-    if (isLegacy) {
-      if (monthlyRate === 1000) return { 
-        label: "Founding", 
-        emoji: "🌟", 
-        color: "text-purple-400",
-        bg: "bg-purple-500 bg-opacity-20",
-        border: "border-purple-500"
-      };
-      if (monthlyRate === 1200) return { 
-        label: "Early", 
-        emoji: "🌟", 
-        color: "text-blue-400",
-        bg: "bg-blue-500 bg-opacity-20",
-        border: "border-blue-500"
-      };
-      return { 
-        label: "Legacy", 
-        emoji: "🌟", 
-        color: "text-yellow-400",
-        bg: "bg-yellow-500 bg-opacity-20",
-        border: "border-yellow-500"
-      };
-    }
+  //   if (isLegacy) {
+  //     if (monthlyRate === 1000) return { 
+  //       label: "Founding", 
+  //       emoji: "🌟", 
+  //       color: "text-purple-400",
+  //       bg: "bg-purple-500 bg-opacity-20",
+  //       border: "border-purple-500"
+  //     };
+  //     if (monthlyRate === 1200) return { 
+  //       label: "Early", 
+  //       emoji: "🌟", 
+  //       color: "text-blue-400",
+  //       bg: "bg-blue-500 bg-opacity-20",
+  //       border: "border-blue-500"
+  //     };
+  //     return { 
+  //       label: "Legacy", 
+  //       emoji: "🌟", 
+  //       color: "text-yellow-400",
+  //       bg: "bg-yellow-500 bg-opacity-20",
+  //       border: "border-yellow-500"
+  //     };
+  //   }
     
-    return null;
-  };
+  //   return null;
+  // };
   
   const pricingTier = getPricingTier(student);
   
@@ -251,33 +257,33 @@ const StudentStatusBadge = ({ status, student }) => {
 };
 
 // Line 249-279: Date formatting utility
-const formatDueDate = (dateString) => {
-  if (!dateString) return { text: "N/A", color: "text-gray-400" };
+// const formatDueDate = (dateString) => {
+//   if (!dateString) return { text: "N/A", color: "text-gray-400" };
   
-  try {
-    const endDate = new Date(dateString);
-    const today = new Date();
+//   try {
+//     const endDate = new Date(dateString);
+//     const today = new Date();
     
-    today.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
+//     today.setHours(0, 0, 0, 0);
+//     endDate.setHours(0, 0, 0, 0);
     
-    const timeDiff = endDate.getTime() - today.getTime();
-    const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+//     const timeDiff = endDate.getTime() - today.getTime();
+//     const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
     
-    if (daysDiff > 7) {
-      return { text: `${daysDiff} days remaining`, color: "text-green-400" };
-    } else if (daysDiff > 0) {
-      return { text: `${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining`, color: "text-yellow-400" };
-    } else if (daysDiff === 0) {
-      return { text: "Due today", color: "text-orange-400 font-medium" };
-    } else {
-      const overdueDays = Math.abs(daysDiff);
-      return { text: `${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue`, color: "text-red-400 font-medium" };
-    }
-  } catch {
-    return { text: "Invalid Date", color: "text-gray-400" };
-  }
-};
+//     if (daysDiff > 7) {
+//       return { text: `${daysDiff} days remaining`, color: "text-green-400" };
+//     } else if (daysDiff > 0) {
+//       return { text: `${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining`, color: "text-yellow-400" };
+//     } else if (daysDiff === 0) {
+//       return { text: "Due today", color: "text-orange-400 font-medium" };
+//     } else {
+//       const overdueDays = Math.abs(daysDiff);
+//       return { text: `${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue`, color: "text-red-400 font-medium" };
+//     }
+//   } catch {
+//     return { text: "Invalid Date", color: "text-gray-400" };
+//   }
+// };
 
 // Line 280-370: Student Table Row with individual pricing display
 const StudentTableRow = ({ 
@@ -304,27 +310,27 @@ const StudentTableRow = ({
   const latestMembership = getLatestMembership(student);
   const dueDateInfo = formatDueDate(latestMembership?.endDate);
   
-  const getStudentPricingDisplay = (student) => {
-    const monthlyRate = student.monthlyRate || 1400;
-    const yearlyRate = monthlyRate * 12;
-    const isLegacy = student.isLegacyStudent || false;
+  // const getStudentPricingDisplay = (student) => {
+  //   const monthlyRate = student.monthlyRate || 1400;
+  //   const yearlyRate = monthlyRate * 12;
+  //   const isLegacy = student.isLegacyStudent || false;
     
-    let tierLabel = "Standard";
-    if (isLegacy) {
-      if (monthlyRate === 1000) tierLabel = "Founding";
-      else if (monthlyRate === 1200) tierLabel = "Early";
-      else tierLabel = "Legacy";
-    }
+  //   let tierLabel = "Standard";
+  //   if (isLegacy) {
+  //     if (monthlyRate === 1000) tierLabel = "Founding";
+  //     else if (monthlyRate === 1200) tierLabel = "Early";
+  //     else tierLabel = "Legacy";
+  //   }
     
-    return {
-      monthly: monthlyRate,
-      yearly: yearlyRate,
-      monthlyFormatted: `₱${monthlyRate.toLocaleString()}`,
-      yearlyFormatted: `₱${yearlyRate.toLocaleString()}`,
-      isLegacy: isLegacy,
-      tierLabel: tierLabel
-    };
-  };
+  //   return {
+  //     monthly: monthlyRate,
+  //     yearly: yearlyRate,
+  //     monthlyFormatted: `₱${monthlyRate.toLocaleString()}`,
+  //     yearlyFormatted: `₱${yearlyRate.toLocaleString()}`,
+  //     isLegacy: isLegacy,
+  //     tierLabel: tierLabel
+  //   };
+  // };
 
   const pricingInfo = getStudentPricingDisplay(student);
 

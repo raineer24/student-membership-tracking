@@ -11,17 +11,20 @@ export default {
     '^.+\\.(js|jsx)$': 'babel-jest',
   },
   
-  // Module name mapping for absolute imports
+  // Module name mapping - CORRECTED VERSION
   moduleNameMapper: {
     // Handle CSS imports (ignore them in tests)
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     
-    // Handle absolute imports from src
+    // Handle absolute imports from src directory only
     '^@/(.*)$': '<rootDir>/src/$1',
     
-    // Handle relative imports
+    // Handle specific relative imports for utils only
+    '^../utils/dateUtils$': '<rootDir>/src/utils/dateUtils.js',
+    '^../utils/studentPricingUtils$': '<rootDir>/src/utils/studentPricingUtils.js',
+    
+    // Handle relative imports starting with ../utils/ specifically
     '^../utils/(.*)$': '<rootDir>/src/utils/$1',
-    '^./(.*)$': '<rootDir>/src/$1',
   },
   
   // Setup files to run before tests
@@ -33,14 +36,26 @@ export default {
     '<rootDir>/src/**/?(*.)(test|spec).(js|jsx)',
   ],
   
+  // Ignore patterns - IMPORTANT: Exclude node_modules properly
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/build/',
+  ],
+  
+  // Transform ignore patterns
+  transformIgnorePatterns: [
+    'node_modules/(?!(some-esm-package)/)',
+  ],
+  
   // Coverage configuration
-  collectCoverage: false, // Set to true when you want coverage reports
+  collectCoverage: false,
   collectCoverageFrom: [
     'src/**/*.(js|jsx)',
     '!src/**/*.test.(js|jsx)',
     '!src/**/__tests__/**',
-    '!src/main.jsx', // Exclude entry file
-    '!src/index.js', // Exclude index files
+    '!src/main.jsx',
+    '!src/index.js',
   ],
   
   // Coverage thresholds
@@ -61,4 +76,12 @@ export default {
   
   // Restore mocks after each test
   restoreMocks: true,
+  
+  // Root directory
+  rootDir: '.',
+  
+  // Test environment options
+  testEnvironmentOptions: {
+    url: 'http://localhost:3000',
+  },
 };

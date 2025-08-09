@@ -1,11 +1,11 @@
 // client/src/setupTests.js
 import '@testing-library/jest-dom';
-import { beforeAll, afterEach, afterAll } from '@jest/globals';
+import { beforeAll, afterAll, afterEach, vi } from 'vitest';
 
-// Mock fetch globally if your utils use it
-global.fetch = jest.fn();
+// Mock fetch globally
+global.fetch = vi.fn();
 
-// Mock console methods to reduce noise in tests
+// Mock console methods to reduce noise
 const originalError = console.error;
 const originalWarn = console.warn;
 
@@ -19,16 +19,6 @@ beforeAll(() => {
     }
     originalError.call(console, ...args);
   };
-
-  console.warn = (...args) => {
-    if (
-      typeof args[0] === 'string' &&
-      args[0].includes('componentWillReceiveProps has been renamed')
-    ) {
-      return;
-    }
-    originalWarn.call(console, ...args);
-  };
 });
 
 afterAll(() => {
@@ -37,34 +27,20 @@ afterAll(() => {
 });
 
 afterEach(() => {
-  // Clear all mocks after each test
-  jest.clearAllMocks();
-  
-  // Reset fetch mock
-  if (fetch.mockClear) {
-    fetch.mockClear();
-  }
+  vi.clearAllMocks();
 });
 
-// Mock window.matchMedia (needed for some UI libraries)
+// Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation(query => ({
+  value: vi.fn().mockImplementation(query => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(), // deprecated
-    removeListener: jest.fn(), // deprecated
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 });
-
-// Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
-  disconnect() {}
-  observe() {}
-  unobserve() {}
-};

@@ -1,4 +1,4 @@
-// utils/studentPricingUtils.js - Lines 321-370 extracted
+// client/src/utils/studentPricingUtils.js
 /**
  * Gets formatted pricing display information for a student
  * @param {Object} student - Student object with pricing information
@@ -39,7 +39,6 @@ export const getPricingTier = (student) => {
   
   if (!isLegacy) return null;
   
-  // Founding members - ₱1,000/month
   if (monthlyRate === 1000) {
     return { 
       label: "Founding", 
@@ -50,7 +49,6 @@ export const getPricingTier = (student) => {
     };
   }
   
-  // Early adopters - ₱1,200/month
   if (monthlyRate === 1200) {
     return { 
       label: "Early", 
@@ -61,7 +59,6 @@ export const getPricingTier = (student) => {
     };
   }
   
-  // Other legacy pricing
   return { 
     label: "Legacy", 
     emoji: "🌟", 

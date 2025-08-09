@@ -1,4 +1,4 @@
-// utils/dateUtils.js - Lines 249-279 extracted
+// client/src/utils/dateUtils.js - FIXED VERSION
 /**
  * Formats a date string to display due date information with appropriate styling
  * @param {string} dateString - ISO date string 
@@ -9,6 +9,12 @@ export const formatDueDate = (dateString) => {
   
   try {
     const endDate = new Date(dateString);
+    
+    // Check if the date is invalid (NaN)
+    if (isNaN(endDate.getTime())) {
+      return { text: "Invalid Date", color: "text-gray-400" };
+    }
+    
     const today = new Date();
     
     // Reset time to compare dates only
@@ -44,6 +50,12 @@ export const isOverdue = (dateString) => {
   
   try {
     const endDate = new Date(dateString);
+    
+    // Check if the date is invalid
+    if (isNaN(endDate.getTime())) {
+      return false;
+    }
+    
     const today = new Date();
     
     today.setHours(0, 0, 0, 0);
