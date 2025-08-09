@@ -16,6 +16,9 @@ import {
   getPricingTier, 
   calculatePricingBreakdown 
 } from '../utils/studentPricingUtils';
+import SMSCreditsModal from './modals/SMSCreditsModal';
+import SMSHistoryModal from './modals/SMSHistoryModal';
+
 
 // ✅ FIXED: Import adminApi and apiClient with interceptors
 import { adminApi } from "../services/adminApi";
