@@ -10,148 +10,157 @@ import AddStudentModal from "../components/AddStudentModal";
 import StudentProfileView from "../components/StudentProfileView";
 import StudentEditForm from "./StudentEditForm";
 import { useToast } from "../hooks/useToast";
+import { formatDueDate, isOverdue } from '../utils/dateUtils';
+import { 
+  getStudentPricingDisplay, 
+  getPricingTier, 
+  calculatePricingBreakdown 
+} from '../utils/studentPricingUtils';
+import SMSCreditsModal from './modals/SMSCreditsModal';
+import SMSHistoryModal from './modals/SMSHistoryModal';
+
 
 // ✅ FIXED: Import adminApi and apiClient with interceptors
 import { adminApi } from "../services/adminApi";
 import apiClient from "../utils/api";
 
 // Line 21-91: SMS Credits Modal Component
-const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
-  if (!isOpen) return null;
+// const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
+//   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-xl border border-gray-600 p-6 w-full max-w-md mx-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-white">SMS Credits Balance</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">✕</button>
-        </div>
+//   return (
+//     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+//       <div className="bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-xl border border-gray-600 p-6 w-full max-w-md mx-4">
+//         <div className="flex justify-between items-center mb-4">
+//           <h3 className="text-lg font-semibold text-white">SMS Credits Balance</h3>
+//           <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">✕</button>
+//         </div>
         
-        {loading ? (
-          <div className="text-center py-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
-            <p className="mt-2 text-gray-300">Loading credits...</p>
-          </div>
-        ) : creditsData ? (
-          <div className="space-y-4">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-red-500">₱{creditsData.balance || "0.00"}</div>
-              <p className="text-gray-300">Available Balance</p>
-            </div>
-            <div className="bg-gray-700 rounded-lg p-4">
-              <h4 className="font-medium mb-2 text-white">Usage Statistics</h4>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between text-gray-300">
-                  <span>Cost per SMS:</span>
-                  <span>₱{creditsData.costPerSMS || "0.60"}</span>
-                </div>
-                <div className="flex justify-between text-gray-300">
-                  <span>Estimated capacity:</span>
-                  <span>{Math.floor((creditsData.balance || 0) / (creditsData.costPerSMS || 0.60))} SMS</span>
-                </div>
-                <div className="flex justify-between text-gray-300">
-                  <span>Provider:</span>
-                  <span>{creditsData.provider || "Semaphore"}</span>
-                </div>
-              </div>
-            </div>
-            {creditsData.lowBalance && (
-              <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded-lg p-3">
-                <p className="text-red-400 text-sm">⚠️ Low balance warning</p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-4">
-            <p className="text-gray-400">Unable to load credits data</p>
-            <p className="text-gray-500 text-xs mt-2">Check SMS service configuration</p>
-          </div>
-        )}
+//         {loading ? (
+//           <div className="text-center py-4">
+//             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
+//             <p className="mt-2 text-gray-300">Loading credits...</p>
+//           </div>
+//         ) : creditsData ? (
+//           <div className="space-y-4">
+//             <div className="text-center">
+//               <div className="text-3xl font-bold text-red-500">₱{creditsData.balance || "0.00"}</div>
+//               <p className="text-gray-300">Available Balance</p>
+//             </div>
+//             <div className="bg-gray-700 rounded-lg p-4">
+//               <h4 className="font-medium mb-2 text-white">Usage Statistics</h4>
+//               <div className="space-y-1 text-sm">
+//                 <div className="flex justify-between text-gray-300">
+//                   <span>Cost per SMS:</span>
+//                   <span>₱{creditsData.costPerSMS || "0.60"}</span>
+//                 </div>
+//                 <div className="flex justify-between text-gray-300">
+//                   <span>Estimated capacity:</span>
+//                   <span>{Math.floor((creditsData.balance || 0) / (creditsData.costPerSMS || 0.60))} SMS</span>
+//                 </div>
+//                 <div className="flex justify-between text-gray-300">
+//                   <span>Provider:</span>
+//                   <span>{creditsData.provider || "Semaphore"}</span>
+//                 </div>
+//               </div>
+//             </div>
+//             {creditsData.lowBalance && (
+//               <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded-lg p-3">
+//                 <p className="text-red-400 text-sm">⚠️ Low balance warning</p>
+//               </div>
+//             )}
+//           </div>
+//         ) : (
+//           <div className="text-center py-4">
+//             <p className="text-gray-400">Unable to load credits data</p>
+//             <p className="text-gray-500 text-xs mt-2">Check SMS service configuration</p>
+//           </div>
+//         )}
         
-        <div className="mt-6 flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+//         <div className="mt-6 flex justify-end">
+//           <button onClick={onClose} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+//             Close
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
 
 // Line 92-176: SMS History Modal Component
-const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
-  if (!isOpen) return null;
+// const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
+//   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-xl border border-gray-600 p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-white">SMS History</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">✕</button>
-        </div>
+//   return (
+//     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+//       <div className="bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-xl border border-gray-600 p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden">
+//         <div className="flex justify-between items-center mb-4">
+//           <h3 className="text-lg font-semibold text-white">SMS History</h3>
+//           <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">✕</button>
+//         </div>
         
-        {loading ? (
-          <div className="text-center py-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
-            <p className="mt-2 text-gray-300">Loading history...</p>
-          </div>
-        ) : historyData?.reminders?.length > 0 ? (
-          <div className="overflow-y-auto max-h-96">
-            <table className="min-w-full divide-y divide-gray-600">
-              <thead className="bg-gray-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Student</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Phone</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Cost</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Sent</th>
-                </tr>
-              </thead>
-              <tbody className="bg-gray-700 divide-y divide-gray-600">
-                {historyData.reminders.map((reminder, index) => (
-                  <tr key={reminder.id || index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {reminder.student?.name || reminder.studentName || "Unknown"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {reminder.phoneNumber || reminder.phone || "N/A"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        reminder.status === 'SENT' || reminder.status === 'TEST_SENT'
-                          ? 'bg-green-500 bg-opacity-20 text-green-400 border border-green-500' 
-                          : 'bg-red-500 bg-opacity-20 text-red-400 border border-red-500'
-                      }`}>
-                        {reminder.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      ₱{reminder.cost || '0.60'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {new Date(reminder.sentAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-400">No SMS history found</p>
-            <p className="text-gray-500 text-sm mt-2">Send some reminders to see history here</p>
-          </div>
-        )}
+//         {loading ? (
+//           <div className="text-center py-4">
+//             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
+//             <p className="mt-2 text-gray-300">Loading history...</p>
+//           </div>
+//         ) : historyData?.reminders?.length > 0 ? (
+//           <div className="overflow-y-auto max-h-96">
+//             <table className="min-w-full divide-y divide-gray-600">
+//               <thead className="bg-gray-700">
+//                 <tr>
+//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Student</th>
+//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Phone</th>
+//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Cost</th>
+//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Sent</th>
+//                 </tr>
+//               </thead>
+//               <tbody className="bg-gray-700 divide-y divide-gray-600">
+//                 {historyData.reminders.map((reminder, index) => (
+//                   <tr key={reminder.id || index}>
+//                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+//                       {reminder.student?.name || reminder.studentName || "Unknown"}
+//                     </td>
+//                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+//                       {reminder.phoneNumber || reminder.phone || "N/A"}
+//                     </td>
+//                     <td className="px-6 py-4 whitespace-nowrap">
+//                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+//                         reminder.status === 'SENT' || reminder.status === 'TEST_SENT'
+//                           ? 'bg-green-500 bg-opacity-20 text-green-400 border border-green-500' 
+//                           : 'bg-red-500 bg-opacity-20 text-red-400 border border-red-500'
+//                       }`}>
+//                         {reminder.status}
+//                       </span>
+//                     </td>
+//                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+//                       ₱{reminder.cost || '0.60'}
+//                     </td>
+//                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+//                       {new Date(reminder.sentAt).toLocaleDateString()}
+//                     </td>
+//                   </tr>
+//                 ))}
+//               </tbody>
+//             </table>
+//           </div>
+//         ) : (
+//           <div className="text-center py-8">
+//             <p className="text-gray-400">No SMS history found</p>
+//             <p className="text-gray-500 text-sm mt-2">Send some reminders to see history here</p>
+//           </div>
+//         )}
         
-        <div className="mt-6 flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+//         <div className="mt-6 flex justify-end">
+//           <button onClick={onClose} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+//             Close
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
 
 // Line 177-197: Logout Button Component
 const LogoutButton = () => {
@@ -201,38 +210,38 @@ const StudentStatusBadge = ({ status, student }) => {
   const config = statusConfig[status] || statusConfig.inactive;
   
   // Enhanced pricing tier determination
-  const getPricingTier = (student) => {
-    if (!student) return null;
+  // const getPricingTier = (student) => {
+  //   if (!student) return null;
     
-    const monthlyRate = student.monthlyRate || 1400;
-    const isLegacy = student.isLegacyStudent || false;
+  //   const monthlyRate = student.monthlyRate || 1400;
+  //   const isLegacy = student.isLegacyStudent || false;
     
-    if (isLegacy) {
-      if (monthlyRate === 1000) return { 
-        label: "Founding", 
-        emoji: "🌟", 
-        color: "text-purple-400",
-        bg: "bg-purple-500 bg-opacity-20",
-        border: "border-purple-500"
-      };
-      if (monthlyRate === 1200) return { 
-        label: "Early", 
-        emoji: "🌟", 
-        color: "text-blue-400",
-        bg: "bg-blue-500 bg-opacity-20",
-        border: "border-blue-500"
-      };
-      return { 
-        label: "Legacy", 
-        emoji: "🌟", 
-        color: "text-yellow-400",
-        bg: "bg-yellow-500 bg-opacity-20",
-        border: "border-yellow-500"
-      };
-    }
+  //   if (isLegacy) {
+  //     if (monthlyRate === 1000) return { 
+  //       label: "Founding", 
+  //       emoji: "🌟", 
+  //       color: "text-purple-400",
+  //       bg: "bg-purple-500 bg-opacity-20",
+  //       border: "border-purple-500"
+  //     };
+  //     if (monthlyRate === 1200) return { 
+  //       label: "Early", 
+  //       emoji: "🌟", 
+  //       color: "text-blue-400",
+  //       bg: "bg-blue-500 bg-opacity-20",
+  //       border: "border-blue-500"
+  //     };
+  //     return { 
+  //       label: "Legacy", 
+  //       emoji: "🌟", 
+  //       color: "text-yellow-400",
+  //       bg: "bg-yellow-500 bg-opacity-20",
+  //       border: "border-yellow-500"
+  //     };
+  //   }
     
-    return null;
-  };
+  //   return null;
+  // };
   
   const pricingTier = getPricingTier(student);
   
@@ -251,33 +260,33 @@ const StudentStatusBadge = ({ status, student }) => {
 };
 
 // Line 249-279: Date formatting utility
-const formatDueDate = (dateString) => {
-  if (!dateString) return { text: "N/A", color: "text-gray-400" };
+// const formatDueDate = (dateString) => {
+//   if (!dateString) return { text: "N/A", color: "text-gray-400" };
   
-  try {
-    const endDate = new Date(dateString);
-    const today = new Date();
+//   try {
+//     const endDate = new Date(dateString);
+//     const today = new Date();
     
-    today.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
+//     today.setHours(0, 0, 0, 0);
+//     endDate.setHours(0, 0, 0, 0);
     
-    const timeDiff = endDate.getTime() - today.getTime();
-    const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+//     const timeDiff = endDate.getTime() - today.getTime();
+//     const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
     
-    if (daysDiff > 7) {
-      return { text: `${daysDiff} days remaining`, color: "text-green-400" };
-    } else if (daysDiff > 0) {
-      return { text: `${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining`, color: "text-yellow-400" };
-    } else if (daysDiff === 0) {
-      return { text: "Due today", color: "text-orange-400 font-medium" };
-    } else {
-      const overdueDays = Math.abs(daysDiff);
-      return { text: `${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue`, color: "text-red-400 font-medium" };
-    }
-  } catch {
-    return { text: "Invalid Date", color: "text-gray-400" };
-  }
-};
+//     if (daysDiff > 7) {
+//       return { text: `${daysDiff} days remaining`, color: "text-green-400" };
+//     } else if (daysDiff > 0) {
+//       return { text: `${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining`, color: "text-yellow-400" };
+//     } else if (daysDiff === 0) {
+//       return { text: "Due today", color: "text-orange-400 font-medium" };
+//     } else {
+//       const overdueDays = Math.abs(daysDiff);
+//       return { text: `${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue`, color: "text-red-400 font-medium" };
+//     }
+//   } catch {
+//     return { text: "Invalid Date", color: "text-gray-400" };
+//   }
+// };
 
 // Line 280-370: Student Table Row with individual pricing display
 const StudentTableRow = ({ 
@@ -304,27 +313,27 @@ const StudentTableRow = ({
   const latestMembership = getLatestMembership(student);
   const dueDateInfo = formatDueDate(latestMembership?.endDate);
   
-  const getStudentPricingDisplay = (student) => {
-    const monthlyRate = student.monthlyRate || 1400;
-    const yearlyRate = monthlyRate * 12;
-    const isLegacy = student.isLegacyStudent || false;
+  // const getStudentPricingDisplay = (student) => {
+  //   const monthlyRate = student.monthlyRate || 1400;
+  //   const yearlyRate = monthlyRate * 12;
+  //   const isLegacy = student.isLegacyStudent || false;
     
-    let tierLabel = "Standard";
-    if (isLegacy) {
-      if (monthlyRate === 1000) tierLabel = "Founding";
-      else if (monthlyRate === 1200) tierLabel = "Early";
-      else tierLabel = "Legacy";
-    }
+  //   let tierLabel = "Standard";
+  //   if (isLegacy) {
+  //     if (monthlyRate === 1000) tierLabel = "Founding";
+  //     else if (monthlyRate === 1200) tierLabel = "Early";
+  //     else tierLabel = "Legacy";
+  //   }
     
-    return {
-      monthly: monthlyRate,
-      yearly: yearlyRate,
-      monthlyFormatted: `₱${monthlyRate.toLocaleString()}`,
-      yearlyFormatted: `₱${yearlyRate.toLocaleString()}`,
-      isLegacy: isLegacy,
-      tierLabel: tierLabel
-    };
-  };
+  //   return {
+  //     monthly: monthlyRate,
+  //     yearly: yearlyRate,
+  //     monthlyFormatted: `₱${monthlyRate.toLocaleString()}`,
+  //     yearlyFormatted: `₱${yearlyRate.toLocaleString()}`,
+  //     isLegacy: isLegacy,
+  //     tierLabel: tierLabel
+  //   };
+  // };
 
   const pricingInfo = getStudentPricingDisplay(student);
 
