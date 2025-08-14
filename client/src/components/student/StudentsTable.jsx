@@ -12,7 +12,8 @@ const StudentsTable = ({
   onProcessPayment, 
   onViewStudent, 
   onEditStudent, 
-  onSendReminder 
+  onSendReminder,
+  getStudentStatus
 }) => {
   // Lines 8-20: Loading state render
   if (loading) {
@@ -74,6 +75,7 @@ const StudentsTable = ({
               onViewStudent={onViewStudent}
               onEditStudent={onEditStudent}
               onSendReminder={onSendReminder}
+              getStudentStatus={getStudentStatus}
             />
           ))}
         </tbody>

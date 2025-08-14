@@ -12,7 +12,8 @@ const StudentTableRow = ({
   onProcessPayment, 
   onViewStudent, 
   onEditStudent, 
-  onSendReminder 
+  onSendReminder,
+  getStudentStatus 
 }) => {
   // Lines 9-17: Get latest membership and format due date
   const getLatestMembership = (student) => {
@@ -24,6 +25,7 @@ const StudentTableRow = ({
 
   const latestMembership = getLatestMembership(student);
   const dueDateInfo = formatDueDate(latestMembership?.endDate);
+  const studentStatus = getStudentStatus ? getStudentStatus(student) : 'unknown';
 
   // Lines 18-95: Main component render
   return (
@@ -50,7 +52,7 @@ const StudentTableRow = ({
 
       {/* Status with Pricing */}
       <td className="px-6 py-4 whitespace-nowrap">
-        <StudentStatusBadge student={student} />
+        <StudentStatusBadge student={student} studentStatus={studentStatus} />
       </td>
 
       {/* Due Date */}

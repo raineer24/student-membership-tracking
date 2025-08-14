@@ -1,35 +1,28 @@
 // client/src/components/student/StudentStatusBadge.jsx
 // Lines 1-8: Imports and dependencies
 import React from 'react';
-import { isOverdue } from '../../utils/dateUtils';
 import { getStudentPricingDisplay } from '../../utils/studentPricingUtils';
 
 // Lines 9-54: Main StudentStatusBadge component
 // Purpose: Display student status badge with pricing tier and status indicator
 // Used in: StudentTableRow component for consistent status display
-const StudentStatusBadge = ({ student }) => {
-  // Lines 9-14: Get latest membership and determine overdue status
-  const latestMembership = student.memberships && student.memberships.length > 0 
-    ? student.memberships.reduce((latest, current) => 
-        new Date(current.startDate) > new Date(latest.startDate) ? current : latest
-      ) 
-    : null;
-  
-  const overdueStatus = isOverdue(latestMembership?.endDate);
+const StudentStatusBadge = ({ student, studentStatus }) => {
   const pricingInfo = getStudentPricingDisplay(student);
 
   // Lines 15-20: Determine badge color based on student status
   const getBadgeColor = () => {
-    if (!latestMembership) return "bg-gray-500";
-    if (overdueStatus) return "bg-red-500";
-    return "bg-green-500";
+    if (studentStatus === 'active') return "bg-green-500";
+    if (studentStatus === 'overdue') return "bg-red-500";
+    if (studentStatus === 'inactive') return "bg-gray-500";
+    return "bg-gray-500";
   };
 
   // Lines 21-26: Determine status text
   const getStatusText = () => {
-    if (!latestMembership) return "No Membership";
-    if (overdueStatus) return "Overdue";
-    return "Active";
+    if (studentStatus === 'active') return "Active";
+    if (studentStatus === 'overdue') return "Overdue";
+    if (studentStatus === 'inactive') return "Inactive";
+    return "Unknown";
   };
 
   // Lines 27-54: Main component render
