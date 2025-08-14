@@ -1,434 +1,26 @@
 // client/src/components/DashboardPage.jsx
-// Lines 1-20: Complete Enhanced DashboardPage.jsx - Fixed Auth Interceptors
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import LoadingSpinner from "../components/LoadingSpinner";
-import ErrorMessage from "../components/ErrorMessage";
-import PaymentModal from "../components/PaymentModal";
-import AddStudentModal from "../components/AddStudentModal";
-import StudentProfileView from "../components/StudentProfileView";
-import StudentEditForm from "./StudentEditForm";
-import { useToast } from "../hooks/useToast";
-import { formatDueDate, isOverdue } from '../utils/dateUtils';
-import { 
-  getStudentPricingDisplay, 
-  getPricingTier, 
-  calculatePricingBreakdown 
-} from '../utils/studentPricingUtils';
+// Lines 1-25: Imports and dependencies (Updated with new components)
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '../hooks/useToast';
+import { adminApi } from '../services/adminApi';
+import { isOverdue } from '../utils/dateUtils';
+import { getStudentPricingDisplay, getPricingTier } from '../utils/studentPricingUtils';
+
+// Component imports (Phase 3 additions)
+import LogoutButton from './LogoutButton';
+import StudentsTable from './student/StudentsTable';
 import SMSCreditsModal from './modals/SMSCreditsModal';
 import SMSHistoryModal from './modals/SMSHistoryModal';
 
+// Existing component imports
+import StudentProfileView from './StudentProfileView';
+import StudentEditForm from './StudentEditForm';
+import PaymentModal from './PaymentModal';
+import AddStudentModal from './AddStudentModal';
 
-// ✅ FIXED: Import adminApi and apiClient with interceptors
-import { adminApi } from "../services/adminApi";
-import apiClient from "../utils/api";
-
-// Line 21-91: SMS Credits Modal Component
-// const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
-//   if (!isOpen) return null;
-
-//   return (
-//     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-//       <div className="bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-xl border border-gray-600 p-6 w-full max-w-md mx-4">
-//         <div className="flex justify-between items-center mb-4">
-//           <h3 className="text-lg font-semibold text-white">SMS Credits Balance</h3>
-//           <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">✕</button>
-//         </div>
-        
-//         {loading ? (
-//           <div className="text-center py-4">
-//             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
-//             <p className="mt-2 text-gray-300">Loading credits...</p>
-//           </div>
-//         ) : creditsData ? (
-//           <div className="space-y-4">
-//             <div className="text-center">
-//               <div className="text-3xl font-bold text-red-500">₱{creditsData.balance || "0.00"}</div>
-//               <p className="text-gray-300">Available Balance</p>
-//             </div>
-//             <div className="bg-gray-700 rounded-lg p-4">
-//               <h4 className="font-medium mb-2 text-white">Usage Statistics</h4>
-//               <div className="space-y-1 text-sm">
-//                 <div className="flex justify-between text-gray-300">
-//                   <span>Cost per SMS:</span>
-//                   <span>₱{creditsData.costPerSMS || "0.60"}</span>
-//                 </div>
-//                 <div className="flex justify-between text-gray-300">
-//                   <span>Estimated capacity:</span>
-//                   <span>{Math.floor((creditsData.balance || 0) / (creditsData.costPerSMS || 0.60))} SMS</span>
-//                 </div>
-//                 <div className="flex justify-between text-gray-300">
-//                   <span>Provider:</span>
-//                   <span>{creditsData.provider || "Semaphore"}</span>
-//                 </div>
-//               </div>
-//             </div>
-//             {creditsData.lowBalance && (
-//               <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded-lg p-3">
-//                 <p className="text-red-400 text-sm">⚠️ Low balance warning</p>
-//               </div>
-//             )}
-//           </div>
-//         ) : (
-//           <div className="text-center py-4">
-//             <p className="text-gray-400">Unable to load credits data</p>
-//             <p className="text-gray-500 text-xs mt-2">Check SMS service configuration</p>
-//           </div>
-//         )}
-        
-//         <div className="mt-6 flex justify-end">
-//           <button onClick={onClose} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-//             Close
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// Line 92-176: SMS History Modal Component
-// const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
-//   if (!isOpen) return null;
-
-//   return (
-//     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-//       <div className="bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-xl border border-gray-600 p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden">
-//         <div className="flex justify-between items-center mb-4">
-//           <h3 className="text-lg font-semibold text-white">SMS History</h3>
-//           <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">✕</button>
-//         </div>
-        
-//         {loading ? (
-//           <div className="text-center py-4">
-//             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
-//             <p className="mt-2 text-gray-300">Loading history...</p>
-//           </div>
-//         ) : historyData?.reminders?.length > 0 ? (
-//           <div className="overflow-y-auto max-h-96">
-//             <table className="min-w-full divide-y divide-gray-600">
-//               <thead className="bg-gray-700">
-//                 <tr>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Student</th>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Phone</th>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Cost</th>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Sent</th>
-//                 </tr>
-//               </thead>
-//               <tbody className="bg-gray-700 divide-y divide-gray-600">
-//                 {historyData.reminders.map((reminder, index) => (
-//                   <tr key={reminder.id || index}>
-//                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-//                       {reminder.student?.name || reminder.studentName || "Unknown"}
-//                     </td>
-//                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-//                       {reminder.phoneNumber || reminder.phone || "N/A"}
-//                     </td>
-//                     <td className="px-6 py-4 whitespace-nowrap">
-//                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-//                         reminder.status === 'SENT' || reminder.status === 'TEST_SENT'
-//                           ? 'bg-green-500 bg-opacity-20 text-green-400 border border-green-500' 
-//                           : 'bg-red-500 bg-opacity-20 text-red-400 border border-red-500'
-//                       }`}>
-//                         {reminder.status}
-//                       </span>
-//                     </td>
-//                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-//                       ₱{reminder.cost || '0.60'}
-//                     </td>
-//                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-//                       {new Date(reminder.sentAt).toLocaleDateString()}
-//                     </td>
-//                   </tr>
-//                 ))}
-//               </tbody>
-//             </table>
-//           </div>
-//         ) : (
-//           <div className="text-center py-8">
-//             <p className="text-gray-400">No SMS history found</p>
-//             <p className="text-gray-500 text-sm mt-2">Send some reminders to see history here</p>
-//           </div>
-//         )}
-        
-//         <div className="mt-6 flex justify-end">
-//           <button onClick={onClose} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-//             Close
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// Line 177-197: Logout Button Component
-const LogoutButton = () => {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    if (confirm("Are you sure you want to logout?")) {
-      logout();
-      navigate('/');
-    }
-  };
-
-  return (
-    <button
-      onClick={handleLogout}
-      className="px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors font-medium"
-    >
-      Logout
-    </button>
-  );
-};
-
-// Line 198-248: Student Status Badge with pricing tier integration
-const StudentStatusBadge = ({ status, student }) => {
-  const statusConfig = {
-    active: { 
-      bg: "bg-green-500 bg-opacity-20", 
-      text: "text-green-400", 
-      border: "border-green-500",
-      label: "Active" 
-    },
-    inactive: { 
-      bg: "bg-gray-500 bg-opacity-20", 
-      text: "text-gray-400", 
-      border: "border-gray-500",
-      label: "Inactive" 
-    },
-    overdue: { 
-      bg: "bg-red-500 bg-opacity-20", 
-      text: "text-red-400", 
-      border: "border-red-500",
-      label: "Overdue" 
-    }
-  };
-  
-  const config = statusConfig[status] || statusConfig.inactive;
-  
-  // Enhanced pricing tier determination
-  // const getPricingTier = (student) => {
-  //   if (!student) return null;
-    
-  //   const monthlyRate = student.monthlyRate || 1400;
-  //   const isLegacy = student.isLegacyStudent || false;
-    
-  //   if (isLegacy) {
-  //     if (monthlyRate === 1000) return { 
-  //       label: "Founding", 
-  //       emoji: "🌟", 
-  //       color: "text-purple-400",
-  //       bg: "bg-purple-500 bg-opacity-20",
-  //       border: "border-purple-500"
-  //     };
-  //     if (monthlyRate === 1200) return { 
-  //       label: "Early", 
-  //       emoji: "🌟", 
-  //       color: "text-blue-400",
-  //       bg: "bg-blue-500 bg-opacity-20",
-  //       border: "border-blue-500"
-  //     };
-  //     return { 
-  //       label: "Legacy", 
-  //       emoji: "🌟", 
-  //       color: "text-yellow-400",
-  //       bg: "bg-yellow-500 bg-opacity-20",
-  //       border: "border-yellow-500"
-  //     };
-  //   }
-    
-  //   return null;
-  // };
-  
-  const pricingTier = getPricingTier(student);
-  
-  return (
-    <div className="flex flex-col space-y-1">
-      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${config.bg} ${config.text} ${config.border}`}>
-        {config.label}
-      </span>
-      {pricingTier && (
-        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${pricingTier.bg} ${pricingTier.color} ${pricingTier.border}`}>
-          {pricingTier.emoji} {pricingTier.label}
-        </span>
-      )}
-    </div>
-  );
-};
-
-// Line 249-279: Date formatting utility
-// const formatDueDate = (dateString) => {
-//   if (!dateString) return { text: "N/A", color: "text-gray-400" };
-  
-//   try {
-//     const endDate = new Date(dateString);
-//     const today = new Date();
-    
-//     today.setHours(0, 0, 0, 0);
-//     endDate.setHours(0, 0, 0, 0);
-    
-//     const timeDiff = endDate.getTime() - today.getTime();
-//     const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-    
-//     if (daysDiff > 7) {
-//       return { text: `${daysDiff} days remaining`, color: "text-green-400" };
-//     } else if (daysDiff > 0) {
-//       return { text: `${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining`, color: "text-yellow-400" };
-//     } else if (daysDiff === 0) {
-//       return { text: "Due today", color: "text-orange-400 font-medium" };
-//     } else {
-//       const overdueDays = Math.abs(daysDiff);
-//       return { text: `${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue`, color: "text-red-400 font-medium" };
-//     }
-//   } catch {
-//     return { text: "Invalid Date", color: "text-gray-400" };
-//   }
-// };
-
-// Line 280-370: Student Table Row with individual pricing display
-const StudentTableRow = ({ 
-  student, 
-  onProcessPayment, 
-  onViewStudent, 
-  onEditStudent, 
-  onSendReminder, 
-  canSendReminder, 
-  smsLoading, 
-  getStudentStatus 
-}) => {
-  const status = getStudentStatus(student);
-  
-  const getLatestMembership = (student) => {
-    if (!student?.memberships || student.memberships.length === 0) return null;
-    return student.memberships.reduce((latest, current) => {
-      const currentEndDate = new Date(current.endDate);
-      const latestEndDate = new Date(latest.endDate);
-      return currentEndDate > latestEndDate ? current : latest;
-    });
-  };
-
-  const latestMembership = getLatestMembership(student);
-  const dueDateInfo = formatDueDate(latestMembership?.endDate);
-  
-  // const getStudentPricingDisplay = (student) => {
-  //   const monthlyRate = student.monthlyRate || 1400;
-  //   const yearlyRate = monthlyRate * 12;
-  //   const isLegacy = student.isLegacyStudent || false;
-    
-  //   let tierLabel = "Standard";
-  //   if (isLegacy) {
-  //     if (monthlyRate === 1000) tierLabel = "Founding";
-  //     else if (monthlyRate === 1200) tierLabel = "Early";
-  //     else tierLabel = "Legacy";
-  //   }
-    
-  //   return {
-  //     monthly: monthlyRate,
-  //     yearly: yearlyRate,
-  //     monthlyFormatted: `₱${monthlyRate.toLocaleString()}`,
-  //     yearlyFormatted: `₱${yearlyRate.toLocaleString()}`,
-  //     isLegacy: isLegacy,
-  //     tierLabel: tierLabel
-  //   };
-  // };
-
-  const pricingInfo = getStudentPricingDisplay(student);
-
-  return (
-    <tr className="hover:bg-gray-700 hover:bg-opacity-50 transition-colors">
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center">
-          <div>
-            <div className="text-sm font-medium text-white">{student.name || "Unknown"}</div>
-            <div className="text-sm text-gray-400">{student.email || "No email"}</div>
-            {student.phone && (
-              <div className="text-xs text-gray-500">{student.phone}</div>
-            )}
-            <div className="text-xs text-gray-500 mt-1 flex items-center space-x-1">
-              {pricingInfo.isLegacy && <span className="text-purple-400">🌟</span>}
-              <span>{pricingInfo.monthlyFormatted}/mo</span>
-              {pricingInfo.isLegacy && (
-                <span className="text-purple-400">({pricingInfo.tierLabel})</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </td>
-      
-      <td className="px-6 py-4 whitespace-nowrap">
-        <StudentStatusBadge status={status} student={student} />
-      </td>
-      
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm text-white">
-          {latestMembership?.type || latestMembership?.membershipType || "No Membership"}
-        </div>
-        {latestMembership?.startDate && (
-          <div className="text-xs text-gray-400">
-            Started: {new Date(latestMembership.startDate).toLocaleDateString()}
-          </div>
-        )}
-        <div className="text-xs text-gray-500">
-          Next: {pricingInfo.monthlyFormatted} | {pricingInfo.yearlyFormatted}
-        </div>
-      </td>
-      
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className={`text-sm ${dueDateInfo.color}`}>
-          {dueDateInfo.text}
-        </div>
-      </td>
-      
-      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-        <div className="flex items-center space-x-2">
-          {canSendReminder(student) && (
-            <button
-              onClick={() => onSendReminder(student)}
-              disabled={smsLoading}
-              className="bg-orange-600 text-white px-3 py-1 rounded text-xs hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center space-x-1"
-              title={`Send payment reminder to ${student.name}`}
-            >
-              <span>📱</span>
-              <span>Remind</span>
-            </button>
-          )}
-          
-          <button
-            onClick={() => onProcessPayment(student)}
-            className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition-colors flex items-center space-x-1"
-            title="Process payment"
-          >
-            <span>💳</span>
-            <span>Pay</span>
-          </button>
-          
-          <button
-            onClick={() => onViewStudent(student.id)}
-            className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition-colors flex items-center space-x-1"
-            title="View student details"
-          >
-            <span>👁️</span>
-            <span>View</span>
-          </button>
-          
-          <button
-            onClick={() => onEditStudent(student)}
-            className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition-colors flex items-center space-x-1"
-            title="Edit student information"
-          >
-            <span>✏️</span>
-            <span>Edit</span>
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
-};
-
-// Line 371-421: Main Dashboard Component
+// Lines 26-380: Main DashboardPage component
 export default function DashboardPage() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
@@ -450,119 +42,11 @@ export default function DashboardPage() {
   const [selectedStudent, setSelectedStudent] = useState(null);
 
   // Student filtering and search state
-  const [activeTab, setActiveTab] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('all');
 
-  // SMS state
-  const [creditsModalOpen, setCreditsModalOpen] = useState(false);
-  const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [creditsData, setCreditsData] = useState(null);
-  const [historyData, setHistoryData] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
-  const [smsLoading, setSmsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Line 422-472: Enhanced pricing breakdown calculation
-  const pricingBreakdown = useMemo(() => {
-    if (!students || students.length === 0) {
-      return {
-        total: 0, founding: 0, early: 0, legacy: 0, standard: 0,
-        legacyCount: 0, standardCount: 0, averageMonthlyRate: 0,
-        totalMonthlyRevenuePotential: 0, totalYearlyRevenuePotential: 0
-      };
-    }
-
-    const breakdown = students.reduce((acc, student) => {
-      const monthlyRate = student.monthlyRate || 1400;
-      const isLegacy = student.isLegacyStudent || false;
-      
-      acc.total++;
-      acc.totalMonthlyRevenuePotential += monthlyRate;
-      acc.totalYearlyRevenuePotential += (monthlyRate * 12);
-      
-      if (isLegacy) {
-        acc.legacyCount++;
-        if (monthlyRate === 1000) acc.founding++;
-        else if (monthlyRate === 1200) acc.early++;
-        else acc.legacy++;
-      } else {
-        acc.standardCount++;
-        acc.standard++;
-      }
-      
-      return acc;
-    }, {
-      total: 0, founding: 0, early: 0, legacy: 0, standard: 0,
-      legacyCount: 0, standardCount: 0,
-      totalMonthlyRevenuePotential: 0, totalYearlyRevenuePotential: 0
-    });
-
-    breakdown.averageMonthlyRate = breakdown.total > 0 ? breakdown.totalMonthlyRevenuePotential / breakdown.total : 0;
-    return breakdown;
-  }, [students]);
-
-  // Line 473-523: Student status logic
-  const getStudentStatus = useCallback((student) => {
-    if (!student || !student.memberships || student.memberships.length === 0) {
-      return "inactive";
-    }
-
-    const latestMembership = student.memberships.reduce((latest, current) => {
-      const currentEndDate = new Date(current.endDate);
-      const latestEndDate = new Date(latest.endDate);
-      return currentEndDate > latestEndDate ? current : latest;
-    });
-
-    const today = new Date();
-    const endDate = new Date(latestMembership.endDate);
-    
-    today.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-
-    if (endDate >= today) return "active";
-
-    const timeDiff = today.getTime() - endDate.getTime();
-    const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-
-    return daysDiff <= 30 ? "overdue" : "inactive";
-  }, []);
-
-  const tabCounts = useMemo(() => {
-    if (!students || students.length === 0) {
-      return { all: 0, active: 0, overdue: 0, inactive: 0 };
-    }
-
-    return students.reduce((acc, student) => {
-      const status = getStudentStatus(student);
-      acc[status] = (acc[status] || 0) + 1;
-      acc.all = (acc.all || 0) + 1;
-      return acc;
-    }, { all: 0, active: 0, overdue: 0, inactive: 0 });
-  }, [students, getStudentStatus]);
-
-  const filteredStudents = useMemo(() => {
-    if (!students || students.length === 0) return [];
-
-    let filtered = students;
-
-    if (activeTab !== "all") {
-      filtered = filtered.filter(student => getStudentStatus(student) === activeTab);
-    }
-
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(student => {
-        const name = (student.name || "").toLowerCase();
-        const email = (student.email || "").toLowerCase();
-        const phone = (student.phone || "").toLowerCase();
-        return name.includes(searchLower) || email.includes(searchLower) || phone.includes(searchLower);
-      });
-    }
-    
-    return filtered;
-  }, [students, activeTab, searchTerm, getStudentStatus]);
-
-  // Line 524-554: ✅ FIXED Data fetching - Uses adminApi with interceptors
+  // Lines 45-95: Data fetching and refresh logic
   const fetchDashboardData = useCallback(async () => {
     if (!token) return;
 
@@ -570,160 +54,194 @@ export default function DashboardPage() {
       setLoading(true);
       setError(null);
 
-      console.log("🔄 Fetching dashboard data using adminApi with interceptors...");
-
-      // ✅ FIXED: Use adminApi which uses apiClient with interceptors
       const [dashboard, studentsData] = await Promise.all([
         adminApi.getDashboardData(),
         adminApi.getAllStudents()
       ]);
 
-      console.log("✅ Dashboard data fetched successfully via interceptors");
       setDashboardData(dashboard);
       setStudents(studentsData);
 
     } catch (error) {
-      console.error("❌ Dashboard fetch error:", error);
-      // adminApi automatically handles 401s with interceptors
-      // If we get here, it's a different error
+      console.error("Dashboard fetch error:", error);
       setError("Failed to load dashboard data. Please try again.");
+      
+      if (error.response?.status === 401) {
+        navigate('/login');
+      }
     } finally {
       setLoading(false);
     }
-  }, [token]); // Only token dependency
+  }, [token, navigate]);
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Separate effect to show error toasts - prevents dependency cycle
-  useEffect(() => {
-    if (error) {
-      showError(error);
+  const refreshData = useCallback(async () => {
+    await fetchDashboardData();
+    showSuccess("Data refreshed successfully!");
+  }, [fetchDashboardData, showSuccess]);
+
+  // Lines 96-145: Student filtering and counting logic
+  const getFilteredStudents = useCallback(() => {
+    if (!students || !Array.isArray(students)) return [];
+
+    let filtered = students;
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(student => 
+        student.name?.toLowerCase().includes(search) ||
+        student.email?.toLowerCase().includes(search) ||
+        student.phone?.includes(search) ||
+        student.id?.toString().includes(search)
+      );
     }
-  }, [error, showError]);
 
-  // Line 575-595: ✅ FIXED SMS Credits Fetch Function - Uses apiClient
-  const fetchSMSCredits = useCallback(async () => {
-    if (!token) return;
+    // Apply status filter
+    if (selectedFilter !== 'all') {
+      filtered = filtered.filter(student => {
+        const latestMembership = student.memberships && student.memberships.length > 0 
+          ? student.memberships.reduce((latest, current) => 
+              new Date(current.startDate) > new Date(latest.startDate) ? current : latest
+            ) 
+          : null;
 
-    try {
-      setModalLoading(true);
-      console.log("🔄 Fetching SMS credits using apiClient with interceptors...");
-      
-      // ✅ FIXED: Use apiClient with interceptors instead of fetch
-      const response = await apiClient.get("/reminders/credits");
-      
-      if (response.data.success) {
-        setCreditsData(response.data.data);
-        console.log("✅ SMS credits fetched successfully via interceptors");
+        switch (selectedFilter) {
+          case 'active':
+            return latestMembership && !isOverdue(latestMembership.endDate);
+          case 'overdue':
+            return latestMembership && isOverdue(latestMembership.endDate);
+          case 'inactive':
+            return !latestMembership;
+          default:
+            return true;
+        }
+      });
+    }
+
+    return filtered;
+  }, [students, searchTerm, selectedFilter]);
+
+  const filteredStudents = getFilteredStudents();
+
+  // Lines 146-170: Calculate tab counts and pricing breakdown
+  const calculateTabCounts = useCallback(() => {
+    if (!students || !Array.isArray(students)) {
+      return { all: 0, active: 0, overdue: 0, inactive: 0 };
+    }
+
+    const counts = { all: students.length, active: 0, overdue: 0, inactive: 0 };
+
+    students.forEach(student => {
+      const latestMembership = student.memberships && student.memberships.length > 0 
+        ? student.memberships.reduce((latest, current) => 
+            new Date(current.startDate) > new Date(latest.startDate) ? current : latest
+          ) 
+        : null;
+
+      if (!latestMembership) {
+        counts.inactive++;
+      } else if (isOverdue(latestMembership.endDate)) {
+        counts.overdue++;
       } else {
-        throw new Error(response.data.error || "Failed to load credits");
+        counts.active++;
       }
+    });
 
-    } catch (error) {
-      console.error("❌ SMS credits error:", error);
-      showError("Failed to load SMS credits");
-      setCreditsData(null);
-    } finally {
-      setModalLoading(false);
+    return counts;
+  }, [students]);
+
+  const tabCounts = calculateTabCounts();
+
+  // Lines 171-220: Calculate pricing breakdown
+  const calculatePricingBreakdown = useCallback(() => {
+    if (!students || !Array.isArray(students)) {
+      return {
+        discounted: 0, standard: 0, legacy: 0, total: 0,
+        totalMonthlyRevenuePotential: 0, totalYearlyRevenuePotential: 0
+      };
     }
-  }, [showError]);
 
-  // Line 596-616: ✅ FIXED SMS History Fetch Function - Uses apiClient
-  const fetchSMSHistory = useCallback(async () => {
-    if (!token) return;
+    const breakdown = {
+      discounted: 0, standard: 0, legacy: 0, total: students.length,
+      totalMonthlyRevenuePotential: 0, totalYearlyRevenuePotential: 0
+    };
 
-    try {
-      setModalLoading(true);
-      console.log("🔄 Fetching SMS history using apiClient with interceptors...");
-      
-      // ✅ FIXED: Use apiClient with interceptors instead of fetch
-      const response = await apiClient.get("/reminders/history");
+    students.forEach(student => {
+      const tier = getPricingTier(student);
+      breakdown[tier]++;
 
-      if (response.data.success) {
-        setHistoryData(response.data.data);
-        console.log("✅ SMS history fetched successfully via interceptors");
-      } else {
-        throw new Error(response.data.error || "Failed to load history");
+      // Calculate revenue potential
+      const pricing = getStudentPricingDisplay(student);
+      if (pricing.monthlyRate) {
+        breakdown.totalMonthlyRevenuePotential += pricing.monthlyRate;
       }
+    });
 
-    } catch (error) {
-      console.error("❌ SMS history error:", error);
-      showError("Failed to load SMS history");
-      setHistoryData(null);
-    } finally {
-      setModalLoading(false);
-    }
-  }, [showError]);
+    breakdown.totalYearlyRevenuePotential = breakdown.totalMonthlyRevenuePotential * 12;
 
-  // Line 617-637: SMS Modal Handlers
-  const handleCreditsModal = useCallback(() => {
-    setCreditsModalOpen(true);
-    fetchSMSCredits();
-  }, [fetchSMSCredits]);
+    return breakdown;
+  }, [students]);
 
-  const handleHistoryModal = useCallback(() => {
-    setHistoryModalOpen(true);
-    fetchSMSHistory();
-  }, [fetchSMSHistory]);
+  const pricingBreakdown = calculatePricingBreakdown();
 
-  // Line 638-668: ✅ FIXED Send SMS Reminder Function - Uses apiClient
+  // Lines 221-280: Event handlers for student actions
+  const handleViewStudent = useCallback((studentId) => {
+    setSelectedStudentId(studentId);
+    setActiveView("profile");
+  }, []);
+
+  const handleEditStudent = useCallback((student) => {
+    setStudentToEdit(student);
+    setActiveView("edit");
+  }, []);
+
+  const handleProcessPayment = useCallback((student) => {
+    setSelectedStudent(student);
+    setPaymentModalOpen(true);
+  }, []);
+
   const handleSendReminder = useCallback(async (student) => {
-    if (!token || !student) return;
-
     try {
-      setSmsLoading(true);
-      console.log("🔄 Sending SMS reminder using apiClient with interceptors...");
-      
-      // ✅ FIXED: Use apiClient with interceptors instead of fetch
-      const response = await apiClient.post("/reminders/send", {
+      const response = await adminApi.sendSMSReminder({
         studentId: student.id,
         testMode: process.env.NODE_ENV === "development",
       });
 
       if (response.data.success) {
-        console.log("✅ SMS reminder sent successfully via interceptors");
         showSuccess(`SMS reminder sent to ${student.name}!`);
       } else {
         throw new Error(response.data.error || "Failed to send SMS");
       }
-
     } catch (error) {
-      console.error("❌ SMS reminder error:", error);
+      console.error("SMS reminder error:", error);
       showError(`Failed to send SMS: ${error.message}`);
-    } finally {
-      setSmsLoading(false);
     }
   }, [showSuccess, showError]);
 
-  // Line 669-689: Reminder eligibility check
-  const canSendReminder = useCallback((student) => {
-    if (!student || !student.phone) return false;
-    const status = getStudentStatus(student);
-    return status === "overdue" || status === "inactive";
-  }, [getStudentStatus]);
+  const handleSaveStudent = useCallback(async (updatedStudent) => {
+    try {
+      const savedStudent = await adminApi.updateStudent(updatedStudent.id, updatedStudent);
+      
+      setStudents(students => 
+        students.map(s => s.id === savedStudent.id ? { ...s, ...savedStudent } : s)
+      );
 
-  // Line 690-710: Payment and student handlers
-  const handleProcessPayment = (student) => {
-    setSelectedStudent(student);
-    setPaymentModalOpen(true);
-  };
-
-  const handleViewStudent = (studentId) => {
-    const studentData = students.find(s => s.id === studentId);
-    if (studentData) {
-      setSelectedStudentId(studentId);
-      setActiveView("profile");
-    } else {
-      showError("Student not found");
+      setActiveView("dashboard");
+      setSelectedStudentId(null);
+      setStudentToEdit(null);
+      
+      showSuccess(`${String(updatedStudent.name)} updated successfully!`);
+      
+    } catch (error) {
+      console.error("handleSaveStudent: Error occurred", error);
+      showError(`Failed to update student: ${String(error.message)}`);
+      throw error;
     }
-  };
-
-  const handleEditStudent = (student) => {
-    setStudentToEdit(student);
-    setActiveView("edit");
-  };
+  }, [showSuccess, showError, setStudents]);
 
   const handleBackToDashboard = useCallback(() => {
     setActiveView("dashboard");
@@ -731,71 +249,7 @@ export default function DashboardPage() {
     setStudentToEdit(null);
   }, []);
 
-  // Line 711-751: ✅ FIXED handleSaveStudent - Uses adminApi with interceptors
-  const handleSaveStudent = useCallback(async (updatedStudent) => {
-    // CRITICAL: Prevent multiple simultaneous calls
-    if (isSaving) {
-      console.log("handleSaveStudent: Already saving, ignoring duplicate call");
-      return;
-    }
-
-    try {
-      console.log("handleSaveStudent: Starting save process for", updatedStudent.name);
-      setIsSaving(true);
-      
-      // ✅ FIXED: Use adminApi with interceptors instead of fetch
-      const savedStudent = await adminApi.updateStudent(updatedStudent.id, {
-        name: updatedStudent.name,
-        email: updatedStudent.email,
-        phone: updatedStudent.phone,
-        monthlyRate: updatedStudent.monthlyRate,
-        isLegacyStudent: updatedStudent.isLegacyStudent
-      });
-
-      console.log("handleSaveStudent: Successfully saved student via interceptors", savedStudent);
-      
-      // Update local state immediately without refetching
-      setStudents(prev => 
-        prev.map(s => s.id === updatedStudent.id ? { ...s, ...savedStudent } : s)
-      );
-
-      // Navigate back immediately - no async dependency
-      setActiveView("dashboard");
-      setSelectedStudentId(null);
-      setStudentToEdit(null);
-      
-      // CRITICAL FIX: Use primitive string value only - no object references
-      const successMessage = `${String(updatedStudent.name)} updated successfully!`;
-      console.log("handleSaveStudent: Showing success message:", successMessage);
-      
-      // Call showSuccess with primitive value only
-      showSuccess(successMessage);
-      
-    } catch (error) {
-      console.error("handleSaveStudent: Error occurred", error);
-      const errorMessage = `Failed to update student: ${String(error.message)}`;
-      showError(errorMessage);
-      throw error;
-    } finally {
-      console.log("handleSaveStudent: Cleanup - setting isSaving to false");
-      setIsSaving(false);
-    }
-  }, [isSaving, showSuccess, showError]); 
-
-  const handlePaymentSuccess = () => {
-    fetchDashboardData();
-    setPaymentModalOpen(false);
-    setSelectedStudent(null);
-    showSuccess("Payment processed successfully!");
-  };
-
-  const handleStudentAdded = () => {
-    fetchDashboardData();
-    setAddStudentModalOpen(false);
-    showSuccess("Student added successfully!");
-  };
-
-  // Line 752-797: Loading and error states
+  // Lines 281-320: Loading and error states
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
@@ -819,10 +273,10 @@ export default function DashboardPage() {
             </svg>
           </div>
           <h3 className="text-lg font-semibold text-white mb-2">Error Loading Dashboard</h3>
-          <p className="text-red-400 mb-6">{error}</p>
+          <p className="text-gray-400 mb-4">{error}</p>
           <button
-            onClick={fetchDashboardData}
-            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            onClick={refreshData}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
           >
             Try Again
           </button>
@@ -831,30 +285,11 @@ export default function DashboardPage() {
     );
   }
 
-  // Line 798-838: Conditional view rendering
+  // Lines 321-380: Conditional view rendering
   if (activeView === "profile" && selectedStudentId) {
-    const selectedStudentData = students.find(s => s.id === selectedStudentId);
-    
-    if (!selectedStudentData) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
-          <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl border border-gray-600 p-8 text-center">
-            <h2 className="text-xl font-semibold text-white mb-2">Student Not Found</h2>
-            <p className="text-gray-400 mb-4">The requested student could not be found.</p>
-            <button
-              onClick={handleBackToDashboard}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Back to Dashboard
-            </button>
-          </div>
-        </div>
-      );
-    }
-    
     return (
       <StudentProfileView
-        student={selectedStudentData}
+        studentId={selectedStudentId}
         onBack={handleBackToDashboard}
         onEdit={handleEditStudent}
       />
@@ -865,57 +300,32 @@ export default function DashboardPage() {
     return (
       <StudentEditForm
         student={studentToEdit}
-        onBack={handleBackToDashboard}
         onSave={handleSaveStudent}
+        onCancel={handleBackToDashboard}
       />
     );
   }
 
-  // Line 839-950: Main dashboard render with SMS functionality
+  // Lines 381-750: Main dashboard render
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl border-b border-gray-600">
+      <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/')}
-                className="text-2xl font-bold text-white hover:text-red-500 transition-colors cursor-pointer"
-              >
-                🥋 BJJ Academy
-              </button>
-              <div className="border-l border-gray-600 pl-4">
-                <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
-                <p className="text-gray-400">Manage student memberships and payments</p>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Student Membership Dashboard
+              </h1>
+              <p className="text-gray-600 mt-1">Welcome back, {user?.email}</p>
             </div>
-            
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-3">
               <button
-                onClick={handleCreditsModal}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                onClick={refreshData}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                <span>💳</span>
-                <span>Credits</span>
+                Refresh Data
               </button>
-              
-              <button
-                onClick={handleHistoryModal}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
-              >
-                <span>📊</span>
-                <span>History</span>
-              </button>
-              
-              <button
-                onClick={() => setAddStudentModalOpen(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-              >
-                <span>+</span>
-                <span>Add Student</span>
-              </button>
-              
               <LogoutButton />
             </div>
           </div>
@@ -975,25 +385,25 @@ export default function DashboardPage() {
                   <dl>
                     <dt className="text-sm font-medium text-gray-400 truncate">Overdue</dt>
                     <dd className="text-3xl font-bold text-red-400">{tabCounts.overdue || 0}</dd>
-                    <dd className="text-sm text-gray-500">Expired within 30 days</dd>
+                    <dd className="text-sm text-gray-500">Payment overdue</dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Legacy Students Card */}
+          {/* Inactive Students Card */}
           <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
             <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <span className="text-3xl">🌟</span>
+                  <span className="text-3xl">⏸️</span>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-400 truncate">Legacy Students</dt>
-                    <dd className="text-3xl font-bold text-purple-400">{pricingBreakdown.legacyCount}</dd>
-                    <dd className="text-sm text-gray-500">Grandfathered rates</dd>
+                    <dt className="text-sm font-medium text-gray-400 truncate">Inactive</dt>
+                    <dd className="text-3xl font-bold text-gray-400">{tabCounts.inactive || 0}</dd>
+                    <dd className="text-sm text-gray-500">No membership</dd>
                   </dl>
                 </div>
               </div>
@@ -1009,37 +419,11 @@ export default function DashboardPage() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-400 truncate">Total Revenue</dt>
-                    <dd className="text-3xl font-bold text-white">
-                      ₱{(() => {
-                        const enhancedTotal = dashboardData?.summary?.revenuePotential?.activeMonthlyRevenue;
-                        const originalTotal = dashboardData?.summary?.totalRevenue;
-                        const total = enhancedTotal || originalTotal;
-                        
-                        if (typeof total === 'number' && !isNaN(total)) {
-                          return total.toLocaleString('en-PH', { 
-                            minimumFractionDigits: 0, 
-                            maximumFractionDigits: 0 
-                          });
-                        }
-                        return "0";
-                      })()}
+                    <dt className="text-sm font-medium text-gray-400 truncate">Monthly Revenue</dt>
+                    <dd className="text-2xl font-bold text-green-400">
+                      ₱{pricingBreakdown.totalMonthlyRevenuePotential?.toLocaleString() || 0}
                     </dd>
-                    <dd className="text-sm text-gray-500">
-                      ₱{(() => {
-                        const enhancedMonthly = dashboardData?.summary?.revenuePotential?.totalMonthlyPotential;
-                        const originalMonthly = dashboardData?.summary?.thisMonthRevenue;
-                        const monthly = enhancedMonthly || originalMonthly;
-                        
-                        if (typeof monthly === 'number' && !isNaN(monthly)) {
-                          return monthly.toLocaleString('en-PH', { 
-                            minimumFractionDigits: 0, 
-                            maximumFractionDigits: 0 
-                          });
-                        }
-                        return "0";
-                      })()} potential/month
-                    </dd>
+                    <dd className="text-sm text-gray-500">Potential income</dd>
                   </dl>
                 </div>
               </div>
@@ -1049,200 +433,185 @@ export default function DashboardPage() {
 
         {/* Pricing Distribution Section */}
         {pricingBreakdown.total > 0 && (
-          <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl overflow-hidden rounded-xl border border-gray-600 mb-8">
-            <div className="px-6 py-4 border-b border-gray-600">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium text-white">Pricing Distribution & Revenue Analysis</h3>
-                <div className="text-sm text-gray-400">
-                  Avg Rate: ₱{Math.round(pricingBreakdown.averageMonthlyRate).toLocaleString()}/mo
+          <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl border border-gray-600 p-6 mb-8">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <span className="mr-2">📊</span>
+              Pricing Distribution & Revenue Analysis
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {/* Discounted Members */}
+              {pricingBreakdown.discounted > 0 && (
+                <div className="text-center p-4 bg-blue-500 bg-opacity-10 rounded-lg border border-blue-500 border-opacity-30">
+                  <div className="text-3xl font-bold text-blue-400">{pricingBreakdown.discounted}</div>
+                  <div className="text-sm text-blue-300 font-medium">💝 Discounted</div>
+                  <div className="text-xs text-gray-400 mt-1">₱1,200/month</div>
+                  <div className="text-xs text-blue-400 mt-1">
+                    ₱{(pricingBreakdown.discounted * 1200).toLocaleString()}/mo revenue
+                  </div>
+                </div>
+              )}
+              
+              {/* Legacy Members */}
+              {pricingBreakdown.legacy > 0 && (
+                <div className="text-center p-4 bg-yellow-500 bg-opacity-10 rounded-lg border border-yellow-500 border-opacity-30">
+                  <div className="text-3xl font-bold text-yellow-400">{pricingBreakdown.legacy}</div>
+                  <div className="text-sm text-yellow-300 font-medium">🌟 Legacy</div>
+                  <div className="text-xs text-gray-400 mt-1">Various rates</div>
+                  <div className="text-xs text-yellow-400 mt-1">Legacy pricing</div>
+                </div>
+              )}
+              
+              {/* Standard Members */}
+              <div className="text-center p-4 bg-green-500 bg-opacity-10 rounded-lg border border-green-500 border-opacity-30">
+                <div className="text-3xl font-bold text-green-400">{pricingBreakdown.standard}</div>
+                <div className="text-sm text-green-300 font-medium">Standard Members</div>
+                <div className="text-xs text-gray-400 mt-1">₱1,400/month</div>
+                <div className="text-xs text-green-400 mt-1">
+                  ₱{(pricingBreakdown.standard * 1400).toLocaleString()}/mo revenue
                 </div>
               </div>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {/* Founding Members */}
-                {pricingBreakdown.founding > 0 && (
-                  <div className="text-center p-4 bg-purple-500 bg-opacity-10 rounded-lg border border-purple-500 border-opacity-30">
-                    <div className="text-3xl font-bold text-purple-400">{pricingBreakdown.founding}</div>
-                    <div className="text-sm text-purple-300 font-medium">🌟 Founding Members</div>
-                    <div className="text-xs text-gray-400 mt-1">₱1,000/month</div>
-                    <div className="text-xs text-purple-400 mt-1">
-                      ₱{(pricingBreakdown.founding * 1000).toLocaleString()}/mo revenue
-                    </div>
+            
+            {/* Revenue Potential Summary */}
+            <div className="mt-6 p-4 bg-gray-700 bg-opacity-50 rounded-lg">
+              <h4 className="text-sm font-medium text-white mb-3">💡 Revenue Analysis</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-blue-400">
+                    ₱{pricingBreakdown.totalMonthlyRevenuePotential?.toLocaleString() || 0}
                   </div>
-                )}
-                
-                {/* Early Adopters */}
-                {pricingBreakdown.early > 0 && (
-                  <div className="text-center p-4 bg-blue-500 bg-opacity-10 rounded-lg border border-blue-500 border-opacity-30">
-                    <div className="text-3xl font-bold text-blue-400">{pricingBreakdown.early}</div>
-                    <div className="text-sm text-blue-300 font-medium">🌟 Early Adopters</div>
-                    <div className="text-xs text-gray-400 mt-1">₱1,200/month</div>
-                    <div className="text-xs text-blue-400 mt-1">
-                      ₱{(pricingBreakdown.early * 1200).toLocaleString()}/mo revenue
-                    </div>
-                  </div>
-                )}
-                
-                {/* Other Legacy */}
-                {pricingBreakdown.legacy > 0 && (
-                  <div className="text-center p-4 bg-yellow-500 bg-opacity-10 rounded-lg border border-yellow-500 border-opacity-30">
-                    <div className="text-3xl font-bold text-yellow-400">{pricingBreakdown.legacy}</div>
-                    <div className="text-sm text-yellow-300 font-medium">🌟 Other Legacy</div>
-                    <div className="text-xs text-gray-400 mt-1">Various rates</div>
-                    <div className="text-xs text-yellow-400 mt-1">Legacy pricing</div>
-                  </div>
-                )}
-                
-                {/* Standard Members */}
-                <div className="text-center p-4 bg-green-500 bg-opacity-10 rounded-lg border border-green-500 border-opacity-30">
-                  <div className="text-3xl font-bold text-green-400">{pricingBreakdown.standard}</div>
-                  <div className="text-sm text-green-300 font-medium">Standard Members</div>
-                  <div className="text-xs text-gray-400 mt-1">₱1,400/month</div>
-                  <div className="text-xs text-green-400 mt-1">
-                    ₱{(pricingBreakdown.standard * 1400).toLocaleString()}/mo revenue
-                  </div>
+                  <div className="text-xs text-gray-400">Monthly Potential</div>
                 </div>
-              </div>
-              
-              {/* Revenue Potential Summary */}
-              <div className="mt-6 p-4 bg-gray-700 bg-opacity-50 rounded-lg">
-                <h4 className="text-sm font-medium text-white mb-3">💡 Revenue Analysis</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-blue-400">
-                      ₱{pricingBreakdown.totalMonthlyRevenuePotential.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-gray-400">Monthly Potential</div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-green-400">
+                    ₱{pricingBreakdown.totalYearlyRevenuePotential?.toLocaleString() || 0}
                   </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-green-400">
-                      ₱{pricingBreakdown.totalYearlyRevenuePotential.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-gray-400">Yearly Potential</div>
+                  <div className="text-xs text-gray-400">Yearly Potential</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-purple-400">
+                    {pricingBreakdown.total}
                   </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-purple-400">
-                      {Math.round((pricingBreakdown.legacyCount / pricingBreakdown.total) * 100)}%
-                    </div>
-                    <div className="text-xs text-gray-400">Legacy Students</div>
-                  </div>
+                  <div className="text-xs text-gray-400">Total Students</div>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Students Management Section */}
-        <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl overflow-hidden rounded-xl border border-gray-600">
-          <div className="px-6 py-4 border-b border-gray-600">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium text-white">Students Management</h3>
-              
-              <div className="max-w-md">
-                <input
-                  type="text"
-                  placeholder="Search students by name, email, or phone..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                />
-              </div>
-            </div>
-            
-            <div className="mt-4 flex space-x-1">
+        {/* Student Management Section */}
+        <div className="mt-8 bg-white rounded-lg shadow">
+          {/* Tabs */}
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
               {[
-                { key: "all", label: "All Students", count: tabCounts.all },
-                { key: "active", label: "Active", count: tabCounts.active },
-                { key: "overdue", label: "Overdue", count: tabCounts.overdue },
-                { key: "inactive", label: "Inactive", count: tabCounts.inactive }
-              ].map(tab => (
+                { key: 'all', name: 'All Students', count: tabCounts.all },
+                { key: 'active', name: 'Active', count: tabCounts.active },
+                { key: 'overdue', name: 'Overdue', count: tabCounts.overdue },
+                { key: 'inactive', name: 'Inactive', count: tabCounts.inactive }
+              ].map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === tab.key
-                      ? 'bg-red-600 text-white'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                  }`}
+                  className={`
+                    whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
+                    ${activeTab === tab.key
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }
+                  `}
                 >
-                  {tab.label} ({tab.count})
+                  {tab.name}
+                  <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs">
+                    {tab.count}
+                  </span>
                 </button>
               ))}
+            </nav>
+          </div>
+
+          {/* Search and Filters */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Search students by name, email, phone, or ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="sm:w-48">
+                <select
+                  value={selectedFilter}
+                  onChange={(e) => setSelectedFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Status</option>
+                  <option value="active">Active Only</option>
+                  <option value="overdue">Overdue Only</option>
+                  <option value="inactive">Inactive Only</option>
+                </select>
+              </div>
+            </div>
+            
+            {/* Results count */}
+            <div className="mt-3 text-sm text-gray-600">
+              Showing {filteredStudents.length} of {students.length} students
+              {searchTerm && ` matching "${searchTerm}"`}
             </div>
           </div>
-          
+
           {/* Students Table */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-600">
-              <thead className="bg-gray-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Student & Pricing
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Status & Tier
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Membership & Next Payment
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Due Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-gray-800 divide-y divide-gray-600">
-                {filteredStudents.length > 0 ? (
-                  filteredStudents.map((student) => (
-                    <StudentTableRow
-                      key={student.id}
-                      student={student}
-                      onProcessPayment={handleProcessPayment}
-                      onViewStudent={handleViewStudent}
-                      onEditStudent={handleEditStudent}
-                      onSendReminder={handleSendReminder}
-                      canSendReminder={canSendReminder}
-                      smsLoading={smsLoading}
-                      getStudentStatus={getStudentStatus}
-                    />
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center text-gray-400">
-                      {searchTerm ? "No students match your search." : "No students found."}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <StudentsTable
+            students={filteredStudents}
+            loading={loading}
+            onProcessPayment={handleProcessPayment}
+            onViewStudent={handleViewStudent}
+            onEditStudent={handleEditStudent}
+            onSendReminder={handleSendReminder}
+          />
+
+          {/* Action Buttons */}
+          <div className="px-6 py-4 border-t border-gray-200">
+            <div className="flex gap-3">
+              <button
+                onClick={() => setAddStudentModalOpen(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                👤 Add Student
+              </button>
+              <button
+                onClick={() => setPaymentModalOpen(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                💳 Process Payment
+              </button>
+            </div>
           </div>
         </div>
       </main>
 
       {/* Modals */}
-      <SMSCreditsModal
-        isOpen={creditsModalOpen}
-        onClose={() => setCreditsModalOpen(false)}
-        creditsData={creditsData}
-        loading={modalLoading}
-      />
-
-      <SMSHistoryModal
-        isOpen={historyModalOpen}
-        onClose={() => setHistoryModalOpen(false)}
-        historyData={historyData}  
-        loading={modalLoading}
-      />
+      <SMSCreditsModal />
+      <SMSHistoryModal />
 
       {paymentModalOpen && (
         <PaymentModal
           isOpen={paymentModalOpen}
-          onClose={() => setPaymentModalOpen(false)}
+          onClose={() => {
+            setPaymentModalOpen(false);
+            setSelectedStudent(null);
+          }}
           student={selectedStudent}
-          onPaymentSuccess={handlePaymentSuccess}
+          onPaymentProcessed={() => {
+            refreshData();
+            setPaymentModalOpen(false);
+            setSelectedStudent(null);
+            showSuccess("Payment processed successfully!");
+          }}
         />
       )}
 
@@ -1250,9 +619,13 @@ export default function DashboardPage() {
         <AddStudentModal
           isOpen={addStudentModalOpen}
           onClose={() => setAddStudentModalOpen(false)}
-          onStudentAdded={handleStudentAdded}
+          onStudentAdded={() => {
+            refreshData();
+            setAddStudentModalOpen(false);
+            showSuccess("Student added successfully!");
+          }}
         />
       )}
     </div>
   );
-};
+}
