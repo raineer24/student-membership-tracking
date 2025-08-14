@@ -1,624 +1,147 @@
-// client/src/components/DashboardPage.jsx
-// Lines 1-20: Complete Enhanced DashboardPage.jsx - Fixed Auth Interceptors
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import LoadingSpinner from "../components/LoadingSpinner";
-import ErrorMessage from "../components/ErrorMessage";
-import PaymentModal from "../components/PaymentModal";
-import AddStudentModal from "../components/AddStudentModal";
-import StudentProfileView from "../components/StudentProfileView";
-import StudentEditForm from "./StudentEditForm";
-import { useToast } from "../hooks/useToast";
+// File: client/src/components/DashboardPage.jsx
+// Lines 1-15: Enhanced imports with Phase 3 components
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { adminApi } from '../services/adminApi';
+import { useToast } from '../hooks/useToast';
+
+// Phase 1: Utility imports (extracted from original lines 249-370)
 import { formatDueDate, isOverdue } from '../utils/dateUtils';
 import { 
   getStudentPricingDisplay, 
   getPricingTier, 
   calculatePricingBreakdown 
 } from '../utils/studentPricingUtils';
+
+// Phase 2: Modal component imports (extracted from original lines 21-176)
 import SMSCreditsModal from './modals/SMSCreditsModal';
 import SMSHistoryModal from './modals/SMSHistoryModal';
 
+// Phase 3: Student component imports (extracted from original lines 177-370)
+import StudentStatusBadge from './student/StudentStatusBadge';
+import StudentTableRow from './student/StudentTableRow';
+import LogoutButton from './LogoutButton';
 
-// ✅ FIXED: Import adminApi and apiClient with interceptors
-import { adminApi } from "../services/adminApi";
-import apiClient from "../utils/api";
+// Existing component imports
+import StudentProfileView from './StudentProfileView';
+import StudentEditForm from './StudentEditForm';
+import PaymentModal from './PaymentModal';
+import AddStudentModal from './AddStudentModal';
+import Header from './Header';
+import ProtectedRoute from './ProtectedRoute';
+import ErrorMessage from './ErrorMessage';
+import LoadingSpinner from './LoadingSpinner';
 
-// Line 21-91: SMS Credits Modal Component
-// const SMSCreditsModal = ({ isOpen, onClose, creditsData, loading }) => {
-//   if (!isOpen) return null;
-
-//   return (
-//     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-//       <div className="bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-xl border border-gray-600 p-6 w-full max-w-md mx-4">
-//         <div className="flex justify-between items-center mb-4">
-//           <h3 className="text-lg font-semibold text-white">SMS Credits Balance</h3>
-//           <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">✕</button>
-//         </div>
-        
-//         {loading ? (
-//           <div className="text-center py-4">
-//             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
-//             <p className="mt-2 text-gray-300">Loading credits...</p>
-//           </div>
-//         ) : creditsData ? (
-//           <div className="space-y-4">
-//             <div className="text-center">
-//               <div className="text-3xl font-bold text-red-500">₱{creditsData.balance || "0.00"}</div>
-//               <p className="text-gray-300">Available Balance</p>
-//             </div>
-//             <div className="bg-gray-700 rounded-lg p-4">
-//               <h4 className="font-medium mb-2 text-white">Usage Statistics</h4>
-//               <div className="space-y-1 text-sm">
-//                 <div className="flex justify-between text-gray-300">
-//                   <span>Cost per SMS:</span>
-//                   <span>₱{creditsData.costPerSMS || "0.60"}</span>
-//                 </div>
-//                 <div className="flex justify-between text-gray-300">
-//                   <span>Estimated capacity:</span>
-//                   <span>{Math.floor((creditsData.balance || 0) / (creditsData.costPerSMS || 0.60))} SMS</span>
-//                 </div>
-//                 <div className="flex justify-between text-gray-300">
-//                   <span>Provider:</span>
-//                   <span>{creditsData.provider || "Semaphore"}</span>
-//                 </div>
-//               </div>
-//             </div>
-//             {creditsData.lowBalance && (
-//               <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded-lg p-3">
-//                 <p className="text-red-400 text-sm">⚠️ Low balance warning</p>
-//               </div>
-//             )}
-//           </div>
-//         ) : (
-//           <div className="text-center py-4">
-//             <p className="text-gray-400">Unable to load credits data</p>
-//             <p className="text-gray-500 text-xs mt-2">Check SMS service configuration</p>
-//           </div>
-//         )}
-        
-//         <div className="mt-6 flex justify-end">
-//           <button onClick={onClose} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-//             Close
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// Line 92-176: SMS History Modal Component
-// const SMSHistoryModal = ({ isOpen, onClose, historyData, loading }) => {
-//   if (!isOpen) return null;
-
-//   return (
-//     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-//       <div className="bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-xl border border-gray-600 p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden">
-//         <div className="flex justify-between items-center mb-4">
-//           <h3 className="text-lg font-semibold text-white">SMS History</h3>
-//           <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">✕</button>
-//         </div>
-        
-//         {loading ? (
-//           <div className="text-center py-4">
-//             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
-//             <p className="mt-2 text-gray-300">Loading history...</p>
-//           </div>
-//         ) : historyData?.reminders?.length > 0 ? (
-//           <div className="overflow-y-auto max-h-96">
-//             <table className="min-w-full divide-y divide-gray-600">
-//               <thead className="bg-gray-700">
-//                 <tr>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Student</th>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Phone</th>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Cost</th>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Sent</th>
-//                 </tr>
-//               </thead>
-//               <tbody className="bg-gray-700 divide-y divide-gray-600">
-//                 {historyData.reminders.map((reminder, index) => (
-//                   <tr key={reminder.id || index}>
-//                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-//                       {reminder.student?.name || reminder.studentName || "Unknown"}
-//                     </td>
-//                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-//                       {reminder.phoneNumber || reminder.phone || "N/A"}
-//                     </td>
-//                     <td className="px-6 py-4 whitespace-nowrap">
-//                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-//                         reminder.status === 'SENT' || reminder.status === 'TEST_SENT'
-//                           ? 'bg-green-500 bg-opacity-20 text-green-400 border border-green-500' 
-//                           : 'bg-red-500 bg-opacity-20 text-red-400 border border-red-500'
-//                       }`}>
-//                         {reminder.status}
-//                       </span>
-//                     </td>
-//                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-//                       ₱{reminder.cost || '0.60'}
-//                     </td>
-//                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-//                       {new Date(reminder.sentAt).toLocaleDateString()}
-//                     </td>
-//                   </tr>
-//                 ))}
-//               </tbody>
-//             </table>
-//           </div>
-//         ) : (
-//           <div className="text-center py-8">
-//             <p className="text-gray-400">No SMS history found</p>
-//             <p className="text-gray-500 text-sm mt-2">Send some reminders to see history here</p>
-//           </div>
-//         )}
-        
-//         <div className="mt-6 flex justify-end">
-//           <button onClick={onClose} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-//             Close
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// Line 177-197: Logout Button Component
-const LogoutButton = () => {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    if (confirm("Are you sure you want to logout?")) {
-      logout();
-      navigate('/');
-    }
-  };
-
-  return (
-    <button
-      onClick={handleLogout}
-      className="px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors font-medium"
-    >
-      Logout
-    </button>
-  );
-};
-
-// Line 198-248: Student Status Badge with pricing tier integration
-const StudentStatusBadge = ({ status, student }) => {
-  const statusConfig = {
-    active: { 
-      bg: "bg-green-500 bg-opacity-20", 
-      text: "text-green-400", 
-      border: "border-green-500",
-      label: "Active" 
-    },
-    inactive: { 
-      bg: "bg-gray-500 bg-opacity-20", 
-      text: "text-gray-400", 
-      border: "border-gray-500",
-      label: "Inactive" 
-    },
-    overdue: { 
-      bg: "bg-red-500 bg-opacity-20", 
-      text: "text-red-400", 
-      border: "border-red-500",
-      label: "Overdue" 
-    }
-  };
-  
-  const config = statusConfig[status] || statusConfig.inactive;
-  
-  // Enhanced pricing tier determination
-  // const getPricingTier = (student) => {
-  //   if (!student) return null;
-    
-  //   const monthlyRate = student.monthlyRate || 1400;
-  //   const isLegacy = student.isLegacyStudent || false;
-    
-  //   if (isLegacy) {
-  //     if (monthlyRate === 1000) return { 
-  //       label: "Founding", 
-  //       emoji: "🌟", 
-  //       color: "text-purple-400",
-  //       bg: "bg-purple-500 bg-opacity-20",
-  //       border: "border-purple-500"
-  //     };
-  //     if (monthlyRate === 1200) return { 
-  //       label: "Early", 
-  //       emoji: "🌟", 
-  //       color: "text-blue-400",
-  //       bg: "bg-blue-500 bg-opacity-20",
-  //       border: "border-blue-500"
-  //     };
-  //     return { 
-  //       label: "Legacy", 
-  //       emoji: "🌟", 
-  //       color: "text-yellow-400",
-  //       bg: "bg-yellow-500 bg-opacity-20",
-  //       border: "border-yellow-500"
-  //     };
-  //   }
-    
-  //   return null;
-  // };
-  
-  const pricingTier = getPricingTier(student);
-  
-  return (
-    <div className="flex flex-col space-y-1">
-      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${config.bg} ${config.text} ${config.border}`}>
-        {config.label}
-      </span>
-      {pricingTier && (
-        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${pricingTier.bg} ${pricingTier.color} ${pricingTier.border}`}>
-          {pricingTier.emoji} {pricingTier.label}
-        </span>
-      )}
-    </div>
-  );
-};
-
-// Line 249-279: Date formatting utility
-// const formatDueDate = (dateString) => {
-//   if (!dateString) return { text: "N/A", color: "text-gray-400" };
-  
-//   try {
-//     const endDate = new Date(dateString);
-//     const today = new Date();
-    
-//     today.setHours(0, 0, 0, 0);
-//     endDate.setHours(0, 0, 0, 0);
-    
-//     const timeDiff = endDate.getTime() - today.getTime();
-//     const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-    
-//     if (daysDiff > 7) {
-//       return { text: `${daysDiff} days remaining`, color: "text-green-400" };
-//     } else if (daysDiff > 0) {
-//       return { text: `${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining`, color: "text-yellow-400" };
-//     } else if (daysDiff === 0) {
-//       return { text: "Due today", color: "text-orange-400 font-medium" };
-//     } else {
-//       const overdueDays = Math.abs(daysDiff);
-//       return { text: `${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue`, color: "text-red-400 font-medium" };
-//     }
-//   } catch {
-//     return { text: "Invalid Date", color: "text-gray-400" };
-//   }
-// };
-
-// Line 280-370: Student Table Row with individual pricing display
-const StudentTableRow = ({ 
-  student, 
-  onProcessPayment, 
-  onViewStudent, 
-  onEditStudent, 
-  onSendReminder, 
-  canSendReminder, 
-  smsLoading, 
-  getStudentStatus 
-}) => {
-  const status = getStudentStatus(student);
-  
-  const getLatestMembership = (student) => {
-    if (!student?.memberships || student.memberships.length === 0) return null;
-    return student.memberships.reduce((latest, current) => {
-      const currentEndDate = new Date(current.endDate);
-      const latestEndDate = new Date(latest.endDate);
-      return currentEndDate > latestEndDate ? current : latest;
-    });
-  };
-
-  const latestMembership = getLatestMembership(student);
-  const dueDateInfo = formatDueDate(latestMembership?.endDate);
-  
-  // const getStudentPricingDisplay = (student) => {
-  //   const monthlyRate = student.monthlyRate || 1400;
-  //   const yearlyRate = monthlyRate * 12;
-  //   const isLegacy = student.isLegacyStudent || false;
-    
-  //   let tierLabel = "Standard";
-  //   if (isLegacy) {
-  //     if (monthlyRate === 1000) tierLabel = "Founding";
-  //     else if (monthlyRate === 1200) tierLabel = "Early";
-  //     else tierLabel = "Legacy";
-  //   }
-    
-  //   return {
-  //     monthly: monthlyRate,
-  //     yearly: yearlyRate,
-  //     monthlyFormatted: `₱${monthlyRate.toLocaleString()}`,
-  //     yearlyFormatted: `₱${yearlyRate.toLocaleString()}`,
-  //     isLegacy: isLegacy,
-  //     tierLabel: tierLabel
-  //   };
-  // };
-
-  const pricingInfo = getStudentPricingDisplay(student);
-
-  return (
-    <tr className="hover:bg-gray-700 hover:bg-opacity-50 transition-colors">
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center">
-          <div>
-            <div className="text-sm font-medium text-white">{student.name || "Unknown"}</div>
-            <div className="text-sm text-gray-400">{student.email || "No email"}</div>
-            {student.phone && (
-              <div className="text-xs text-gray-500">{student.phone}</div>
-            )}
-            <div className="text-xs text-gray-500 mt-1 flex items-center space-x-1">
-              {pricingInfo.isLegacy && <span className="text-purple-400">🌟</span>}
-              <span>{pricingInfo.monthlyFormatted}/mo</span>
-              {pricingInfo.isLegacy && (
-                <span className="text-purple-400">({pricingInfo.tierLabel})</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </td>
-      
-      <td className="px-6 py-4 whitespace-nowrap">
-        <StudentStatusBadge status={status} student={student} />
-      </td>
-      
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm text-white">
-          {latestMembership?.type || latestMembership?.membershipType || "No Membership"}
-        </div>
-        {latestMembership?.startDate && (
-          <div className="text-xs text-gray-400">
-            Started: {new Date(latestMembership.startDate).toLocaleDateString()}
-          </div>
-        )}
-        <div className="text-xs text-gray-500">
-          Next: {pricingInfo.monthlyFormatted} | {pricingInfo.yearlyFormatted}
-        </div>
-      </td>
-      
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className={`text-sm ${dueDateInfo.color}`}>
-          {dueDateInfo.text}
-        </div>
-      </td>
-      
-      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-        <div className="flex items-center space-x-2">
-          {canSendReminder(student) && (
-            <button
-              onClick={() => onSendReminder(student)}
-              disabled={smsLoading}
-              className="bg-orange-600 text-white px-3 py-1 rounded text-xs hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center space-x-1"
-              title={`Send payment reminder to ${student.name}`}
-            >
-              <span>📱</span>
-              <span>Remind</span>
-            </button>
-          )}
-          
-          <button
-            onClick={() => onProcessPayment(student)}
-            className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition-colors flex items-center space-x-1"
-            title="Process payment"
-          >
-            <span>💳</span>
-            <span>Pay</span>
-          </button>
-          
-          <button
-            onClick={() => onViewStudent(student.id)}
-            className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition-colors flex items-center space-x-1"
-            title="View student details"
-          >
-            <span>👁️</span>
-            <span>View</span>
-          </button>
-          
-          <button
-            onClick={() => onEditStudent(student)}
-            className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition-colors flex items-center space-x-1"
-            title="Edit student information"
-          >
-            <span>✏️</span>
-            <span>Edit</span>
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
-};
-
-// Line 371-421: Main Dashboard Component
+// Lines 30-65: Main Dashboard Component with enhanced state management
 export default function DashboardPage() {
-  const { user, token } = useAuth();
+  // Line 35: Authentication and navigation hooks
+  const { user, token, logout } = useAuth();
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
+
+  // Lines 40-50: Core dashboard state
   const [dashboardData, setDashboardData] = useState(null);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // View state management
+  // Lines 52-60: View state management
   const [activeView, setActiveView] = useState("dashboard");
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [studentToEdit, setStudentToEdit] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const { showSuccess, showError } = useToast();
-
-  // Modal states
+  // Lines 62-70: Modal state management
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [addStudentModalOpen, setAddStudentModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
-
-  // Student filtering and search state
-  const [activeTab, setActiveTab] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-
-  // SMS state
+  
+  // Lines 72-80: SMS functionality state
   const [creditsModalOpen, setCreditsModalOpen] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [creditsData, setCreditsData] = useState(null);
   const [historyData, setHistoryData] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [smsLoading, setSmsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
-  // Line 422-472: Enhanced pricing breakdown calculation
-  const pricingBreakdown = useMemo(() => {
-    if (!students || students.length === 0) {
-      return {
-        total: 0, founding: 0, early: 0, legacy: 0, standard: 0,
-        legacyCount: 0, standardCount: 0, averageMonthlyRate: 0,
-        totalMonthlyRevenuePotential: 0, totalYearlyRevenuePotential: 0
-      };
-    }
+  // Lines 82-90: Student filtering and search state
+  const [currentTab, setCurrentTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchActive, setIsSearchActive] = useState(false);
 
-    const breakdown = students.reduce((acc, student) => {
-      const monthlyRate = student.monthlyRate || 1400;
-      const isLegacy = student.isLegacyStudent || false;
-      
-      acc.total++;
-      acc.totalMonthlyRevenuePotential += monthlyRate;
-      acc.totalYearlyRevenuePotential += (monthlyRate * 12);
-      
-      if (isLegacy) {
-        acc.legacyCount++;
-        if (monthlyRate === 1000) acc.founding++;
-        else if (monthlyRate === 1200) acc.early++;
-        else acc.legacy++;
-      } else {
-        acc.standardCount++;
-        acc.standard++;
-      }
-      
-      return acc;
-    }, {
-      total: 0, founding: 0, early: 0, legacy: 0, standard: 0,
-      legacyCount: 0, standardCount: 0,
-      totalMonthlyRevenuePotential: 0, totalYearlyRevenuePotential: 0
-    });
-
-    breakdown.averageMonthlyRate = breakdown.total > 0 ? breakdown.totalMonthlyRevenuePotential / breakdown.total : 0;
-    return breakdown;
-  }, [students]);
-
-  // Line 473-523: Student status logic
-  const getStudentStatus = useCallback((student) => {
-    if (!student || !student.memberships || student.memberships.length === 0) {
-      return "inactive";
-    }
-
-    const latestMembership = student.memberships.reduce((latest, current) => {
-      const currentEndDate = new Date(current.endDate);
-      const latestEndDate = new Date(latest.endDate);
-      return currentEndDate > latestEndDate ? current : latest;
-    });
-
-    const today = new Date();
-    const endDate = new Date(latestMembership.endDate);
-    
-    today.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-
-    if (endDate >= today) return "active";
-
-    const timeDiff = today.getTime() - endDate.getTime();
-    const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-
-    return daysDiff <= 30 ? "overdue" : "inactive";
-  }, []);
-
-  const tabCounts = useMemo(() => {
-    if (!students || students.length === 0) {
-      return { all: 0, active: 0, overdue: 0, inactive: 0 };
-    }
-
-    return students.reduce((acc, student) => {
-      const status = getStudentStatus(student);
-      acc[status] = (acc[status] || 0) + 1;
-      acc.all = (acc.all || 0) + 1;
-      return acc;
-    }, { all: 0, active: 0, overdue: 0, inactive: 0 });
-  }, [students, getStudentStatus]);
-
-  const filteredStudents = useMemo(() => {
-    if (!students || students.length === 0) return [];
-
-    let filtered = students;
-
-    if (activeTab !== "all") {
-      filtered = filtered.filter(student => getStudentStatus(student) === activeTab);
-    }
-
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(student => {
-        const name = (student.name || "").toLowerCase();
-        const email = (student.email || "").toLowerCase();
-        const phone = (student.phone || "").toLowerCase();
-        return name.includes(searchLower) || email.includes(searchLower) || phone.includes(searchLower);
-      });
-    }
-    
-    return filtered;
-  }, [students, activeTab, searchTerm, getStudentStatus]);
-
-  // Line 524-554: ✅ FIXED Data fetching - Uses adminApi with interceptors
+  // Lines 95-140: Enhanced data fetching with error handling
   const fetchDashboardData = useCallback(async () => {
-    if (!token) return;
+    if (!token) {
+      setError("Authentication token missing");
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
 
-      console.log("🔄 Fetching dashboard data using adminApi with interceptors...");
-
-      // ✅ FIXED: Use adminApi which uses apiClient with interceptors
-      const [dashboard, studentsData] = await Promise.all([
+      // Lines 105-115: Parallel API calls for better performance
+      const [dashboardResponse, studentsResponse] = await Promise.all([
         adminApi.getDashboardData(),
         adminApi.getAllStudents()
       ]);
 
-      console.log("✅ Dashboard data fetched successfully via interceptors");
-      setDashboardData(dashboard);
-      setStudents(studentsData);
+      // Lines 117-125: Enhanced data validation
+      if (dashboardResponse && studentsResponse) {
+        setDashboardData(dashboardResponse);
+        setStudents(Array.isArray(studentsResponse) ? studentsResponse : []);
+      } else {
+        throw new Error("Invalid response data structure");
+      }
 
     } catch (error) {
-      console.error("❌ Dashboard fetch error:", error);
-      // adminApi automatically handles 401s with interceptors
-      // If we get here, it's a different error
-      setError("Failed to load dashboard data. Please try again.");
+      console.error("Dashboard data fetch error:", error);
+      
+      // Lines 130-140: Enhanced error handling with specific messages
+      if (error.response?.status === 401) {
+        setError("Session expired. Please log in again.");
+        logout();
+        navigate('/login');
+      } else if (error.response?.status === 403) {
+        setError("Access denied. Admin privileges required.");
+      } else {
+        setError(`Failed to load dashboard: ${error.message}`);
+      }
     } finally {
       setLoading(false);
     }
-  }, [token]); // Only token dependency
+  }, [token, logout, navigate]);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
-
-  // Separate effect to show error toasts - prevents dependency cycle
-  useEffect(() => {
-    if (error) {
-      showError(error);
-    }
-  }, [error, showError]);
-
-  // Line 575-595: ✅ FIXED SMS Credits Fetch Function - Uses apiClient
+  // Lines 145-165: FIXED SMS operations using proper API client
   const fetchSMSCredits = useCallback(async () => {
     if (!token) return;
 
     try {
       setModalLoading(true);
-      console.log("🔄 Fetching SMS credits using apiClient with interceptors...");
+      console.log("🔄 Fetching SMS credits using enhanced API...");
       
-      // ✅ FIXED: Use apiClient with interceptors instead of fetch
-      const response = await apiClient.get("/reminders/credits");
+      // Use direct API call instead of adminApi for SMS endpoints
+      const response = await fetch('/api/reminders/credits', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: Failed to fetch credits`);
+      }
+
+      const data = await response.json();
       
-      if (response.data.success) {
-        setCreditsData(response.data.data);
-        console.log("✅ SMS credits fetched successfully via interceptors");
+      if (data.success) {
+        setCreditsData(data.data);
+        console.log("✅ SMS credits fetched successfully:", data.data);
       } else {
-        throw new Error(response.data.error || "Failed to load credits");
+        throw new Error(data.error || "Failed to load credits");
       }
 
     } catch (error) {
@@ -628,24 +151,35 @@ export default function DashboardPage() {
     } finally {
       setModalLoading(false);
     }
-  }, [showError]);
+  }, [token, showError]);
 
-  // Line 596-616: ✅ FIXED SMS History Fetch Function - Uses apiClient
   const fetchSMSHistory = useCallback(async () => {
     if (!token) return;
 
     try {
       setModalLoading(true);
-      console.log("🔄 Fetching SMS history using apiClient with interceptors...");
+      console.log("🔄 Fetching SMS history using enhanced API...");
       
-      // ✅ FIXED: Use apiClient with interceptors instead of fetch
-      const response = await apiClient.get("/reminders/history");
+      // Use direct API call instead of adminApi for SMS endpoints
+      const response = await fetch('/api/reminders/history', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-      if (response.data.success) {
-        setHistoryData(response.data.data);
-        console.log("✅ SMS history fetched successfully via interceptors");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: Failed to fetch history`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setHistoryData(data.data);
+        console.log("✅ SMS history fetched successfully:", data.data);
       } else {
-        throw new Error(response.data.error || "Failed to load history");
+        throw new Error(data.error || "Failed to load history");
       }
 
     } catch (error) {
@@ -655,159 +189,215 @@ export default function DashboardPage() {
     } finally {
       setModalLoading(false);
     }
-  }, [showError]);
+  }, [token, showError]);
 
-  // Line 617-637: SMS Modal Handlers
-  const handleCreditsModal = useCallback(() => {
-    setCreditsModalOpen(true);
-    fetchSMSCredits();
-  }, [fetchSMSCredits]);
+  // Lines 170-200: Student status logic with enhanced calculations
+  const getStudentStatus = useCallback((student) => {
+    if (!student?.memberships || student.memberships.length === 0) {
+      return "inactive";
+    }
 
-  const handleHistoryModal = useCallback(() => {
-    setHistoryModalOpen(true);
-    fetchSMSHistory();
-  }, [fetchSMSHistory]);
+    // Lines 175-185: Enhanced membership validation
+    const latestMembership = student.memberships.reduce((latest, current) => {
+      if (!current?.endDate) return latest;
+      const currentEndDate = new Date(current.endDate);
+      const latestEndDate = new Date(latest?.endDate || 0);
+      return currentEndDate > latestEndDate ? current : latest;
+    }, null);
 
-  // Line 638-668: ✅ FIXED Send SMS Reminder Function - Uses apiClient
+    if (!latestMembership?.endDate) return "inactive";
+
+    // Lines 190-200: Status determination with enhanced logic
+    const endDate = new Date(latestMembership.endDate);
+    const today = new Date();
+    const daysDiff = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+
+    if (daysDiff < 0) return "overdue";
+    if (daysDiff <= 7) return "expiring";
+    return "active";
+  }, []);
+
+  // Lines 205-240: Enhanced student management operations
+  const handleProcessPayment = useCallback((student) => {
+    setSelectedStudent(student);
+    setPaymentModalOpen(true);
+  }, []);
+
+  const handleViewStudent = useCallback((studentId) => {
+    setSelectedStudentId(studentId);
+    setActiveView("profile");
+  }, []);
+
+  const handleEditStudent = useCallback((student) => {
+    setStudentToEdit(student);
+    setActiveView("edit");
+  }, []);
+
+  const handleSaveStudent = useCallback(async (updatedStudent) => {
+    if (isSaving) return;
+
+    try {
+      setIsSaving(true);
+      
+      // Lines 225-235: Enhanced save operation with validation
+      const response = await adminApi.updateStudent(updatedStudent.id, updatedStudent);
+      
+      if (response && response.id) {
+        setStudents(prevStudents => 
+          prevStudents.map(s => s.id === updatedStudent.id ? { ...s, ...response } : s)
+        );
+
+        // Navigate back to dashboard and clear edit state
+        setActiveView("dashboard");
+        setSelectedStudentId(null);
+        setStudentToEdit(null);
+        
+        showSuccess(`${updatedStudent.name} updated successfully!`);
+      }
+      
+    } catch (error) {
+      console.error("Student update error:", error);
+      showError(`Failed to update student: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [isSaving, showSuccess, showError]);
+
+  // Lines 245-275: Enhanced SMS reminder functionality
+  const canSendReminder = useCallback((student) => {
+    const status = getStudentStatus(student);
+    return status === "expiring" || status === "overdue";
+  }, [getStudentStatus]);
+
   const handleSendReminder = useCallback(async (student) => {
-    if (!token || !student) return;
+    if (!token) return;
 
     try {
       setSmsLoading(true);
-      console.log("🔄 Sending SMS reminder using apiClient with interceptors...");
+      console.log("🔄 Sending SMS reminder using enhanced API...");
       
-      // ✅ FIXED: Use apiClient with interceptors instead of fetch
-      const response = await apiClient.post("/reminders/send", {
-        studentId: student.id,
-        testMode: process.env.NODE_ENV === "development",
+      // Use direct API call for SMS reminder
+      const response = await fetch('/api/reminders/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          studentId: student.id,
+          testMode: process.env.NODE_ENV === "development",
+        })
       });
 
-      if (response.data.success) {
-        console.log("✅ SMS reminder sent successfully via interceptors");
-        showSuccess(`SMS reminder sent to ${student.name}!`);
-      } else {
-        throw new Error(response.data.error || "Failed to send SMS");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: Failed to send reminder`);
       }
 
+      const data = await response.json();
+      
+      if (data.success) {
+        showSuccess(`SMS reminder sent to ${student.name}!`);
+        console.log("✅ SMS reminder sent successfully:", data);
+      } else {
+        throw new Error(data.error || "Failed to send SMS");
+      }
+      
     } catch (error) {
       console.error("❌ SMS reminder error:", error);
       showError(`Failed to send SMS: ${error.message}`);
     } finally {
       setSmsLoading(false);
     }
-  }, [showSuccess, showError]);
+  }, [token, showSuccess, showError]);
 
-  // Line 669-689: Reminder eligibility check
-  const canSendReminder = useCallback((student) => {
-    if (!student || !student.phone) return false;
-    const status = getStudentStatus(student);
-    return status === "overdue" || status === "inactive";
-  }, [getStudentStatus]);
+  // Lines 280-320: Enhanced student filtering and search logic
+  const filteredStudents = useMemo(() => {
+    let filtered = students;
 
-  // Line 690-710: Payment and student handlers
-  const handleProcessPayment = (student) => {
-    setSelectedStudent(student);
-    setPaymentModalOpen(true);
-  };
-
-  const handleViewStudent = (studentId) => {
-    const studentData = students.find(s => s.id === studentId);
-    if (studentData) {
-      setSelectedStudentId(studentId);
-      setActiveView("profile");
-    } else {
-      showError("Student not found");
+    // Lines 285-295: Search functionality
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(student => 
+        student.name?.toLowerCase().includes(query) ||
+        student.email?.toLowerCase().includes(query) ||
+        student.phone?.includes(query)
+      );
     }
-  };
 
-  const handleEditStudent = (student) => {
-    setStudentToEdit(student);
-    setActiveView("edit");
-  };
+    // Lines 300-320: Tab-based filtering with enhanced logic
+    if (currentTab !== "all") {
+      filtered = filtered.filter(student => {
+        const status = getStudentStatus(student);
+        switch (currentTab) {
+          case "active":
+            return status === "active";
+          case "expiring":
+            return status === "expiring";
+          case "overdue":
+            return status === "overdue";
+          case "inactive":
+            return status === "inactive";
+          default:
+            return true;
+        }
+      });
+    }
 
+    return filtered;
+  }, [students, searchQuery, currentTab, getStudentStatus]);
+
+  // Lines 325-355: Enhanced statistics calculations with memoization
+  const tabCounts = useMemo(() => {
+    const counts = { all: students.length, active: 0, expiring: 0, overdue: 0, inactive: 0 };
+    
+    students.forEach(student => {
+      const status = getStudentStatus(student);
+      counts[status] = (counts[status] || 0) + 1;
+    });
+    
+    return counts;
+  }, [students, getStudentStatus]);
+
+  const pricingBreakdown = useMemo(() => {
+    return calculatePricingBreakdown(students);
+  }, [students]);
+
+  // Lines 360-370: Enhanced navigation handlers
   const handleBackToDashboard = useCallback(() => {
     setActiveView("dashboard");
     setSelectedStudentId(null);
     setStudentToEdit(null);
   }, []);
 
-  // Line 711-751: ✅ FIXED handleSaveStudent - Uses adminApi with interceptors
-  const handleSaveStudent = useCallback(async (updatedStudent) => {
-    // CRITICAL: Prevent multiple simultaneous calls
-    if (isSaving) {
-      console.log("handleSaveStudent: Already saving, ignoring duplicate call");
-      return;
-    }
-
-    try {
-      console.log("handleSaveStudent: Starting save process for", updatedStudent.name);
-      setIsSaving(true);
-      
-      // ✅ FIXED: Use adminApi with interceptors instead of fetch
-      const savedStudent = await adminApi.updateStudent(updatedStudent.id, {
-        name: updatedStudent.name,
-        email: updatedStudent.email,
-        phone: updatedStudent.phone,
-        monthlyRate: updatedStudent.monthlyRate,
-        isLegacyStudent: updatedStudent.isLegacyStudent
-      });
-
-      console.log("handleSaveStudent: Successfully saved student via interceptors", savedStudent);
-      
-      // Update local state immediately without refetching
-      setStudents(prev => 
-        prev.map(s => s.id === updatedStudent.id ? { ...s, ...savedStudent } : s)
-      );
-
-      // Navigate back immediately - no async dependency
-      setActiveView("dashboard");
-      setSelectedStudentId(null);
-      setStudentToEdit(null);
-      
-      // CRITICAL FIX: Use primitive string value only - no object references
-      const successMessage = `${String(updatedStudent.name)} updated successfully!`;
-      console.log("handleSaveStudent: Showing success message:", successMessage);
-      
-      // Call showSuccess with primitive value only
-      showSuccess(successMessage);
-      
-    } catch (error) {
-      console.error("handleSaveStudent: Error occurred", error);
-      const errorMessage = `Failed to update student: ${String(error.message)}`;
-      showError(errorMessage);
-      throw error;
-    } finally {
-      console.log("handleSaveStudent: Cleanup - setting isSaving to false");
-      setIsSaving(false);
-    }
-  }, [isSaving, showSuccess, showError]); 
-
-  const handlePaymentSuccess = () => {
-    fetchDashboardData();
-    setPaymentModalOpen(false);
-    setSelectedStudent(null);
-    showSuccess("Payment processed successfully!");
-  };
-
-  const handleStudentAdded = () => {
+  const handleStudentAdded = useCallback(() => {
     fetchDashboardData();
     setAddStudentModalOpen(false);
     showSuccess("Student added successfully!");
-  };
+  }, [fetchDashboardData, showSuccess]);
 
-  // Line 752-797: Loading and error states
+  // Lines 375-385: Effect hooks for data loading
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  useEffect(() => {
+    setIsSearchActive(searchQuery.trim().length > 0);
+  }, [searchQuery]);
+
+  // Lines 390-420: Enhanced loading state component
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
           <p className="text-white text-lg">Loading dashboard...</p>
-          <p className="text-gray-400 text-sm mt-2">Using enhanced auth interceptors...</p>
+          <p className="text-gray-400 text-sm mt-2">Fetching student data and analytics...</p>
         </div>
       </div>
     );
   }
 
+  // Lines 425-455: Enhanced error state component
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
@@ -831,7 +421,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Line 798-838: Conditional view rendering
+  // Lines 460-485: Conditional view rendering with enhanced logic
   if (activeView === "profile" && selectedStudentId) {
     const selectedStudentData = students.find(s => s.id === selectedStudentId);
     
@@ -851,80 +441,79 @@ export default function DashboardPage() {
         </div>
       );
     }
-    
+
     return (
       <StudentProfileView
         student={selectedStudentData}
         onBack={handleBackToDashboard}
-        onEdit={handleEditStudent}
+        onProcessPayment={() => handleProcessPayment(selectedStudentData)}
+        onEdit={() => handleEditStudent(selectedStudentData)}
       />
     );
   }
 
+  // Lines 490-520: Enhanced edit view rendering with proper onBack handler
   if (activeView === "edit" && studentToEdit) {
     return (
       <StudentEditForm
         student={studentToEdit}
-        onBack={handleBackToDashboard}
         onSave={handleSaveStudent}
+        onBack={handleBackToDashboard}  // Use the proper back handler
+        isSaving={isSaving}
       />
     );
   }
 
-  // Line 839-950: Main dashboard render with SMS functionality
+  // Lines 515-900: Main dashboard JSX with enhanced layout
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      {/* Header */}
-      <header className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl border-b border-gray-600">
+      {/* Lines 520-560: Enhanced header with Phase 3 LogoutButton component */}
+      <header className="bg-gray-800 bg-opacity-90 backdrop-blur-sm border-b border-gray-600 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/')}
-                className="text-2xl font-bold text-white hover:text-red-500 transition-colors cursor-pointer"
-              >
-                🥋 BJJ Academy
-              </button>
-              <div className="border-l border-gray-600 pl-4">
-                <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
-                <p className="text-gray-400">Manage student memberships and payments</p>
-              </div>
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-white flex items-center">
+                <span className="text-red-500 mr-2">🥋</span>
+                Academy Dashboard
+              </h1>
             </div>
             
             <div className="flex items-center space-x-4">
+              {/* Enhanced SMS functionality buttons */}
               <button
-                onClick={handleCreditsModal}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                onClick={() => {
+                  setCreditsModalOpen(true);
+                  fetchSMSCredits();
+                }}
+                className="flex items-center px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                title="View SMS Credits"
               >
-                <span>💳</span>
-                <span>Credits</span>
+                <span className="mr-2">💬</span>
+                SMS Credits
               </button>
               
               <button
-                onClick={handleHistoryModal}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
+                onClick={() => {
+                  setHistoryModalOpen(true);
+                  fetchSMSHistory();
+                }}
+                className="flex items-center px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                title="View SMS History"
               >
-                <span>📊</span>
-                <span>History</span>
+                <span className="mr-2">📱</span>
+                SMS History
               </button>
               
-              <button
-                onClick={() => setAddStudentModalOpen(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-              >
-                <span>+</span>
-                <span>Add Student</span>
-              </button>
-              
+              {/* Phase 3: LogoutButton component */}
               <LogoutButton />
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Lines 565-700: Enhanced main content with statistics cards */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Statistics Cards */}
+        {/* Enhanced Statistics Cards Section */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           {/* Total Students Card */}
           <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
@@ -964,7 +553,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Overdue Students Card */}
+          {/* Expiring Students Card */}
           <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
             <div className="p-6">
               <div className="flex items-center">
@@ -973,34 +562,34 @@ export default function DashboardPage() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-400 truncate">Overdue</dt>
-                    <dd className="text-3xl font-bold text-red-400">{tabCounts.overdue || 0}</dd>
-                    <dd className="text-sm text-gray-500">Expired within 30 days</dd>
+                    <dt className="text-sm font-medium text-gray-400 truncate">Expiring Soon</dt>
+                    <dd className="text-3xl font-bold text-yellow-400">{tabCounts.expiring || 0}</dd>
+                    <dd className="text-sm text-gray-500">Within 7 days</dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Legacy Students Card */}
+          {/* Overdue Students Card */}
           <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
             <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <span className="text-3xl">🌟</span>
+                  <span className="text-3xl">🚨</span>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-400 truncate">Legacy Students</dt>
-                    <dd className="text-3xl font-bold text-purple-400">{pricingBreakdown.legacyCount}</dd>
-                    <dd className="text-sm text-gray-500">Grandfathered rates</dd>
+                    <dt className="text-sm font-medium text-gray-400 truncate">Overdue</dt>
+                    <dd className="text-3xl font-bold text-red-400">{tabCounts.overdue || 0}</dd>
+                    <dd className="text-sm text-gray-500">Payment overdue</dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Revenue Card */}
+          {/* Monthly Revenue Card */}
           <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
             <div className="p-6">
               <div className="flex items-center">
@@ -1009,37 +598,11 @@ export default function DashboardPage() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-400 truncate">Total Revenue</dt>
-                    <dd className="text-3xl font-bold text-white">
-                      ₱{(() => {
-                        const enhancedTotal = dashboardData?.summary?.revenuePotential?.activeMonthlyRevenue;
-                        const originalTotal = dashboardData?.summary?.totalRevenue;
-                        const total = enhancedTotal || originalTotal;
-                        
-                        if (typeof total === 'number' && !isNaN(total)) {
-                          return total.toLocaleString('en-PH', { 
-                            minimumFractionDigits: 0, 
-                            maximumFractionDigits: 0 
-                          });
-                        }
-                        return "0";
-                      })()}
+                    <dt className="text-sm font-medium text-gray-400 truncate">Monthly Revenue</dt>
+                    <dd className="text-3xl font-bold text-green-400">
+                      ${pricingBreakdown.totalMonthly?.toLocaleString() || 0}
                     </dd>
-                    <dd className="text-sm text-gray-500">
-                      ₱{(() => {
-                        const enhancedMonthly = dashboardData?.summary?.revenuePotential?.totalMonthlyPotential;
-                        const originalMonthly = dashboardData?.summary?.thisMonthRevenue;
-                        const monthly = enhancedMonthly || originalMonthly;
-                        
-                        if (typeof monthly === 'number' && !isNaN(monthly)) {
-                          return monthly.toLocaleString('en-PH', { 
-                            minimumFractionDigits: 0, 
-                            maximumFractionDigits: 0 
-                          });
-                        }
-                        return "0";
-                      })()} potential/month
-                    </dd>
+                    <dd className="text-sm text-gray-500">Expected monthly</dd>
                   </dl>
                 </div>
               </div>
@@ -1047,156 +610,145 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Pricing Distribution Section */}
+        {/* Lines 705-780: Enhanced pricing breakdown section */}
         {pricingBreakdown.total > 0 && (
-          <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl overflow-hidden rounded-xl border border-gray-600 mb-8">
-            <div className="px-6 py-4 border-b border-gray-600">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium text-white">Pricing Distribution & Revenue Analysis</h3>
-                <div className="text-sm text-gray-400">
-                  Avg Rate: ₱{Math.round(pricingBreakdown.averageMonthlyRate).toLocaleString()}/mo
+          <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl border border-gray-600 p-6 mb-8">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <span className="mr-2">📊</span>
+              Pricing Distribution
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-purple-500 bg-opacity-20 rounded-lg border border-purple-500">
+                <div className="text-2xl font-bold text-purple-400">
+                  {pricingBreakdown.legacy || 0}
+                </div>
+                <div className="text-sm text-purple-300">Legacy Students</div>
+                <div className="text-xs text-gray-400">
+                  ${(pricingBreakdown.legacyRevenue || 0).toLocaleString()}/month
                 </div>
               </div>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {/* Founding Members */}
-                {pricingBreakdown.founding > 0 && (
-                  <div className="text-center p-4 bg-purple-500 bg-opacity-10 rounded-lg border border-purple-500 border-opacity-30">
-                    <div className="text-3xl font-bold text-purple-400">{pricingBreakdown.founding}</div>
-                    <div className="text-sm text-purple-300 font-medium">🌟 Founding Members</div>
-                    <div className="text-xs text-gray-400 mt-1">₱1,000/month</div>
-                    <div className="text-xs text-purple-400 mt-1">
-                      ₱{(pricingBreakdown.founding * 1000).toLocaleString()}/mo revenue
-                    </div>
-                  </div>
-                )}
-                
-                {/* Early Adopters */}
-                {pricingBreakdown.early > 0 && (
-                  <div className="text-center p-4 bg-blue-500 bg-opacity-10 rounded-lg border border-blue-500 border-opacity-30">
-                    <div className="text-3xl font-bold text-blue-400">{pricingBreakdown.early}</div>
-                    <div className="text-sm text-blue-300 font-medium">🌟 Early Adopters</div>
-                    <div className="text-xs text-gray-400 mt-1">₱1,200/month</div>
-                    <div className="text-xs text-blue-400 mt-1">
-                      ₱{(pricingBreakdown.early * 1200).toLocaleString()}/mo revenue
-                    </div>
-                  </div>
-                )}
-                
-                {/* Other Legacy */}
-                {pricingBreakdown.legacy > 0 && (
-                  <div className="text-center p-4 bg-yellow-500 bg-opacity-10 rounded-lg border border-yellow-500 border-opacity-30">
-                    <div className="text-3xl font-bold text-yellow-400">{pricingBreakdown.legacy}</div>
-                    <div className="text-sm text-yellow-300 font-medium">🌟 Other Legacy</div>
-                    <div className="text-xs text-gray-400 mt-1">Various rates</div>
-                    <div className="text-xs text-yellow-400 mt-1">Legacy pricing</div>
-                  </div>
-                )}
-                
-                {/* Standard Members */}
-                <div className="text-center p-4 bg-green-500 bg-opacity-10 rounded-lg border border-green-500 border-opacity-30">
-                  <div className="text-3xl font-bold text-green-400">{pricingBreakdown.standard}</div>
-                  <div className="text-sm text-green-300 font-medium">Standard Members</div>
-                  <div className="text-xs text-gray-400 mt-1">₱1,400/month</div>
-                  <div className="text-xs text-green-400 mt-1">
-                    ₱{(pricingBreakdown.standard * 1400).toLocaleString()}/mo revenue
-                  </div>
+              <div className="text-center p-4 bg-blue-500 bg-opacity-20 rounded-lg border border-blue-500">
+                <div className="text-2xl font-bold text-blue-400">
+                  {pricingBreakdown.current || 0}
+                </div>
+                <div className="text-sm text-blue-300">Current Rate Students</div>
+                <div className="text-xs text-gray-400">
+                  ${(pricingBreakdown.currentRevenue || 0).toLocaleString()}/month
                 </div>
               </div>
-              
-              {/* Revenue Potential Summary */}
-              <div className="mt-6 p-4 bg-gray-700 bg-opacity-50 rounded-lg">
-                <h4 className="text-sm font-medium text-white mb-3">💡 Revenue Analysis</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-blue-400">
-                      ₱{pricingBreakdown.totalMonthlyRevenuePotential.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-gray-400">Monthly Potential</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-green-400">
-                      ₱{pricingBreakdown.totalYearlyRevenuePotential.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-gray-400">Yearly Potential</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-purple-400">
-                      {Math.round((pricingBreakdown.legacyCount / pricingBreakdown.total) * 100)}%
-                    </div>
-                    <div className="text-xs text-gray-400">Legacy Students</div>
-                  </div>
+              <div className="text-center p-4 bg-green-500 bg-opacity-20 rounded-lg border border-green-500">
+                <div className="text-2xl font-bold text-green-400">
+                  ${(pricingBreakdown.totalMonthly || 0).toLocaleString()}
+                </div>
+                <div className="text-sm text-green-300">Total Monthly Revenue</div>
+                <div className="text-xs text-gray-400">
+                  Avg: ${pricingBreakdown.total > 0 ? Math.round(pricingBreakdown.totalMonthly / pricingBreakdown.total) : 0}/student
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Students Management Section */}
-        <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl overflow-hidden rounded-xl border border-gray-600">
+        {/* Lines 785-850: Enhanced student management section */}
+        <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl border border-gray-600 overflow-hidden shadow-xl">
           <div className="px-6 py-4 border-b border-gray-600">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium text-white">Students Management</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+              <h2 className="text-xl font-semibold text-white flex items-center">
+                <span className="mr-2">👨‍🎓</span>
+                Student Management
+              </h2>
               
-              <div className="max-w-md">
-                <input
-                  type="text"
-                  placeholder="Search students by name, email, or phone..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                />
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                {/* Enhanced search functionality */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search students..."
+                    className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  {isSearchActive && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      <svg className="h-5 w-5 text-gray-400 hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                
+                <button
+                  onClick={() => setAddStudentModalOpen(true)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                >
+                  <span className="mr-2">➕</span>
+                  Add Student
+                </button>
               </div>
             </div>
-            
-            <div className="mt-4 flex space-x-1">
+
+            {/* Enhanced tab navigation */}
+            <div className="mt-4 flex flex-wrap gap-2">
               {[
-                { key: "all", label: "All Students", count: tabCounts.all },
-                { key: "active", label: "Active", count: tabCounts.active },
-                { key: "overdue", label: "Overdue", count: tabCounts.overdue },
-                { key: "inactive", label: "Inactive", count: tabCounts.inactive }
-              ].map(tab => (
+                { key: "all", label: "All", icon: "👥" },
+                { key: "active", label: "Active", icon: "✅" },
+                { key: "expiring", label: "Expiring", icon: "⚠️" },
+                { key: "overdue", label: "Overdue", icon: "🚨" },
+                { key: "inactive", label: "Inactive", icon: "⭕" }
+              ].map(({ key, label, icon }) => (
                 <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === tab.key
-                      ? 'bg-red-600 text-white'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  key={key}
+                  onClick={() => setCurrentTab(key)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors flex items-center space-x-1 ${
+                    currentTab === key
+                      ? "bg-red-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white"
                   }`}
                 >
-                  {tab.label} ({tab.count})
+                  <span>{icon}</span>
+                  <span>{label}</span>
+                  <span className="ml-1 bg-gray-600 text-xs px-2 py-0.5 rounded-full">
+                    {tabCounts[key] || 0}
+                  </span>
                 </button>
               ))}
             </div>
           </div>
-          
-          {/* Students Table */}
+
+          {/* Lines 855-950: Enhanced student table with Phase 3 components */}
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-600">
-              <thead className="bg-gray-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Student & Pricing
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Status & Tier
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Membership & Next Payment
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Due Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-gray-800 divide-y divide-gray-600">
-                {filteredStudents.length > 0 ? (
-                  filteredStudents.map((student) => (
+            {filteredStudents.length > 0 ? (
+              <table className="min-w-full divide-y divide-gray-600">
+                <thead className="bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      Student Information
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      Membership
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      Due Date
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-gray-800 divide-y divide-gray-600">
+                  {filteredStudents.map((student) => (
+                    // Phase 3: Using extracted StudentTableRow component
                     <StudentTableRow
                       key={student.id}
                       student={student}
@@ -1208,21 +760,72 @@ export default function DashboardPage() {
                       smsLoading={smsLoading}
                       getStudentStatus={getStudentStatus}
                     />
-                  ))
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              // Lines 955-980: Enhanced empty state
+              <div className="text-center py-12">
+                <svg className="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                </svg>
+                <h3 className="text-lg font-medium text-gray-400 mb-2">
+                  {isSearchActive ? "No students found" : "No students yet"}
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  {isSearchActive 
+                    ? `No students match "${searchQuery}". Try adjusting your search.`
+                    : "Get started by adding your first student to the academy."
+                  }
+                </p>
+                {isSearchActive ? (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    Clear Search
+                  </button>
                 ) : (
-                  <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center text-gray-400">
-                      {searchTerm ? "No students match your search." : "No students found."}
-                    </td>
-                  </tr>
+                  <button
+                    onClick={() => setAddStudentModalOpen(true)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Add First Student
+                  </button>
                 )}
-              </tbody>
-            </table>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Lines 985-1010: Enhanced results summary */}
+        {filteredStudents.length > 0 && (
+          <div className="mt-4 px-6 py-3 bg-gray-700 bg-opacity-50 rounded-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-gray-400">
+              <div>
+                Showing {filteredStudents.length} of {students.length} students
+                {isSearchActive && (
+                  <span className="ml-2 text-blue-400">
+                    (filtered by "{searchQuery}")
+                  </span>
+                )}
+                {currentTab !== "all" && (
+                  <span className="ml-2 text-yellow-400">
+                    (filtered by {currentTab} status)
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center space-x-4 mt-2 sm:mt-0">
+                <span>Total Revenue: ${pricingBreakdown.totalMonthly?.toLocaleString() || 0}/month</span>
+                <span>Avg: ${filteredStudents.length > 0 ? Math.round((pricingBreakdown.totalMonthly || 0) / filteredStudents.length) : 0}/student</span>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* Modals */}
+      {/* Lines 1015-1080: Enhanced modals section with Phase 2 components */}
+      {/* Phase 2: SMS Credits Modal */}
       <SMSCreditsModal
         isOpen={creditsModalOpen}
         onClose={() => setCreditsModalOpen(false)}
@@ -1230,22 +833,33 @@ export default function DashboardPage() {
         loading={modalLoading}
       />
 
+      {/* Phase 2: SMS History Modal */}
       <SMSHistoryModal
         isOpen={historyModalOpen}
         onClose={() => setHistoryModalOpen(false)}
-        historyData={historyData}  
+        historyData={historyData}
         loading={modalLoading}
       />
 
-      {paymentModalOpen && (
+      {/* Enhanced Payment Modal */}
+      {paymentModalOpen && selectedStudent && (
         <PaymentModal
           isOpen={paymentModalOpen}
-          onClose={() => setPaymentModalOpen(false)}
+          onClose={() => {
+            setPaymentModalOpen(false);
+            setSelectedStudent(null);
+          }}
           student={selectedStudent}
-          onPaymentSuccess={handlePaymentSuccess}
+          onPaymentProcessed={() => {
+            fetchDashboardData();
+            setPaymentModalOpen(false);
+            setSelectedStudent(null);
+            showSuccess("Payment processed successfully!");
+          }}
         />
       )}
 
+      {/* Enhanced Add Student Modal */}
       {addStudentModalOpen && (
         <AddStudentModal
           isOpen={addStudentModalOpen}
@@ -1255,4 +869,4 @@ export default function DashboardPage() {
       )}
     </div>
   );
-};
+}
