@@ -1,245 +1,271 @@
-// File: client/src/components/dashboard/StudentManagementSection.jsx
-// Lines 1-15: Component for student management table and controls
-// Extracted from DashboardPage.jsx lines 585-860
-import React from 'react';
-import StudentTableRow from '../student/StudentTableRow';
+// File: client/src/hooks/useStudentManagement.js
+// Lines 1-15: Enhanced student management hook with corrected imports
+// Extracted from DashboardPage.jsx lines 170-200, 280-320, 325-355
+import { useState, useMemo, useCallback } from 'react';
+import { calculatePricingBreakdown } from '../../utils/studentPricingUtils';
+import { isOverdue, getDaysUntilDate } from '../../utils/dateUtils';
 
 /**
- * StudentManagementSection Component
- * Manages student table display with search, filtering, and actions
- * Follows SOLID principles with single responsibility for student display
+ * Enhanced useStudentManagement Hook
+ * Manages student filtering, status calculations, and business logic
+ * Follows SOLID principles with single responsibility for student management
  * 
- * @param {Object} props - Component props
- * @param {Array} props.filteredStudents - Filtered student data
- * @param {Object} props.tabCounts - Student counts by status
- * @param {Object} props.pricingBreakdown - Revenue calculations
- * @param {string} props.currentTab - Active tab filter
- * @param {string} props.searchQuery - Current search query
- * @param {boolean} props.isSearchActive - Search state
- * @param {boolean} props.smsLoading - SMS operation loading state
- * @param {Function} props.setCurrentTab - Tab change handler
- * @param {Function} props.setSearchQuery - Search query handler
- * @param {Function} props.setIsSearchActive - Search state handler
- * @param {Function} props.setAddStudentModalOpen - Add student modal handler
- * @param {Function} props.onProcessPayment - Payment processing handler
- * @param {Function} props.onViewStudent - Student view handler
- * @param {Function} props.onEditStudent - Student edit handler
- * @param {Function} props.onSendReminder - SMS reminder handler
- * @param {Function} props.canSendReminder - Check if reminder can be sent
- * @param {Function} props.getStudentStatus - Get student status
+ * Features:
+ * - Advanced student status calculation
+ * - Real-time filtering and search
+ * - Tab-based categorization
+ * - Revenue and pricing calculations
+ * - Reminder eligibility checking
+ * 
+ * @param {Array} students - Array of student data
+ * @returns {Object} Student management state and operations
  */
-const StudentManagementSection = ({
-  filteredStudents = [],
-  students = [],
-  tabCounts = {},
-  pricingBreakdown = {},
-  currentTab = "all",
-  searchQuery = "",
-  isSearchActive = false,
-  smsLoading = false,
-  setCurrentTab,
-  setSearchQuery,
-  setIsSearchActive,
-  setAddStudentModalOpen,
-  onProcessPayment,
-  onViewStudent,
-  onEditStudent,
-  onSendReminder,
-  canSendReminder,
-  getStudentStatus
-}) => {
-  // Lines 35-55: Tab configuration following DRY principle
-  const tabsConfig = [
-    { key: "all", label: "All", icon: "👥" },
-    { key: "active", label: "Active", icon: "✅" },
-    { key: "expiring", label: "Expiring", icon: "⚠️" },
-    { key: "overdue", label: "Overdue", icon: "🚨" },
-    { key: "inactive", label: "Inactive", icon: "⭕" }
-  ];
+ const useStudentManagement = (students = []) => {
+  // Lines 20-30: Core state management
+  const [currentTab, setCurrentTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchActive, setIsSearchActive] = useState(false);
 
-  // Lines 60-80: Search handlers following KISS principle
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    setIsSearchActive(value.trim().length > 0);
-  };
+  // Lines 35-75: Enhanced student status logic
+  const getStudentStatus = useCallback((student) => {
+    // Handle edge cases for missing or invalid student data
+    if (!student?.memberships || !Array.isArray(student.memberships) || student.memberships.length === 0) {
+      return "inactive";
+    }
 
-  const handleClearSearch = () => {
+    // Find the most recent membership with enhanced validation
+    const latestMembership = student.memberships.reduce((latest, current) => {
+      if (!current?.endDate) return latest;
+      
+      const currentEndDate = new Date(current.endDate);
+      const latestEndDate = latest?.endDate ? new Date(latest.endDate) : new Date(0);
+      
+      // Validate dates before comparison
+      if (isNaN(currentEndDate.getTime())) return latest;
+      if (isNaN(latestEndDate.getTime())) return current;
+      
+      return currentEndDate > latestEndDate ? current : latest;
+    }, null);
+
+    // If no valid membership found, student is inactive
+    if (!latestMembership?.endDate) {
+      return "inactive";
+    }
+
+    // Enhanced status determination with better edge case handling
+    const endDate = latestMembership.endDate;
+    
+    // Check if overdue
+    if (isOverdue(endDate)) {
+      return "overdue";
+    }
+    
+    // Check if expiring soon (within 7 days)
+    const daysUntilDue = getDaysUntilDate(endDate);
+    if (daysUntilDue !== null && daysUntilDue <= 7 && daysUntilDue >= 0) {
+      return "expiring";
+    }
+    
+    // Active membership
+    return "active";
+  }, []);
+
+  // Lines 80-95: SMS reminder eligibility with enhanced validation
+  const canSendReminder = useCallback((student) => {
+    // Check if student has valid phone number
+    if (!student?.phoneNumber && !student?.phone) {
+      return false;
+    }
+    
+    // Check if phone number is valid (basic validation)
+    const phoneNumber = student.phoneNumber || student.phone;
+    if (typeof phoneNumber !== 'string' || phoneNumber.trim().length === 0) {
+      return false;
+    }
+    
+    // Only allow reminders for students who need attention
+    const status = getStudentStatus(student);
+    return status === "expiring" || status === "overdue";
+  }, [getStudentStatus]);
+
+  // Lines 100-140: Enhanced filtering with performance optimization
+  const filteredStudents = useMemo(() => {
+    if (!Array.isArray(students) || students.length === 0) {
+      return [];
+    }
+
+    let filtered = students;
+
+    // Apply search filter first (more selective)
+    if (isSearchActive && searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      
+      filtered = filtered.filter(student => {
+        // Multiple search fields with null safety
+        const name = (student.name || '').toLowerCase();
+        const email = (student.email || '').toLowerCase();
+        const phoneNumber = (student.phoneNumber || student.phone || '').toLowerCase();
+        
+        return name.includes(query) || 
+               email.includes(query) || 
+               phoneNumber.includes(query);
+      });
+    }
+
+    // Apply tab filter
+    if (currentTab !== "all") {
+      filtered = filtered.filter(student => {
+        const status = getStudentStatus(student);
+        return status === currentTab;
+      });
+    }
+
+    // Sort by status priority and then by name
+    return filtered.sort((a, b) => {
+      const statusPriority = { overdue: 0, expiring: 1, active: 2, inactive: 3 };
+      const statusA = getStudentStatus(a);
+      const statusB = getStudentStatus(b);
+      
+      const priorityDiff = statusPriority[statusA] - statusPriority[statusB];
+      if (priorityDiff !== 0) return priorityDiff;
+      
+      // Secondary sort by name
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  }, [students, searchQuery, isSearchActive, currentTab, getStudentStatus]);
+
+  // Lines 145-170: Enhanced tab counts with performance optimization
+  const tabCounts = useMemo(() => {
+    if (!Array.isArray(students) || students.length === 0) {
+      return {
+        all: 0,
+        active: 0,
+        expiring: 0,
+        overdue: 0,
+        inactive: 0
+      };
+    }
+
+    // Calculate counts in a single pass for better performance
+    const counts = students.reduce((acc, student) => {
+      const status = getStudentStatus(student);
+      acc[status] = (acc[status] || 0) + 1;
+      acc.all += 1;
+      return acc;
+    }, {
+      all: 0,
+      active: 0,
+      expiring: 0,
+      overdue: 0,
+      inactive: 0
+    });
+
+    return counts;
+  }, [students, getStudentStatus]);
+
+  // Lines 175-185: Enhanced pricing breakdown with memoization
+  const pricingBreakdown = useMemo(() => {
+    if (!Array.isArray(students) || students.length === 0) {
+      return {
+        total: 0,
+        totalMonthly: 0,
+        averageRate: 0,
+        legacy: 0,
+        current: 0,
+        legacyRevenue: 0,
+        currentRevenue: 0
+      };
+    }
+
+    return calculatePricingBreakdown(students);
+  }, [students]);
+
+  // Lines 190-220: Search management utilities
+  const handleSearchChange = useCallback((query) => {
+    setSearchQuery(query);
+    setIsSearchActive(query.trim().length > 0);
+  }, []);
+
+  const clearSearch = useCallback(() => {
     setSearchQuery("");
     setIsSearchActive(false);
+  }, []);
+
+  const handleTabChange = useCallback((tab) => {
+    setCurrentTab(tab);
+  }, []);
+
+  // Lines 225-245: Student statistics for dashboard
+  const studentStats = useMemo(() => {
+    const total = students.length;
+    const needsAttention = (tabCounts.expiring || 0) + (tabCounts.overdue || 0);
+    const attentionPercentage = total > 0 ? Math.round((needsAttention / total) * 100) : 0;
+    
+    return {
+      total,
+      needsAttention,
+      attentionPercentage,
+      activePercentage: total > 0 ? Math.round(((tabCounts.active || 0) / total) * 100) : 0,
+      overduePercentage: total > 0 ? Math.round(((tabCounts.overdue || 0) / total) * 100) : 0
+    };
+  }, [students.length, tabCounts]);
+
+  // Lines 250-265: Utility functions for external use
+  const getStudentsByStatus = useCallback((status) => {
+    return students.filter(student => getStudentStatus(student) === status);
+  }, [students, getStudentStatus]);
+
+  const getStudentsNeedingReminders = useCallback(() => {
+    return students.filter(student => canSendReminder(student));
+  }, [students, canSendReminder]);
+
+  const isStudentEligibleForAction = useCallback((student, action) => {
+    switch (action) {
+      case 'reminder':
+        return canSendReminder(student);
+      case 'payment':
+        return ['expiring', 'overdue'].includes(getStudentStatus(student));
+      case 'edit':
+        return true; // All students can be edited
+      case 'view':
+        return true; // All students can be viewed
+      default:
+        return false;
+    }
+  }, [canSendReminder, getStudentStatus]);
+
+  // Lines 270-290: Return comprehensive hook interface
+  return {
+    // Core filter state
+    currentTab,
+    searchQuery,
+    isSearchActive,
+    
+    // Computed data
+    filteredStudents,
+    tabCounts,
+    pricingBreakdown,
+    studentStats,
+    
+    // Status functions
+    getStudentStatus,
+    canSendReminder,
+    isStudentEligibleForAction,
+    
+    // Filter operations
+    setCurrentTab: handleTabChange,
+    setSearchQuery: handleSearchChange,
+    setIsSearchActive,
+    clearSearch,
+    
+    // Utility functions
+    getStudentsByStatus,
+    getStudentsNeedingReminders,
+    
+    // Search handlers for component use
+    handleSearchChange,
+    handleTabChange
   };
-
-  // Lines 85-300: Main render
-  return (
-    <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl border border-gray-600 overflow-hidden shadow-xl">
-      {/* Header Section */}
-      <div className="px-6 py-4 border-b border-gray-600">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-          <h2 className="text-xl font-semibold text-white flex items-center">
-            <span className="mr-2">👨‍🎓</span>
-            Student Management
-          </h2>
-          
-          {/* Search and Add Student Controls */}
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-            {/* Search Input */}
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder="Search students..."
-                className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              {isSearchActive && (
-                <button
-                  onClick={handleClearSearch}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  <svg className="h-5 w-5 text-gray-400 hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-            
-            {/* Add Student Button */}
-            <button
-              onClick={() => setAddStudentModalOpen(true)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
-            >
-              <span className="mr-2">➕</span>
-              Add Student
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {tabsConfig.map(({ key, label, icon }) => (
-            <button
-              key={key}
-              onClick={() => setCurrentTab(key)}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors flex items-center space-x-1 ${
-                currentTab === key
-                  ? "bg-red-600 text-white"
-                  : "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white"
-              }`}
-            >
-              <span>{icon}</span>
-              <span>{label}</span>
-              <span className="ml-1 bg-gray-600 text-xs px-2 py-0.5 rounded-full">
-                {tabCounts[key] || 0}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Student Table */}
-      <div className="overflow-x-auto">
-        {filteredStudents.length > 0 ? (
-          <table className="min-w-full divide-y divide-gray-600">
-            <thead className="bg-gray-700">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Student Information
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Membership
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Due Date
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-gray-800 divide-y divide-gray-600">
-              {filteredStudents.map((student) => (
-                <StudentTableRow
-                  key={student.id}
-                  student={student}
-                  onProcessPayment={onProcessPayment}
-                  onViewStudent={onViewStudent}
-                  onEditStudent={onEditStudent}
-                  onSendReminder={onSendReminder}
-                  canSendReminder={canSendReminder}
-                  smsLoading={smsLoading}
-                  getStudentStatus={getStudentStatus}
-                />
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          // Empty State Component
-          <div className="text-center py-12">
-            <svg className="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-400 mb-2">
-              {isSearchActive ? "No students found" : "No students yet"}
-            </h3>
-            <p className="text-gray-500 mb-4">
-              {isSearchActive 
-                ? `No students match "${searchQuery}". Try adjusting your search.`
-                : "Get started by adding your first student to the academy."
-              }
-            </p>
-            {isSearchActive ? (
-              <button
-                onClick={handleClearSearch}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Clear Search
-              </button>
-            ) : (
-              <button
-                onClick={() => setAddStudentModalOpen(true)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Add First Student
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Results Summary */}
-      {filteredStudents.length > 0 && (
-        <div className="px-6 py-3 bg-gray-700 bg-opacity-50 border-t border-gray-600">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-gray-400">
-            <div>
-              Showing {filteredStudents.length} of {students.length} students
-              {isSearchActive && (
-                <span className="ml-2 text-blue-400">
-                  (filtered by "{searchQuery}")
-                </span>
-              )}
-              {currentTab !== "all" && (
-                <span className="ml-2 text-yellow-400">
-                  (filtered by {currentTab} status)
-                </span>
-              )}
-            </div>
-            <div className="flex items-center space-x-4 mt-2 sm:mt-0">
-              <span>Total Revenue: ${pricingBreakdown.totalMonthly?.toLocaleString() || 0}/month</span>
-              <span>Avg: ${filteredStudents.length > 0 ? Math.round((pricingBreakdown.totalMonthly || 0) / filteredStudents.length) : 0}/student</span>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 };
 
-export default StudentManagementSection;
+export default useStudentManagement;

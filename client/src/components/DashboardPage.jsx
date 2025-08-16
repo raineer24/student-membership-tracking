@@ -1,6 +1,6 @@
 // File: client/src/components/DashboardPage.jsx
-// Lines 1-20: Final refactored DashboardPage - reduced from 1200+ to 180 lines
-// Follows KISS, YAGNI, DRY, and SOLID principles
+// Lines 525-700: FINAL REFACTORED MAIN COMPONENT
+// Reduced from 1200+ lines to ~180 lines (85% reduction)
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,7 +10,7 @@ import { useSMSOperations } from '../hooks/useSMSOperations';
 import { useStudentManagement } from '../hooks/useStudentManagement';
 import { useToast } from '../hooks/useToast';
 
-// Phase 5: Dashboard layout components (NEW)
+// Phase 5: Dashboard layout components
 import StatisticsCards from './dashboard/StatisticsCards';
 import PricingDistribution from './dashboard/PricingDistribution';
 import StudentManagementSection from './dashboard/StudentManagementSection';
@@ -30,7 +30,7 @@ import LogoutButton from './LogoutButton';
  * DashboardPage Component - FULLY REFACTORED
  * Main dashboard container following SOLID principles
  * 
- * Architecture:
+ * Lines 560-580: Architecture Overview
  * - Single Responsibility: Only handles view orchestration
  * - Open/Closed: Extensible through props without modification
  * - Liskov Substitution: Components are interchangeable
@@ -38,11 +38,11 @@ import LogoutButton from './LogoutButton';
  * - Dependency Inversion: Depends on abstractions (hooks) not implementations
  */
 export default function DashboardPage() {
-  // Lines 35-40: Authentication and core hooks
+  // Lines 585-590: Authentication and core hooks
   const { token } = useAuth();
   const { showSuccess } = useToast();
 
-  // Lines 45-75: Custom hooks integration (complex logic extracted)
+  // Lines 595-620: Custom hooks integration (complex logic extracted)
   const { 
     dashboardData, 
     students, 
@@ -77,7 +77,7 @@ export default function DashboardPage() {
     setIsSearchActive
   } = useStudentManagement(students);
 
-  // Lines 80-95: Minimal local state (GREATLY REDUCED from original)
+  // Lines 625-640: Minimal local state (GREATLY REDUCED from original)
   const [activeView, setActiveView] = useState("dashboard");
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [studentToEdit, setStudentToEdit] = useState(null);
@@ -87,7 +87,7 @@ export default function DashboardPage() {
   const [creditsModalOpen, setCreditsModalOpen] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
-  // Lines 100-125: Event handlers (business logic in hooks)
+  // Lines 645-690: Event handlers (business logic in hooks)
   const handleProcessPayment = useCallback((student) => {
     setSelectedStudent(student);
     setPaymentModalOpen(true);
@@ -126,7 +126,7 @@ export default function DashboardPage() {
     showSuccess("Student added successfully!");
   }, [refetch, showSuccess]);
 
-  // Lines 130-140: Loading state
+  // Lines 695-720: Loading and error states
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
@@ -138,7 +138,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Lines 145-155: Error state
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
@@ -153,7 +152,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Lines 160-165: Conditional views
+  // Lines 725-745: Conditional views
   if (activeView === "profile" && selectedStudentId) {
     const selectedStudentData = students.find(s => s.id === selectedStudentId);
     return selectedStudentData ? (
@@ -177,7 +176,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Lines 170-180: Main dashboard render (DRAMATICALLY SIMPLIFIED)
+  // Lines 750-850: Main dashboard render (DRAMATICALLY SIMPLIFIED)
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       {/* Header */}
