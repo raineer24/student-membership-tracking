@@ -1,25 +1,20 @@
 // File: client/src/components/DashboardPage.jsx
-// Lines 1-15: Enhanced imports with Phase 3 components
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+// Lines 1-30: Enhanced imports with Phase 1-4 components and hooks
+import React, { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { adminApi } from '../services/adminApi';
-import { useToast } from '../hooks/useToast';
 
-// Phase 1: Utility imports (extracted from original lines 249-370)
-import { formatDueDate, isOverdue } from '../utils/dateUtils';
-import { 
-  getStudentPricingDisplay, 
-  getPricingTier, 
-  calculatePricingBreakdown 
-} from '../utils/studentPricingUtils';
+// Phase 4: Custom hooks imports (NEW - extracted business logic)
+import { useDashboardData } from '../hooks/useDashboardData';
+import { useSMSOperations } from '../hooks/useSMSOperations';
+import { useStudentManagement } from '../hooks/useStudentManagement';
+import { useToast } from '../hooks/useToast';
 
 // Phase 2: Modal component imports (extracted from original lines 21-176)
 import SMSCreditsModal from './modals/SMSCreditsModal';
 import SMSHistoryModal from './modals/SMSHistoryModal';
 
 // Phase 3: Student component imports (extracted from original lines 177-370)
-import StudentStatusBadge from './student/StudentStatusBadge';
 import StudentTableRow from './student/StudentTableRow';
 import LogoutButton from './LogoutButton';
 
@@ -28,196 +23,61 @@ import StudentProfileView from './StudentProfileView';
 import StudentEditForm from './StudentEditForm';
 import PaymentModal from './PaymentModal';
 import AddStudentModal from './AddStudentModal';
-import Header from './Header';
-import ProtectedRoute from './ProtectedRoute';
-import ErrorMessage from './ErrorMessage';
-import LoadingSpinner from './LoadingSpinner';
 
-// Lines 30-65: Main Dashboard Component with enhanced state management
+// Lines 35-85: Main Dashboard Component - SIGNIFICANTLY REDUCED from 1200+ to ~300 lines
 export default function DashboardPage() {
-  // Line 35: Authentication and navigation hooks
-  const { user, token, logout } = useAuth();
+  // Lines 40-45: Core hooks and authentication
+  const { user, token } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
 
-  // Lines 40-50: Core dashboard state
-  const [dashboardData, setDashboardData] = useState(null);
-  const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // Lines 50-65: Phase 4 - Custom hooks integration (extracted complex logic)
+  const { 
+    dashboardData, 
+    students, 
+    setStudents,
+    loading, 
+    error, 
+    isSaving,
+    updateStudent,
+    refetch 
+  } = useDashboardData(token);
 
-  // Lines 52-60: View state management
+  const {
+    creditsData,
+    historyData,
+    modalLoading,
+    smsLoading,
+    fetchSMSCredits,
+    fetchSMSHistory,
+    sendReminder
+  } = useSMSOperations();
+
+  const {
+    currentTab,
+    searchQuery,
+    isSearchActive,
+    filteredStudents,
+    tabCounts,
+    pricingBreakdown,
+    getStudentStatus,
+    canSendReminder,
+    setCurrentTab,
+    setSearchQuery,
+    setIsSearchActive
+  } = useStudentManagement(students);
+
+  // Lines 70-85: Remaining local state (GREATLY REDUCED from original)
   const [activeView, setActiveView] = useState("dashboard");
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [studentToEdit, setStudentToEdit] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Lines 62-70: Modal state management
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [addStudentModalOpen, setAddStudentModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  
-  // Lines 72-80: SMS functionality state
   const [creditsModalOpen, setCreditsModalOpen] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [creditsData, setCreditsData] = useState(null);
-  const [historyData, setHistoryData] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
-  const [smsLoading, setSmsLoading] = useState(false);
 
-  // Lines 82-90: Student filtering and search state
-  const [currentTab, setCurrentTab] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isSearchActive, setIsSearchActive] = useState(false);
-
-  // Lines 95-140: Enhanced data fetching with error handling
-  const fetchDashboardData = useCallback(async () => {
-    if (!token) {
-      setError("Authentication token missing");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Lines 105-115: Parallel API calls for better performance
-      const [dashboardResponse, studentsResponse] = await Promise.all([
-        adminApi.getDashboardData(),
-        adminApi.getAllStudents()
-      ]);
-
-      // Lines 117-125: Enhanced data validation
-      if (dashboardResponse && studentsResponse) {
-        setDashboardData(dashboardResponse);
-        setStudents(Array.isArray(studentsResponse) ? studentsResponse : []);
-      } else {
-        throw new Error("Invalid response data structure");
-      }
-
-    } catch (error) {
-      console.error("Dashboard data fetch error:", error);
-      
-      // Lines 130-140: Enhanced error handling with specific messages
-      if (error.response?.status === 401) {
-        setError("Session expired. Please log in again.");
-        logout();
-        navigate('/login');
-      } else if (error.response?.status === 403) {
-        setError("Access denied. Admin privileges required.");
-      } else {
-        setError(`Failed to load dashboard: ${error.message}`);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [token, logout, navigate]);
-
-  // Lines 145-165: FIXED SMS operations using proper API client
-  const fetchSMSCredits = useCallback(async () => {
-    if (!token) return;
-
-    try {
-      setModalLoading(true);
-      console.log("🔄 Fetching SMS credits using enhanced API...");
-      
-      // Use direct API call instead of adminApi for SMS endpoints
-      const response = await fetch('/api/reminders/credits', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Failed to fetch credits`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setCreditsData(data.data);
-        console.log("✅ SMS credits fetched successfully:", data.data);
-      } else {
-        throw new Error(data.error || "Failed to load credits");
-      }
-
-    } catch (error) {
-      console.error("❌ SMS credits error:", error);
-      showError("Failed to load SMS credits");
-      setCreditsData(null);
-    } finally {
-      setModalLoading(false);
-    }
-  }, [token, showError]);
-
-  const fetchSMSHistory = useCallback(async () => {
-    if (!token) return;
-
-    try {
-      setModalLoading(true);
-      console.log("🔄 Fetching SMS history using enhanced API...");
-      
-      // Use direct API call instead of adminApi for SMS endpoints
-      const response = await fetch('/api/reminders/history', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Failed to fetch history`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setHistoryData(data.data);
-        console.log("✅ SMS history fetched successfully:", data.data);
-      } else {
-        throw new Error(data.error || "Failed to load history");
-      }
-
-    } catch (error) {
-      console.error("❌ SMS history error:", error);
-      showError("Failed to load SMS history");
-      setHistoryData(null);
-    } finally {
-      setModalLoading(false);
-    }
-  }, [token, showError]);
-
-  // Lines 170-200: Student status logic with enhanced calculations
-  const getStudentStatus = useCallback((student) => {
-    if (!student?.memberships || student.memberships.length === 0) {
-      return "inactive";
-    }
-
-    // Lines 175-185: Enhanced membership validation
-    const latestMembership = student.memberships.reduce((latest, current) => {
-      if (!current?.endDate) return latest;
-      const currentEndDate = new Date(current.endDate);
-      const latestEndDate = new Date(latest?.endDate || 0);
-      return currentEndDate > latestEndDate ? current : latest;
-    }, null);
-
-    if (!latestMembership?.endDate) return "inactive";
-
-    // Lines 190-200: Status determination with enhanced logic
-    const endDate = new Date(latestMembership.endDate);
-    const today = new Date();
-    const daysDiff = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
-
-    if (daysDiff < 0) return "overdue";
-    if (daysDiff <= 7) return "expiring";
-    return "active";
-  }, []);
-
-  // Lines 205-240: Enhanced student management operations
+  // Lines 90-150: Simplified event handlers (business logic moved to hooks)
   const handleProcessPayment = useCallback((student) => {
     setSelectedStudent(student);
     setPaymentModalOpen(true);
@@ -234,135 +94,29 @@ export default function DashboardPage() {
   }, []);
 
   const handleSaveStudent = useCallback(async (updatedStudent) => {
-    if (isSaving) return;
-
     try {
-      setIsSaving(true);
+      await updateStudent(updatedStudent.id, updatedStudent);
       
-      // Lines 225-235: Enhanced save operation with validation
-      const response = await adminApi.updateStudent(updatedStudent.id, updatedStudent);
-      
-      if (response && response.id) {
-        setStudents(prevStudents => 
-          prevStudents.map(s => s.id === updatedStudent.id ? { ...s, ...response } : s)
-        );
-
-        // Navigate back to dashboard and clear edit state
-        setActiveView("dashboard");
-        setSelectedStudentId(null);
-        setStudentToEdit(null);
-        
-        showSuccess(`${updatedStudent.name} updated successfully!`);
-      }
+      // Navigate back to dashboard and clear edit state
+      setActiveView("dashboard");
+      setSelectedStudentId(null);
+      setStudentToEdit(null);
       
     } catch (error) {
-      console.error("Student update error:", error);
-      showError(`Failed to update student: ${error.message}`);
-    } finally {
-      setIsSaving(false);
+      // Error handling is done in the hook
+      console.error("Save student error:", error);
     }
-  }, [isSaving, showSuccess, showError]);
-
-  // Lines 245-275: Enhanced SMS reminder functionality
-  const canSendReminder = useCallback((student) => {
-    const status = getStudentStatus(student);
-    return status === "expiring" || status === "overdue";
-  }, [getStudentStatus]);
+  }, [updateStudent]);
 
   const handleSendReminder = useCallback(async (student) => {
-    if (!token) return;
-
     try {
-      setSmsLoading(true);
-      console.log("🔄 Sending SMS reminder using enhanced API...");
-      
-      // Use direct API call for SMS reminder
-      const response = await fetch('/api/reminders/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          studentId: student.id,
-          testMode: process.env.NODE_ENV === "development",
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Failed to send reminder`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        showSuccess(`SMS reminder sent to ${student.name}!`);
-        console.log("✅ SMS reminder sent successfully:", data);
-      } else {
-        throw new Error(data.error || "Failed to send SMS");
-      }
-      
+      await sendReminder(student);
     } catch (error) {
-      console.error("❌ SMS reminder error:", error);
-      showError(`Failed to send SMS: ${error.message}`);
-    } finally {
-      setSmsLoading(false);
+      // Error handling is done in the hook
+      console.error("Send reminder error:", error);
     }
-  }, [token, showSuccess, showError]);
+  }, [sendReminder]);
 
-  // Lines 280-320: Enhanced student filtering and search logic
-  const filteredStudents = useMemo(() => {
-    let filtered = students;
-
-    // Lines 285-295: Search functionality
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(student => 
-        student.name?.toLowerCase().includes(query) ||
-        student.email?.toLowerCase().includes(query) ||
-        student.phone?.includes(query)
-      );
-    }
-
-    // Lines 300-320: Tab-based filtering with enhanced logic
-    if (currentTab !== "all") {
-      filtered = filtered.filter(student => {
-        const status = getStudentStatus(student);
-        switch (currentTab) {
-          case "active":
-            return status === "active";
-          case "expiring":
-            return status === "expiring";
-          case "overdue":
-            return status === "overdue";
-          case "inactive":
-            return status === "inactive";
-          default:
-            return true;
-        }
-      });
-    }
-
-    return filtered;
-  }, [students, searchQuery, currentTab, getStudentStatus]);
-
-  // Lines 325-355: Enhanced statistics calculations with memoization
-  const tabCounts = useMemo(() => {
-    const counts = { all: students.length, active: 0, expiring: 0, overdue: 0, inactive: 0 };
-    
-    students.forEach(student => {
-      const status = getStudentStatus(student);
-      counts[status] = (counts[status] || 0) + 1;
-    });
-    
-    return counts;
-  }, [students, getStudentStatus]);
-
-  const pricingBreakdown = useMemo(() => {
-    return calculatePricingBreakdown(students);
-  }, [students]);
-
-  // Lines 360-370: Enhanced navigation handlers
   const handleBackToDashboard = useCallback(() => {
     setActiveView("dashboard");
     setSelectedStudentId(null);
@@ -370,21 +124,12 @@ export default function DashboardPage() {
   }, []);
 
   const handleStudentAdded = useCallback(() => {
-    fetchDashboardData();
+    refetch();
     setAddStudentModalOpen(false);
     showSuccess("Student added successfully!");
-  }, [fetchDashboardData, showSuccess]);
+  }, [refetch, showSuccess]);
 
-  // Lines 375-385: Effect hooks for data loading
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
-
-  useEffect(() => {
-    setIsSearchActive(searchQuery.trim().length > 0);
-  }, [searchQuery]);
-
-  // Lines 390-420: Enhanced loading state component
+  // Lines 155-200: Enhanced loading state component
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
@@ -397,7 +142,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Lines 425-455: Enhanced error state component
+  // Lines 205-240: Enhanced error state component
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
@@ -411,7 +156,7 @@ export default function DashboardPage() {
           <h3 className="text-lg font-semibold text-white mb-2">Error Loading Dashboard</h3>
           <p className="text-red-400 mb-6">{error}</p>
           <button
-            onClick={fetchDashboardData}
+            onClick={refetch}
             className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Try Again
@@ -421,7 +166,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Lines 460-485: Conditional view rendering with enhanced logic
+  // Lines 245-275: Conditional view rendering - Student Profile
   if (activeView === "profile" && selectedStudentId) {
     const selectedStudentData = students.find(s => s.id === selectedStudentId);
     
@@ -452,22 +197,22 @@ export default function DashboardPage() {
     );
   }
 
-  // Lines 490-520: Enhanced edit view rendering with proper onBack handler
+  // Lines 280-300: Conditional view rendering - Student Edit
   if (activeView === "edit" && studentToEdit) {
     return (
       <StudentEditForm
         student={studentToEdit}
         onSave={handleSaveStudent}
-        onBack={handleBackToDashboard}  // Use the proper back handler
+        onBack={handleBackToDashboard}
         isSaving={isSaving}
       />
     );
   }
 
-  // Lines 515-900: Main dashboard JSX with enhanced layout
+  // Lines 305-900: Main dashboard JSX with enhanced layout
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      {/* Lines 520-560: Enhanced header with Phase 3 LogoutButton component */}
+      {/* Lines 310-360: Enhanced header with Phase 3 LogoutButton component */}
       <header className="bg-gray-800 bg-opacity-90 backdrop-blur-sm border-b border-gray-600 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -511,7 +256,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Lines 565-700: Enhanced main content with statistics cards */}
+      {/* Lines 365-500: Enhanced main content with statistics cards */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Enhanced Statistics Cards Section */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
@@ -610,7 +355,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Lines 705-780: Enhanced pricing breakdown section */}
+        {/* Lines 505-580: Enhanced pricing breakdown section */}
         {pricingBreakdown.total > 0 && (
           <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl border border-gray-600 p-6 mb-8">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
@@ -649,7 +394,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Lines 785-850: Enhanced student management section */}
+        {/* Lines 585-700: Enhanced student management section */}
         <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl border border-gray-600 overflow-hidden shadow-xl">
           <div className="px-6 py-4 border-b border-gray-600">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
@@ -664,7 +409,10 @@ export default function DashboardPage() {
                   <input
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setIsSearchActive(e.target.value.trim().length > 0);
+                    }}
                     placeholder="Search students..."
                     className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -675,7 +423,10 @@ export default function DashboardPage() {
                   </div>
                   {isSearchActive && (
                     <button
-                      onClick={() => setSearchQuery("")}
+                      onClick={() => {
+                        setSearchQuery("");
+                        setIsSearchActive(false);
+                      }}
                       className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     >
                       <svg className="h-5 w-5 text-gray-400 hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -723,7 +474,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Lines 855-950: Enhanced student table with Phase 3 components */}
+          {/* Lines 705-800: Enhanced student table with Phase 3 components */}
           <div className="overflow-x-auto">
             {filteredStudents.length > 0 ? (
               <table className="min-w-full divide-y divide-gray-600">
@@ -764,7 +515,7 @@ export default function DashboardPage() {
                 </tbody>
               </table>
             ) : (
-              // Lines 955-980: Enhanced empty state
+              // Lines 805-830: Enhanced empty state
               <div className="text-center py-12">
                 <svg className="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
@@ -780,7 +531,10 @@ export default function DashboardPage() {
                 </p>
                 {isSearchActive ? (
                   <button
-                    onClick={() => setSearchQuery("")}
+                    onClick={() => {
+                      setSearchQuery("");
+                      setIsSearchActive(false);
+                    }}
                     className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                   >
                     Clear Search
@@ -798,7 +552,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Lines 985-1010: Enhanced results summary */}
+        {/* Lines 835-860: Enhanced results summary */}
         {filteredStudents.length > 0 && (
           <div className="mt-4 px-6 py-3 bg-gray-700 bg-opacity-50 rounded-lg">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-gray-400">
@@ -824,7 +578,7 @@ export default function DashboardPage() {
         )}
       </main>
 
-      {/* Lines 1015-1080: Enhanced modals section with Phase 2 components */}
+      {/* Lines 865-950: Enhanced modals section with Phase 2 components */}
       {/* Phase 2: SMS Credits Modal */}
       <SMSCreditsModal
         isOpen={creditsModalOpen}
@@ -851,7 +605,7 @@ export default function DashboardPage() {
           }}
           student={selectedStudent}
           onPaymentProcessed={() => {
-            fetchDashboardData();
+            refetch();
             setPaymentModalOpen(false);
             setSelectedStudent(null);
             showSuccess("Payment processed successfully!");
