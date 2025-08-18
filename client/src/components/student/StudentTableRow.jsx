@@ -1,21 +1,10 @@
 // File: client/src/components/student/StudentTableRow.jsx
-// Lines 1-110: Complete table row component with enhanced functionality
+// Simplified version without complex utility imports to fix build
 import React from 'react';
-import StudentStatusBadge from './StudentStatusBadge';
-import { formatDueDate } from '../../utils/dateUtils';
-import { getStudentPricingDisplay } from '../../utils/studentPricingUtils';
 
 /**
- * StudentTableRow Component
- * Renders individual student table row with all actions and information
- * @param {Object} student - Student object
- * @param {Function} onProcessPayment - Payment processing handler
- * @param {Function} onViewStudent - View student handler
- * @param {Function} onEditStudent - Edit student handler
- * @param {Function} onSendReminder - SMS reminder handler
- * @param {Function} canSendReminder - Function to check if reminder can be sent
- * @param {boolean} smsLoading - SMS loading state
- * @param {Function} getStudentStatus - Function to get student status
+ * StudentTableRow Component - Simplified Version
+ * Renders individual student table row with minimal dependencies
  */
 const StudentTableRow = ({ 
   student, 
@@ -27,7 +16,7 @@ const StudentTableRow = ({
   smsLoading, 
   getStudentStatus 
 }) => {
-  // Lines 25-35: Helper function to get latest membership
+  // Simplified helpers without external imports
   const getLatestMembership = (student) => {
     if (!student?.memberships || student.memberships.length === 0) return null;
     
@@ -39,14 +28,77 @@ const StudentTableRow = ({
     }, null);
   };
 
-  // Lines 37-42: Data preparation with enhanced validation
+  const formatSimpleDueDate = (dateString) => {
+    if (!dateString) return { text: "N/A", color: "text-gray-400" };
+    
+    try {
+      const endDate = new Date(dateString);
+      const today = new Date();
+      
+      today.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      
+      const timeDiff = endDate.getTime() - today.getTime();
+      const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff > 7) {
+        return { text: `${daysDiff} days remaining`, color: "text-green-400" };
+      } else if (daysDiff > 0) {
+        return { text: `${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining`, color: "text-yellow-400" };
+      } else if (daysDiff === 0) {
+        return { text: "Due today", color: "text-orange-400 font-medium" };
+      } else {
+        const overdueDays = Math.abs(daysDiff);
+        return { text: `${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue`, color: "text-red-400 font-medium" };
+      }
+    } catch (error) {
+      return { text: "Invalid Date", color: "text-red-400" };
+    }
+  };
+
+  const getSimplePricing = (student) => {
+    const monthlyRate = student?.monthlyRate || 1400;
+    const isLegacy = student?.isLegacyStudent || false;
+    
+    let tierLabel = "Standard";
+    if (isLegacy) {
+      if (monthlyRate === 1000) tierLabel = "Founding";
+      else if (monthlyRate === 1200) tierLabel = "Early";
+      else tierLabel = "Legacy";
+    }
+    
+    return {
+      monthlyFormatted: `₱${monthlyRate.toLocaleString()}`,
+      isLegacy,
+      tierLabel
+    };
+  };
+
+  const getStatusBadge = (status) => {
+    const configs = {
+      active: { color: "bg-green-100 text-green-800", icon: "✅", label: "Active" },
+      expiring: { color: "bg-yellow-100 text-yellow-800", icon: "⚠️", label: "Expiring" },
+      overdue: { color: "bg-red-100 text-red-800", icon: "🚨", label: "Overdue" },
+      inactive: { color: "bg-gray-100 text-gray-800", icon: "⭕", label: "Inactive" }
+    };
+    
+    const config = configs[status] || configs.inactive;
+    
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+        <span className="mr-1">{config.icon}</span>
+        {config.label}
+      </span>
+    );
+  };
+
+  // Data preparation
   const status = getStudentStatus(student);
   const latestMembership = getLatestMembership(student);
-  const dueDateInfo = formatDueDate(latestMembership?.endDate);
-  const pricingInfo = getStudentPricingDisplay(student);
+  const dueDateInfo = formatSimpleDueDate(latestMembership?.endDate);
+  const pricingInfo = getSimplePricing(student);
   const canSendSMS = canSendReminder(student);
 
-  // Lines 44-110: JSX return with complete table row structure
   return (
     <tr className="hover:bg-gray-700 hover:bg-opacity-50 transition-colors">
       {/* Student Information Cell */}
@@ -64,9 +116,9 @@ const StudentTableRow = ({
             </div>
             
             {/* Student Phone (if available) */}
-            {student.phone && (
+            {(student.phoneNumber || student.phone) && (
               <div className="text-xs text-gray-500">
-                {student.phone}
+                {student.phoneNumber || student.phone}
               </div>
             )}
             
@@ -84,9 +136,17 @@ const StudentTableRow = ({
         </div>
       </td>
       
-      {/* Status Cell - Uses StudentStatusBadge component */}
+      {/* Status Cell */}
       <td className="px-6 py-4 whitespace-nowrap">
-        <StudentStatusBadge status={status} student={student} />
+        {getStatusBadge(status)}
+        {pricingInfo.isLegacy && (
+          <div className="mt-1">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+              <span className="mr-1">🌟</span>
+              {pricingInfo.tierLabel}
+            </span>
+          </div>
+        )}
       </td>
       
       {/* Membership Information Cell */}

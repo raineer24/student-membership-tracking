@@ -1,5 +1,5 @@
 // File: client/src/components/StudentEditForm.jsx
-// Lines 1-25: FIXED StudentEditForm with proper onBack handler
+// CLEAN VERSION - No console logs
 import React, { useState, useRef, useCallback } from "react";
 import { useToast } from "../hooks/useToast";
 
@@ -19,7 +19,7 @@ const StudentEditForm = ({ student, onSave, onBack, isSaving }) => {
   const isSubmittingRef = useRef(false);
   const { showSuccess, showError } = useToast();
 
-  // Lines 27-35: Philippine phone number validation
+  // Philippine phone number validation
   const validatePhoneNumber = (phone) => {
     if (!phone) return true;
     const cleanPhone = phone.replace(/[-\s\(\)]/g, "");
@@ -27,7 +27,7 @@ const StudentEditForm = ({ student, onSave, onBack, isSaving }) => {
     return phoneRegex.test(cleanPhone);
   };
 
-  // Lines 37-55: Enhanced form validation
+  // Enhanced form validation
   const validateForm = () => {
     const newErrors = {};
 
@@ -53,12 +53,11 @@ const StudentEditForm = ({ student, onSave, onBack, isSaving }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Lines 57-95: FIXED handle form submission
+  // FIXED handle form submission
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
 
     if (loading || hasSubmitted || isSubmittingRef.current || isSaving) {
-      console.log("StudentEditForm: Submission blocked - already processing");
       return;
     }
 
@@ -71,11 +70,8 @@ const StudentEditForm = ({ student, onSave, onBack, isSaving }) => {
     isSubmittingRef.current = true;
 
     try {
-      console.log("StudentEditForm: About to save student", formData);
       await onSave(formData);
-      console.log("StudentEditForm: Save completed successfully");
     } catch (error) {
-      console.error("StudentEditForm: Error saving student:", error);
       showError(`Failed to update student: ${error.message}`);
       setErrors({ submit: `Failed to update student: ${error.message}` });
       setHasSubmitted(false);
@@ -85,7 +81,7 @@ const StudentEditForm = ({ student, onSave, onBack, isSaving }) => {
     }
   }, [loading, hasSubmitted, isSaving, formData, onSave, showError, validateForm]);
 
-  // Lines 97-105: Handle field changes
+  // Handle field changes
   const handleFieldChange = useCallback((field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -93,23 +89,20 @@ const StudentEditForm = ({ student, onSave, onBack, isSaving }) => {
     }
   }, [errors]);
 
-  // Lines 107-115: FIXED handle cancel/back navigation
+  // FIXED handle cancel/back navigation
   const handleCancel = useCallback(() => {
-    console.log("StudentEditForm: Back/Cancel button clicked");
     if (onBack && typeof onBack === 'function') {
       onBack();
-    } else {
-      console.error("StudentEditForm: onBack prop is not a function", { onBack });
     }
   }, [onBack]);
 
-  // Lines 117-120: Reset form when student changes
+  // Reset form when student changes
   React.useEffect(() => {
     setHasSubmitted(false);
     isSubmittingRef.current = false;
   }, [student.id]);
 
-  // Lines 122-450: Main component render
+  // Main component render
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       {/* Header with enhanced back button */}
@@ -227,6 +220,9 @@ const StudentEditForm = ({ student, onSave, onBack, isSaving }) => {
 
             {/* Phone Field */}
             <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Phone Number
+              </label>
               <input
                 type="tel"
                 value={formData.phone}
@@ -375,21 +371,6 @@ const StudentEditForm = ({ student, onSave, onBack, isSaving }) => {
               </div>
             </div>
           </div>
-
-          {/* Debug Information (Development Only) */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-6 p-4 bg-gray-700 bg-opacity-30 rounded-lg border border-gray-600">
-              <h4 className="text-sm font-medium text-gray-300 mb-2">Debug Info (Dev Only)</h4>
-              <div className="text-xs text-gray-400 space-y-1">
-                <div>Loading: {loading.toString()}</div>
-                <div>Has Submitted: {hasSubmitted.toString()}</div>
-                <div>Is Saving (Prop): {(isSaving || false).toString()}</div>
-                <div>Is Submitting (Ref): {isSubmittingRef.current.toString()}</div>
-                <div>Form Valid: {validateForm().toString()}</div>
-                <div>onBack Type: {typeof onBack}</div>
-              </div>
-            </div>
-          )}
         </div>
       </main>
     </div>

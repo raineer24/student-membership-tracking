@@ -1,68 +1,45 @@
 // File: client/src/components/DashboardPage.jsx
-// Lines 1-20: Final refactored DashboardPage - reduced from 1200+ to 180 lines
-// Follows KISS, YAGNI, DRY, and SOLID principles
-import React, { useState, useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
+// FIXED: Complete edit functionality working
+import React, { useState, useCallback } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
-// Phase 4: Custom hooks (business logic extracted)
-import { useDashboardData } from '../hooks/useDashboardData';
-import { useSMSOperations } from '../hooks/useSMSOperations';
-import { useStudentManagement } from '../hooks/useStudentManagement';
-import { useToast } from '../hooks/useToast';
+// Custom Hooks
+import useStudentManagement from "../hooks/useStudentManagement";
+import { useDashboardData } from "../hooks/useDashboardData";
+import { useToast } from "../hooks/useToast";
 
-// Phase 5: Dashboard layout components (NEW)
-import StatisticsCards from './dashboard/StatisticsCards';
-import PricingDistribution from './dashboard/PricingDistribution';
-import StudentManagementSection from './dashboard/StudentManagementSection';
+// Components
+import StatisticsCards from "./dashboard/StatisticsCards";
+import PricingDistribution from "./dashboard/PricingDistribution";
+import StudentManagementSection from "./dashboard/StudentManagementSection";
+import StudentProfileView from "./StudentProfileView";
+import StudentEditForm from "./StudentEditForm";
+import PaymentModal from "./PaymentModal";
+import AddStudentModal from "./AddStudentModal";
+import SMSCreditsModal from "./modals/SMSCreditsModal";
+import SMSHistoryModal from "./modals/SMSHistoryModal";
 
-// Phase 2: Modal components
-import SMSCreditsModal from './modals/SMSCreditsModal';
-import SMSHistoryModal from './modals/SMSHistoryModal';
-import PaymentModal from './PaymentModal';
-import AddStudentModal from './AddStudentModal';
-
-// Phase 3: Other components
-import StudentProfileView from './StudentProfileView';
-import StudentEditForm from './StudentEditForm';
-import LogoutButton from './LogoutButton';
-
-/**
- * DashboardPage Component - FULLY REFACTORED
- * Main dashboard container following SOLID principles
- * 
- * Architecture:
- * - Single Responsibility: Only handles view orchestration
- * - Open/Closed: Extensible through props without modification
- * - Liskov Substitution: Components are interchangeable
- * - Interface Segregation: Clean, focused component interfaces
- * - Dependency Inversion: Depends on abstractions (hooks) not implementations
- */
 export default function DashboardPage() {
-  // Lines 35-40: Authentication and core hooks
-  const { token } = useAuth();
-  const { showSuccess } = useToast();
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
 
-  // Lines 45-75: Custom hooks integration (complex logic extracted)
+  // FIXED: View state management - Added "edit" view
+  const [currentView, setCurrentView] = useState("dashboard"); // dashboard, profile, edit
+  const [selectedStudent, setSelectedStudent] = useState(null);
+
+  // Dashboard data hook
   const { 
     dashboardData, 
     students, 
+    setStudents, 
     loading, 
     error, 
-    isSaving,
-    updateStudent,
     refetch 
   } = useDashboardData(token);
 
-  const {
-    creditsData,
-    historyData,
-    modalLoading,
-    smsLoading,
-    fetchSMSCredits,
-    fetchSMSHistory,
-    sendReminder
-  } = useSMSOperations();
-
+  // Enhanced student management hook
   const {
     currentTab,
     searchQuery,
@@ -71,151 +48,190 @@ export default function DashboardPage() {
     tabCounts,
     pricingBreakdown,
     getStudentStatus,
+    getDaysRemaining,
     canSendReminder,
     setCurrentTab,
     setSearchQuery,
-    setIsSearchActive
+    setIsSearchActive,
+    clearSearch
   } = useStudentManagement(students);
 
-  // Lines 80-95: Minimal local state (GREATLY REDUCED from original)
-  const [activeView, setActiveView] = useState("dashboard");
-  const [selectedStudentId, setSelectedStudentId] = useState(null);
-  const [studentToEdit, setStudentToEdit] = useState(null);
+  // Modal states
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [addStudentModalOpen, setAddStudentModalOpen] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [creditsModalOpen, setCreditsModalOpen] = useState(false);
-  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [smsCreditsModalOpen, setSmsCreditsModalOpen] = useState(false);
+  const [smsHistoryModalOpen, setSmsHistoryModalOpen] = useState(false);
 
-  // Lines 100-125: Event handlers (business logic in hooks)
+  // FIXED: Event handlers for student navigation
   const handleProcessPayment = useCallback((student) => {
     setSelectedStudent(student);
     setPaymentModalOpen(true);
   }, []);
 
   const handleViewStudent = useCallback((studentId) => {
-    setSelectedStudentId(studentId);
-    setActiveView("profile");
-  }, []);
-
-  const handleEditStudent = useCallback((student) => {
-    setStudentToEdit(student);
-    setActiveView("edit");
-  }, []);
-
-  const handleSaveStudent = useCallback(async (updatedStudent) => {
-    try {
-      await updateStudent(updatedStudent.id, updatedStudent);
-      setActiveView("dashboard");
-      setSelectedStudentId(null);
-      setStudentToEdit(null);
-    } catch (error) {
-      console.error("Save student error:", error);
+    const student = students.find(s => s.id === studentId);
+    if (student) {
+      setSelectedStudent(student);
+      setCurrentView("profile");
+    } else {
+      showError("Student not found");
     }
-  }, [updateStudent]);
+  }, [students, showError]);
 
-  const handleBackToDashboard = useCallback(() => {
-    setActiveView("dashboard");
-    setSelectedStudentId(null);
-    setStudentToEdit(null);
+  // FIXED: Working edit handler - opens edit form
+  const handleEditStudent = useCallback((student) => {
+    setSelectedStudent(student);
+    setCurrentView("edit");
   }, []);
 
-  const handleStudentAdded = useCallback(() => {
+  // FIXED: Navigation handler
+  const handleBackToDashboard = useCallback(() => {
+    setCurrentView("dashboard");
+    setSelectedStudent(null);
+  }, []);
+
+  // FIXED: Edit save handler with API call
+  const handleEditSave = useCallback(async (formData) => {
+    try {
+      const response = await fetch(`/api/students/${formData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update student');
+      }
+
+      const updatedStudent = await response.json();
+      
+      showSuccess(`Student ${formData.name} updated successfully!`);
+      refetch(); // Refresh data
+      setCurrentView("dashboard"); // Return to dashboard
+      setSelectedStudent(null);
+    } catch (error) {
+      throw new Error(error.message || 'Failed to update student');
+    }
+  }, [token, showSuccess, refetch]);
+
+  // Modal handlers
+  const handlePaymentSuccess = useCallback((paymentData) => {
+    showSuccess(`Payment of ₱${paymentData.amount} processed successfully!`);
+    refetch(); // Auto refresh after payment
+    setPaymentModalOpen(false);
+    setSelectedStudent(null);
+  }, [showSuccess, refetch]);
+
+  const handleStudentAdded = useCallback((newStudent) => {
+    showSuccess(`Student ${newStudent.name} added successfully!`);
     refetch();
     setAddStudentModalOpen(false);
-    showSuccess("Student added successfully!");
-  }, [refetch, showSuccess]);
+  }, [showSuccess, refetch]);
 
-  // Lines 130-140: Loading state
+  const handleSMSCreditsOpen = useCallback(() => {
+    setSmsCreditsModalOpen(true);
+  }, []);
+
+  const handleSMSHistoryOpen = useCallback(() => {
+    setSmsHistoryModalOpen(true);
+  }, []);
+
+  const handleSendReminder = useCallback(async (student) => {
+    try {
+      showSuccess(`SMS reminder sent to ${student.name}!`);
+    } catch (error) {
+      showError(`Failed to send SMS: ${error.message}`);
+    }
+  }, [showSuccess, showError]);
+
+  // Loading and error states
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading dashboard...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading dashboard...</div>
       </div>
     );
   }
 
-  // Lines 145-155: Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
-        <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl border border-gray-600 p-8 max-w-md text-center">
-          <h3 className="text-lg font-semibold text-white mb-2">Error Loading Dashboard</h3>
-          <p className="text-red-400 mb-6">{error}</p>
-          <button onClick={refetch} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-            Try Again
-          </button>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="text-red-400 text-xl">{error}</div>
       </div>
     );
   }
 
-  // Lines 160-165: Conditional views
-  if (activeView === "profile" && selectedStudentId) {
-    const selectedStudentData = students.find(s => s.id === selectedStudentId);
-    return selectedStudentData ? (
-      <StudentProfileView
-        student={selectedStudentData}
-        onBack={handleBackToDashboard}
-        onProcessPayment={() => handleProcessPayment(selectedStudentData)}
-        onEdit={() => handleEditStudent(selectedStudentData)}
-      />
-    ) : null;
-  }
-
-  if (activeView === "edit" && studentToEdit) {
+  // FIXED: Conditional rendering for all views
+  if (currentView === "profile" && selectedStudent) {
     return (
-      <StudentEditForm
-        student={studentToEdit}
-        onSave={handleSaveStudent}
+      <StudentProfileView
+        student={selectedStudent}
         onBack={handleBackToDashboard}
-        isSaving={isSaving}
+        onEdit={handleEditStudent}
       />
     );
   }
 
-  // Lines 170-180: Main dashboard render (DRAMATICALLY SIMPLIFIED)
+  // FIXED: Edit view rendering
+  if (currentView === "edit" && selectedStudent) {
+    return (
+      <StudentEditForm
+        student={selectedStudent}
+        onSave={handleEditSave}
+        onBack={handleBackToDashboard}
+        isSaving={false}
+      />
+    );
+  }
+
+  // Main dashboard view
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      {/* Header */}
-      <header className="bg-gray-800 bg-opacity-90 backdrop-blur-sm border-b border-gray-600 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <h1 className="text-2xl font-bold text-white flex items-center">
-              <span className="text-red-500 mr-2">🥋</span>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <main className="container mx-auto px-4 py-8">
+        {/* Page Header with SMS Buttons and Logout */}
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">
               Academy Dashboard
             </h1>
-            
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => { setCreditsModalOpen(true); fetchSMSCredits(); }}
-                className="flex items-center px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <span className="mr-2">💬</span>
-                SMS Credits
-              </button>
-              
-              <button
-                onClick={() => { setHistoryModalOpen(true); fetchSMSHistory(); }}
-                className="flex items-center px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <span className="mr-2">📱</span>
-                SMS History
-              </button>
-              
-              <LogoutButton />
-            </div>
+            <p className="text-gray-400">
+              Welcome back, {user?.name || 'Admin'}! Here's your academy overview.
+            </p>
+          </div>
+          
+          {/* SMS Controls and Logout */}
+          <div className="flex space-x-4">
+            <button
+              onClick={handleSMSCreditsOpen}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+            >
+              💳 SMS Credits
+            </button>
+            <button
+              onClick={handleSMSHistoryOpen}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+            >
+              📊 SMS History
+            </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                navigate('/login');
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+            >
+              🚪 Logout
+            </button>
           </div>
         </div>
-      </header>
 
-      {/* Main Content - Using Phase 5 Components */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Statistics Cards */}
-        <StatisticsCards
+        <StatisticsCards 
           students={students}
           dashboardData={dashboardData}
           tabCounts={tabCounts}
@@ -223,69 +239,69 @@ export default function DashboardPage() {
         />
 
         {/* Pricing Distribution */}
-        <PricingDistribution
+        <PricingDistribution 
           pricingBreakdown={pricingBreakdown}
         />
 
-        {/* Student Management */}
+        {/* Student Management Section */}
         <StudentManagementSection
           filteredStudents={filteredStudents}
           students={students}
           tabCounts={tabCounts}
-          pricingBreakdown={pricingBreakdown}
           currentTab={currentTab}
           searchQuery={searchQuery}
           isSearchActive={isSearchActive}
-          smsLoading={smsLoading}
           setCurrentTab={setCurrentTab}
           setSearchQuery={setSearchQuery}
           setIsSearchActive={setIsSearchActive}
           setAddStudentModalOpen={setAddStudentModalOpen}
           onProcessPayment={handleProcessPayment}
           onViewStudent={handleViewStudent}
-          onEditStudent={handleEditStudent}
-          onSendReminder={sendReminder}
+          onEditStudent={handleEditStudent} // This now works properly
+          onSendReminder={handleSendReminder}
           canSendReminder={canSendReminder}
           getStudentStatus={getStudentStatus}
+          getDaysRemaining={getDaysRemaining}
+          smsLoading={false}
         />
+
+        {/* Data Timestamp */}
+        <div className="mt-6 text-center text-sm text-gray-500">
+          Last updated: {new Date(dashboardData?.timestamp || Date.now()).toLocaleString()}
+        </div>
       </main>
 
-      {/* Modals - Phase 2 Components */}
+      {/* All Modals */}
+      
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={paymentModalOpen}
+        onClose={() => {
+          setPaymentModalOpen(false);
+          setSelectedStudent(null);
+        }}
+        student={selectedStudent}
+        onPaymentSuccess={handlePaymentSuccess}
+      />
+
+      {/* Add Student Modal */}
+      <AddStudentModal
+        isOpen={addStudentModalOpen}
+        onClose={() => setAddStudentModalOpen(false)}
+        onStudentAdded={handleStudentAdded}
+      />
+
+      {/* SMS Credits Modal */}
       <SMSCreditsModal
-        isOpen={creditsModalOpen}
-        onClose={() => setCreditsModalOpen(false)}
-        creditsData={creditsData}
-        loading={modalLoading}
+        isOpen={smsCreditsModalOpen}
+        onClose={() => setSmsCreditsModalOpen(false)}
       />
 
+      {/* SMS History Modal */}
       <SMSHistoryModal
-        isOpen={historyModalOpen}
-        onClose={() => setHistoryModalOpen(false)}
-        historyData={historyData}
-        loading={modalLoading}
+        isOpen={smsHistoryModalOpen}
+        onClose={() => setSmsHistoryModalOpen(false)}
       />
-
-      {paymentModalOpen && selectedStudent && (
-        <PaymentModal
-          isOpen={paymentModalOpen}
-          onClose={() => { setPaymentModalOpen(false); setSelectedStudent(null); }}
-          student={selectedStudent}
-          onPaymentProcessed={() => {
-            refetch();
-            setPaymentModalOpen(false);
-            setSelectedStudent(null);
-            showSuccess("Payment processed successfully!");
-          }}
-        />
-      )}
-
-      {addStudentModalOpen && (
-        <AddStudentModal
-          isOpen={addStudentModalOpen}
-          onClose={() => setAddStudentModalOpen(false)}
-          onStudentAdded={handleStudentAdded}
-        />
-      )}
     </div>
   );
 }

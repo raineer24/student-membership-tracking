@@ -1,102 +1,68 @@
 // File: client/src/components/dashboard/StudentManagementSection.jsx
-// Lines 1-15: Component for student management table and controls
-// Extracted from DashboardPage.jsx lines 585-860
+// CRITICAL FIX: Use hook's logic instead of component's own calculations
 import React from 'react';
-import StudentTableRow from '../student/StudentTableRow';
 
-/**
- * StudentManagementSection Component
- * Manages student table display with search, filtering, and actions
- * Follows SOLID principles with single responsibility for student display
- * 
- * @param {Object} props - Component props
- * @param {Array} props.filteredStudents - Filtered student data
- * @param {Object} props.tabCounts - Student counts by status
- * @param {Object} props.pricingBreakdown - Revenue calculations
- * @param {string} props.currentTab - Active tab filter
- * @param {string} props.searchQuery - Current search query
- * @param {boolean} props.isSearchActive - Search state
- * @param {boolean} props.smsLoading - SMS operation loading state
- * @param {Function} props.setCurrentTab - Tab change handler
- * @param {Function} props.setSearchQuery - Search query handler
- * @param {Function} props.setIsSearchActive - Search state handler
- * @param {Function} props.setAddStudentModalOpen - Add student modal handler
- * @param {Function} props.onProcessPayment - Payment processing handler
- * @param {Function} props.onViewStudent - Student view handler
- * @param {Function} props.onEditStudent - Student edit handler
- * @param {Function} props.onSendReminder - SMS reminder handler
- * @param {Function} props.canSendReminder - Check if reminder can be sent
- * @param {Function} props.getStudentStatus - Get student status
- */
 const StudentManagementSection = ({
   filteredStudents = [],
   students = [],
   tabCounts = {},
-  pricingBreakdown = {},
   currentTab = "all",
   searchQuery = "",
   isSearchActive = false,
-  smsLoading = false,
-  setCurrentTab,
-  setSearchQuery,
-  setIsSearchActive,
-  setAddStudentModalOpen,
-  onProcessPayment,
-  onViewStudent,
-  onEditStudent,
-  onSendReminder,
-  canSendReminder,
-  getStudentStatus
+  setCurrentTab = () => {},
+  setSearchQuery = () => {},
+  setIsSearchActive = () => {},
+  setAddStudentModalOpen = () => {},
+  onProcessPayment = () => {},
+  onViewStudent = () => {},
+  onEditStudent = () => {},
+  onSendReminder = () => {},
+  canSendReminder = () => false,
+  getStudentStatus = () => "active", // FIXED: Use hook's status function
+  getDaysRemaining = () => "No data", // FIXED: Use hook's days remaining function
+  smsLoading = false
 }) => {
-  // Lines 35-55: Tab configuration following DRY principle
-  const tabsConfig = [
-    { key: "all", label: "All", icon: "👥" },
-    { key: "active", label: "Active", icon: "✅" },
-    { key: "expiring", label: "Expiring", icon: "⚠️" },
-    { key: "overdue", label: "Overdue", icon: "🚨" },
-    { key: "inactive", label: "Inactive", icon: "⭕" }
-  ];
-
-  // Lines 60-80: Search handlers following KISS principle
-  const handleSearchChange = (e) => {
+  // FIXED: Remove component's own calculation - use hook's logic instead
+  const handleSearchInput = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
-    setIsSearchActive(value.trim().length > 0);
   };
 
   const handleClearSearch = () => {
     setSearchQuery("");
-    setIsSearchActive(false);
   };
 
-  // Lines 85-300: Main render
+  // Tab configuration
+  const tabs = [
+    { key: "all", label: "All Students", icon: "👥", count: tabCounts.all || 0 },
+    { key: "active", label: "Active", icon: "✅", count: tabCounts.active || 0 },
+    { key: "overdue", label: "Overdue", icon: "⚠️", count: tabCounts.overdue || 0 },
+    { key: "inactive", label: "Inactive", icon: "⭕", count: tabCounts.inactive || 0 }
+  ];
+
   return (
-    <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl border border-gray-600 overflow-hidden shadow-xl">
-      {/* Header Section */}
+    <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl border border-gray-600 shadow-xl">
+      {/* Header */}
       <div className="px-6 py-4 border-b border-gray-600">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-          <h2 className="text-xl font-semibold text-white flex items-center">
-            <span className="mr-2">👨‍🎓</span>
-            Student Management
-          </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-white">Students Management</h3>
           
-          {/* Search and Add Student Controls */}
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-            {/* Search Input */}
+          <div className="flex items-center space-x-4">
+            {/* Search input */}
             <div className="relative">
               <input
                 type="text"
+                placeholder="Search students by name"
                 value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder="Search students..."
-                className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={handleSearchInput}
+                className="w-80 px-4 py-2 pl-10 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              {isSearchActive && (
+              {searchQuery && (
                 <button
                   onClick={handleClearSearch}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
@@ -107,137 +73,147 @@ const StudentManagementSection = ({
                 </button>
               )}
             </div>
-            
-            {/* Add Student Button */}
-            <button
-              onClick={() => setAddStudentModalOpen(true)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
-            >
-              <span className="mr-2">➕</span>
-              Add Student
-            </button>
           </div>
         </div>
-
-        {/* Tab Navigation */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {tabsConfig.map(({ key, label, icon }) => (
+        
+        {/* Tab navigation */}
+        <div className="flex space-x-1">
+          {tabs.map(tab => (
             <button
-              key={key}
-              onClick={() => setCurrentTab(key)}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors flex items-center space-x-1 ${
-                currentTab === key
+              key={tab.key}
+              onClick={() => setCurrentTab(tab.key)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition-colors ${
+                currentTab === tab.key
                   ? "bg-red-600 text-white"
-                  : "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white"
+                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
               }`}
             >
-              <span>{icon}</span>
-              <span>{label}</span>
-              <span className="ml-1 bg-gray-600 text-xs px-2 py-0.5 rounded-full">
-                {tabCounts[key] || 0}
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+              <span className="bg-gray-600 text-xs px-2 py-1 rounded-full">
+                ({tab.count})
               </span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Student Table */}
+      {/* Student table */}
       <div className="overflow-x-auto">
         {filteredStudents.length > 0 ? (
-          <table className="min-w-full divide-y divide-gray-600">
+          <table className="min-w-full">
             <thead className="bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Student Information
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">
+                  Student & Pricing
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Status
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">
+                  Status & Tier
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Membership
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">
+                  Membership & Next Payment
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">
                   Due Date
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-gray-800 divide-y divide-gray-600">
-              {filteredStudents.map((student) => (
-                <StudentTableRow
-                  key={student.id}
-                  student={student}
-                  onProcessPayment={onProcessPayment}
-                  onViewStudent={onViewStudent}
-                  onEditStudent={onEditStudent}
-                  onSendReminder={onSendReminder}
-                  canSendReminder={canSendReminder}
-                  smsLoading={smsLoading}
-                  getStudentStatus={getStudentStatus}
-                />
-              ))}
+              {filteredStudents.map((student) => {
+                // FIXED: Use hook's functions instead of component's own calculations
+                const status = getStudentStatus(student);
+                const daysRemaining = getDaysRemaining(student);
+                
+                const statusColors = {
+                  active: "bg-green-500",
+                  expiring: "bg-yellow-500", 
+                  overdue: "bg-red-500",
+                  inactive: "bg-gray-500"
+                };
+
+                return (
+                  <tr key={student.id} className="hover:bg-gray-750">
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="font-medium text-white">{student.name}</div>
+                        <div className="text-sm text-gray-400">{student.email}</div>
+                        <div className="text-sm text-gray-500">{student.phone || student.phoneNumber}</div>
+                        <div className="text-sm text-yellow-400">₱{student.monthlyRate || 1400}/mo</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col space-y-1">
+                        <span className={`inline-flex items-center w-16 h-6 rounded-full ${statusColors[status]} text-white text-xs font-medium justify-center`}>
+                          {status.toUpperCase()}
+                        </span>
+                        <div className="text-xs text-gray-400">
+                          {student.monthlyRate === 1000 ? "FOUNDING" : 
+                           student.monthlyRate === 1200 ? "EARLY" : 
+                           "STANDARD"}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="text-sm text-white">MONTHLY</div>
+                        <div className="text-xs text-gray-400">
+                          Started: {student.memberships?.[0]?.startDate ? 
+                            new Date(student.memberships[0].startDate).toLocaleDateString() : 
+                            "N/A"}
+                        </div>
+                        <div className="text-xs text-yellow-400">
+                          Next: ₱{student.monthlyRate || 1400} | ₱{(student.monthlyRate || 1400) * 12}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {/* FIXED: Use hook's getDaysRemaining function instead of component calculation */}
+                      <div className="text-sm text-green-400">{daysRemaining}</div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          onClick={() => onProcessPayment(student)}
+                          className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                        >
+                          💳 Pay
+                        </button>
+                        <button
+                          onClick={() => onViewStudent(student.id)}
+                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                        >
+                          👁️ View
+                        </button>
+                        <button
+                          onClick={() => onEditStudent(student)}
+                          className="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+                        >
+                          🔧 Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         ) : (
-          // Empty State Component
           <div className="text-center py-12">
-            <svg className="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-400 mb-2">
-              {isSearchActive ? "No students found" : "No students yet"}
-            </h3>
-            <p className="text-gray-500 mb-4">
-              {isSearchActive 
-                ? `No students match "${searchQuery}". Try adjusting your search.`
-                : "Get started by adding your first student to the academy."
+            <div className="text-gray-400 text-lg mb-2">
+              {searchQuery ? "No students found" : "No students yet"}
+            </div>
+            <p className="text-gray-500">
+              {searchQuery 
+                ? `No students match "${searchQuery}"`
+                : "Add your first student to get started"
               }
             </p>
-            {isSearchActive ? (
-              <button
-                onClick={handleClearSearch}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Clear Search
-              </button>
-            ) : (
-              <button
-                onClick={() => setAddStudentModalOpen(true)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Add First Student
-              </button>
-            )}
           </div>
         )}
       </div>
-
-      {/* Results Summary */}
-      {filteredStudents.length > 0 && (
-        <div className="px-6 py-3 bg-gray-700 bg-opacity-50 border-t border-gray-600">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-gray-400">
-            <div>
-              Showing {filteredStudents.length} of {students.length} students
-              {isSearchActive && (
-                <span className="ml-2 text-blue-400">
-                  (filtered by "{searchQuery}")
-                </span>
-              )}
-              {currentTab !== "all" && (
-                <span className="ml-2 text-yellow-400">
-                  (filtered by {currentTab} status)
-                </span>
-              )}
-            </div>
-            <div className="flex items-center space-x-4 mt-2 sm:mt-0">
-              <span>Total Revenue: ${pricingBreakdown.totalMonthly?.toLocaleString() || 0}/month</span>
-              <span>Avg: ${filteredStudents.length > 0 ? Math.round((pricingBreakdown.totalMonthly || 0) / filteredStudents.length) : 0}/student</span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

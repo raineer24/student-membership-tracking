@@ -1,59 +1,56 @@
 // File: client/src/components/student/StudentStatusBadge.jsx
-// Lines 1-45: Enhanced status badge component with pricing tier display
+// Lines 120-180: Status badge component with pricing tier display
 import React from 'react';
 import { getPricingTier } from '../../utils/studentPricingUtils';
 
 /**
  * StudentStatusBadge Component
- * Displays student status (active, expiring, overdue, inactive) and pricing tier
+ * Displays student status with appropriate styling and pricing tier information
  * @param {string} status - Student status (active, expiring, overdue, inactive)
- * @param {Object} student - Student object with pricing information
+ * @param {Object} student - Student object for pricing tier calculation
  */
 const StudentStatusBadge = ({ status, student }) => {
-  // Lines 12-30: Status configuration with enhanced styling
+  // Lines 130-135: Status configuration with colors and icons
   const statusConfig = {
-    active: { 
-      bg: "bg-green-500 bg-opacity-20", 
-      text: "text-green-400", 
-      border: "border-green-500",
-      label: "Active" 
+    active: {
+      color: "bg-green-100 text-green-800",
+      icon: "✅",
+      label: "Active"
     },
-    expiring: { 
-      bg: "bg-yellow-500 bg-opacity-20", 
-      text: "text-yellow-400", 
-      border: "border-yellow-500",
-      label: "Expiring Soon" 
+    expiring: {
+      color: "bg-yellow-100 text-yellow-800",
+      icon: "⚠️",
+      label: "Expiring"
     },
-    inactive: { 
-      bg: "bg-gray-500 bg-opacity-20", 
-      text: "text-gray-400", 
-      border: "border-gray-500",
-      label: "Inactive" 
+    overdue: {
+      color: "bg-red-100 text-red-800",
+      icon: "🚨",
+      label: "Overdue"
     },
-    overdue: { 
-      bg: "bg-red-500 bg-opacity-20", 
-      text: "text-red-400", 
-      border: "border-red-500",
-      label: "Overdue" 
+    inactive: {
+      color: "bg-gray-100 text-gray-800",
+      icon: "⭕",
+      label: "Inactive"
     }
   };
-  
-  // Lines 35-37: Configuration selection and pricing tier calculation
+
+  // Lines 140-145: Get configuration for current status
   const config = statusConfig[status] || statusConfig.inactive;
   const pricingTier = getPricingTier(student);
-  
-  // Lines 39-55: JSX return with status and pricing tier display
+
   return (
     <div className="flex flex-col space-y-1">
-      {/* Status Badge */}
-      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${config.bg} ${config.text} ${config.border}`}>
+      {/* Main Status Badge */}
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+        <span className="mr-1">{config.icon}</span>
         {config.label}
       </span>
       
-      {/* Pricing Tier Badge (only for legacy students) */}
-      {pricingTier && (
-        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${pricingTier.bg} ${pricingTier.color} ${pricingTier.border}`}>
-          {pricingTier.emoji} {pricingTier.label}
+      {/* Pricing Tier Badge (if legacy student) */}
+      {pricingTier.isLegacy && (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${pricingTier.badgeColor}`}>
+          <span className="mr-1">🌟</span>
+          {pricingTier.tierLabel}
         </span>
       )}
     </div>
