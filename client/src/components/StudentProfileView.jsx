@@ -1,8 +1,8 @@
-// Line 1: Complete StudentProfileView.jsx - BJJ themed with enhanced functionality including payment history
+// File: client/src/components/StudentProfileView.jsx
+// Complete StudentProfileView component - no routing required
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 
-// Line 5: Main StudentProfileView component with BJJ theme and payment history
 const StudentProfileView = ({ student, onBack, onEdit }) => {
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -11,7 +11,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [paymentLoading, setPaymentLoading] = useState(false);
 
-  // Line 13: Initialize component with provided student data
+  // Initialize component with provided student data
   useEffect(() => {
     if (student) {
       setStudentData(student);
@@ -25,7 +25,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     }
   }, [student]);
 
-  // Line 26: Fetch payment history for the student
+  // Fetch payment history for the student
   const fetchPaymentHistory = async (studentId) => {
     if (!studentId || !token) return;
     
@@ -53,7 +53,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     }
   };
 
-  // Line 49: Enhanced membership status calculation with BJJ theme colors
+  // Enhanced membership status calculation
   const membershipStatus = useMemo(() => {
     if (!studentData?.memberships || studentData.memberships.length === 0) {
       return {
@@ -63,48 +63,45 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
       };
     }
 
-    // Find current membership
+    // Find latest membership by creation date or end date
     const latestMembership = studentData.memberships.reduce((latest, current) => {
-      const currentEndDate = new Date(current.endDate);
-      const latestEndDate = new Date(latest.endDate);
-      return currentEndDate > latestEndDate ? current : latest;
+      const currentDate = new Date(current.createdAt || current.endDate);
+      const latestDate = new Date(latest.createdAt || latest.endDate);
+      return currentDate > latestDate ? current : latest;
     });
 
     const today = new Date();
     const endDate = new Date(latestMembership.endDate);
     
-    // Clear date comparison
+    // Clear time for accurate comparison
     today.setHours(0, 0, 0, 0);
     endDate.setHours(0, 0, 0, 0);
 
-    if (endDate >= today) {
+    const diffTime = endDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 0) {
       return {
         status: "active",
-        message: "Membership Active",
+        message: `${diffDays} days remaining`,
         color: "text-green-400"
       };
-    }
-
-    // Calculate overdue status
-    const timeDiff = today.getTime() - endDate.getTime();
-    const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-
-    if (daysDiff <= 30) {
+    } else if (diffDays === 0) {
+      return {
+        status: "expiring",
+        message: "Expires today",
+        color: "text-yellow-400"
+      };
+    } else {
       return {
         status: "overdue",
-        message: `Overdue by ${daysDiff} day(s)`,
+        message: `Overdue by ${Math.abs(diffDays)} days`,
         color: "text-red-400"
       };
     }
-
-    return {
-      status: "inactive",
-      message: `Expired ${daysDiff} days ago`,
-      color: "text-gray-400"
-    };
   }, [studentData]);
 
-  // Line 88: Safe date formatting function
+  // Safe date formatting function
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     try {
@@ -114,13 +111,13 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     }
   };
 
-  // Line 98: Format currency for payment amounts
+  // Format currency for payment amounts
   const formatCurrency = (amount) => {
     if (!amount && amount !== 0) return "₱0";
     return `₱${parseFloat(amount).toLocaleString()}`;
   };
 
-  // Line 104: Get payment status badge styling
+  // Get payment status badge styling
   const getPaymentStatusBadge = (status) => {
     const statusStyles = {
       completed: "bg-green-500 bg-opacity-20 text-green-400 border-green-500",
@@ -139,7 +136,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     );
   };
 
-  // Line 122: Loading state with BJJ theme
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
@@ -151,7 +148,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     );
   }
 
-  // Line 133: Error state with BJJ theme
+  // Error state
   if (error || !studentData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
@@ -175,10 +172,10 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     );
   }
 
-  // Line 157: Main profile view render with BJJ theme
+  // Main profile view render
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      {/* Header with BJJ theme */}
+      {/* Header */}
       <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl border-b border-gray-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
@@ -203,7 +200,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
         </div>
       </div>
 
-      {/* Content with BJJ theme */}
+      {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
@@ -230,6 +227,10 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                   <label className="text-sm font-medium text-gray-400">Student ID</label>
                   <p className="text-sm text-white">#{studentData.id}</p>
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-400">Monthly Rate</label>
+                  <p className="text-sm text-white">₱{studentData.monthlyRate || 1400}/month</p>
+                </div>
               </div>
             </div>
           </div>
@@ -246,9 +247,9 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                 {studentData.memberships && studentData.memberships.length > 0 ? (
                   (() => {
                     const latestMembership = studentData.memberships.reduce((latest, current) => {
-                      const currentEndDate = new Date(current.endDate);
-                      const latestEndDate = new Date(latest.endDate);
-                      return currentEndDate > latestEndDate ? current : latest;
+                      const currentDate = new Date(current.createdAt || current.endDate);
+                      const latestDate = new Date(latest.createdAt || latest.endDate);
+                      return currentDate > latestDate ? current : latest;
                     });
                     
                     return (
@@ -256,7 +257,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="text-lg font-semibold text-white">
-                              {latestMembership.type || latestMembership.membershipType}
+                              {latestMembership.type || "MONTHLY"}
                             </p>
                             <p className={`text-sm font-medium ${membershipStatus.color}`}>
                               {membershipStatus.message}
@@ -264,7 +265,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                           </div>
                           <div className="text-right">
                             <p className="text-lg font-bold text-white">
-                              ₱{latestMembership.fee || 0}
+                              ₱{studentData.monthlyRate || 1400}
                             </p>
                             <p className="text-sm text-gray-400">Monthly Fee</p>
                           </div>
@@ -315,7 +316,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                       {paymentHistory.map((payment, index) => (
                         <tr key={payment.id || index}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                            {payment.description || payment.membershipType || "Payment"}
+                            {payment.description || "Payment"}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                             {formatCurrency(payment.amount)}
@@ -327,7 +328,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                             {getPaymentStatusBadge(payment.status)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                            {payment.method || payment.paymentMethod || "N/A"}
+                            {payment.method || "N/A"}
                           </td>
                         </tr>
                       ))}
@@ -342,66 +343,6 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                       </svg>
                     </div>
                     <p className="text-gray-400">No payment history found</p>
-                    <p className="text-sm text-gray-500 mt-1">Payment records will appear here once transactions are made</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Membership History Card */}
-            <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm overflow-hidden shadow-xl rounded-xl border border-gray-600">
-              <div className="px-6 py-4 border-b border-gray-600">
-                <h3 className="text-lg font-medium text-white">Membership History</h3>
-              </div>
-              <div className="overflow-x-auto">
-                {studentData.memberships && studentData.memberships.length > 0 ? (
-                  <table className="min-w-full divide-y divide-gray-600">
-                    <thead className="bg-gray-700">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Type</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Fee</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Start Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">End Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-gray-800 divide-y divide-gray-600">
-                      {studentData.memberships.map((membership, index) => {
-                        const today = new Date();
-                        const endDate = new Date(membership.endDate);
-                        const isActive = endDate >= today;
-                        
-                        return (
-                          <tr key={index}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                              {membership.type || membership.membershipType}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                              ₱{membership.fee || 0}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                              {formatDate(membership.startDate)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                              {formatDate(membership.endDate)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${
-                                isActive 
-                                  ? 'bg-green-500 bg-opacity-20 text-green-400 border-green-500' 
-                                  : 'bg-gray-500 bg-opacity-20 text-gray-400 border-gray-500'
-                              }`}>
-                                {isActive ? 'Active' : 'Expired'}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className="px-6 py-4">
-                    <p className="text-gray-400">No membership history found</p>
                   </div>
                 )}
               </div>

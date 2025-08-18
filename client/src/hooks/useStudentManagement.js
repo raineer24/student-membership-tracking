@@ -1,242 +1,234 @@
 // File: client/src/hooks/useStudentManagement.js
-// Lines 1-15: Enhanced student management hook with fixed return object
-// Extracted from DashboardPage.jsx lines 170-200, 280-320, 325-355
-import { useState, useMemo, useCallback } from 'react';
-import { calculatePricingBreakdown } from '../utils/studentPricingUtils';
-import { isOverdue, getDaysUntilDate } from '../utils/dateUtils';
+// Lines 1-15: Enhanced imports and dependencies - CLEAN VERSION
+import { useState, useMemo } from 'react';
 
 /**
- * Enhanced useStudentManagement Hook
+ * useStudentManagement Hook
  * Manages student filtering, status calculations, and business logic
- * Follows SOLID principles with single responsibility for student management
  * 
- * Features:
- * - Advanced student status calculation
- * - Real-time filtering and search
- * - Tab-based categorization
- * - Revenue and pricing calculations
- * - Reminder eligibility checking
+ * CRITICAL FIXES APPLIED:
+ * - Fixed membership selection to use LATEST membership instead of first
+ * - Enhanced search functionality with proper state management
+ * - Improved date calculations with timezone handling
+ * - Removed all console logging for production
  * 
- * @param {Array} students - Array of student data
+ * @param {Array} students - Array of student data from API
  * @returns {Object} Student management state and operations
  */
-export const useStudentManagement = (students = []) => {
-  // Lines 20-30: Core state management
+export default function useStudentManagement(students = []) {
+  // Lines 15-20: State management for filtering and search
   const [currentTab, setCurrentTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
 
-  // Lines 35-75: Enhanced student status logic
-  const getStudentStatus = useCallback((student) => {
-    // Handle edge cases for missing or invalid student data
-    if (!student?.memberships || !Array.isArray(student.memberships) || student.memberships.length === 0) {
+  // Lines 25-85: CRITICAL FIX - Student status calculation with proper membership sorting
+  const getStudentStatus = (student) => {
+    if (!student?.memberships || student.memberships.length === 0) {
       return "inactive";
     }
 
-    // Find the most recent membership with enhanced validation
-    const latestMembership = student.memberships.reduce((latest, current) => {
-      if (!current?.endDate) return latest;
-      
-      const currentEndDate = new Date(current.endDate);
-      const latestEndDate = latest?.endDate ? new Date(latest.endDate) : new Date(0);
-      
-      // Validate dates before comparison
-      if (isNaN(currentEndDate.getTime())) return latest;
-      if (isNaN(latestEndDate.getTime())) return current;
-      
-      return currentEndDate > latestEndDate ? current : latest;
-    }, null);
+    // FIXED: Sort memberships by creation date DESC to get the LATEST membership
+    // This fixes the bug where students with multiple memberships showed expired status
+    const sortedMemberships = [...student.memberships].sort((a, b) => {
+      // Use createdAt if available, fallback to endDate for sorting
+      const dateA = new Date(a.createdAt || a.endDate || a.startDate);
+      const dateB = new Date(b.createdAt || b.endDate || b.startDate);
+      return dateB - dateA; // DESC order - newest first
+    });
 
-    // If no valid membership found, student is inactive
+    const latestMembership = sortedMemberships[0];
+    
     if (!latestMembership?.endDate) {
       return "inactive";
     }
 
-    // Enhanced status determination with better edge case handling
-    const endDate = latestMembership.endDate;
+    // FIXED: Proper date comparison without timezone issues
+    const endDate = new Date(latestMembership.endDate);
+    const today = new Date();
     
-    // Check if overdue
-    if (isOverdue(endDate)) {
+    // Strip time components for accurate day-level comparison
+    const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    const diffTime = endDateOnly - todayOnly;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // Status determination logic
+    if (diffDays < 0) {
       return "overdue";
     }
-    
-    // Check if expiring soon (within 7 days)
-    const daysUntilDue = getDaysUntilDate(endDate);
-    if (daysUntilDue !== null && daysUntilDue <= 7 && daysUntilDue >= 0) {
+    if (diffDays <= 7) {
       return "expiring";
     }
     
-    // Active membership
     return "active";
-  }, []);
+  };
 
-  // Lines 80-95: SMS reminder eligibility with enhanced validation
-  const canSendReminder = useCallback((student) => {
-    // Check if student has valid phone number
-    if (!student?.phoneNumber && !student?.phone) {
-      return false;
-    }
-    
-    // Check if phone number is valid (basic validation)
-    const phoneNumber = student.phoneNumber || student.phone;
-    if (typeof phoneNumber !== 'string' || phoneNumber.trim().length === 0) {
-      return false;
-    }
-    
-    // Only allow reminders for students who need attention
-    const status = getStudentStatus(student);
-    return status === "expiring" || status === "overdue";
-  }, [getStudentStatus]);
-
-  // Lines 100-140: Enhanced filtering with performance optimization
+  // Lines 90-125: FIXED search filtering functionality
   const filteredStudents = useMemo(() => {
-    if (!Array.isArray(students) || students.length === 0) {
-      return [];
-    }
-
-    let filtered = students;
-
-    // Apply search filter first (more selective)
-    if (isSearchActive && searchQuery.trim()) {
+    if (!Array.isArray(students)) return [];
+    
+    let result = [...students];
+    
+    // Apply search filter properly when search is active
+    if (searchQuery.trim().length > 0) {
       const query = searchQuery.toLowerCase().trim();
-      
-      filtered = filtered.filter(student => {
-        // Multiple search fields with null safety
-        const name = (student.name || '').toLowerCase();
-        const email = (student.email || '').toLowerCase();
-        const phoneNumber = (student.phoneNumber || student.phone || '').toLowerCase();
+      result = result.filter(student => {
+        const name = String(student.name || '').toLowerCase();
+        const email = String(student.email || '').toLowerCase();
+        const phone = String(student.phone || student.phoneNumber || '').toLowerCase();
         
         return name.includes(query) || 
                email.includes(query) || 
-               phoneNumber.includes(query);
+               phone.includes(query);
       });
     }
-
-    // Apply tab filter
+    
+    // Apply tab filter after search
     if (currentTab !== "all") {
-      filtered = filtered.filter(student => {
+      result = result.filter(student => {
         const status = getStudentStatus(student);
         return status === currentTab;
       });
     }
+    
+    return result;
+  }, [students, searchQuery, currentTab]); // FIXED: Added proper dependencies
 
-    // Sort by status priority and then by name
-    return filtered.sort((a, b) => {
-      const statusPriority = { overdue: 0, expiring: 1, active: 2, inactive: 3 };
-      const statusA = getStudentStatus(a);
-      const statusB = getStudentStatus(b);
-      
-      const priorityDiff = statusPriority[statusA] - statusPriority[statusB];
-      if (priorityDiff !== 0) return priorityDiff;
-      
-      // Secondary sort by name
-      return (a.name || '').localeCompare(b.name || '');
-    });
-  }, [students, searchQuery, isSearchActive, currentTab, getStudentStatus]);
-
-  // Lines 145-170: Enhanced tab counts with performance optimization
+  // Lines 130-150: Enhanced tab counts calculation
   const tabCounts = useMemo(() => {
-    if (!Array.isArray(students) || students.length === 0) {
-      return {
-        all: 0,
-        active: 0,
-        expiring: 0,
-        overdue: 0,
-        inactive: 0
-      };
-    }
-
-    // Calculate counts in a single pass for better performance
-    const counts = students.reduce((acc, student) => {
-      const status = getStudentStatus(student);
-      acc[status] = (acc[status] || 0) + 1;
-      acc.all += 1;
-      return acc;
-    }, {
-      all: 0,
+    const counts = {
+      all: students.length,
       active: 0,
       expiring: 0,
       overdue: 0,
       inactive: 0
+    };
+
+    students.forEach(student => {
+      const status = getStudentStatus(student);
+      counts[status] = (counts[status] || 0) + 1;
     });
 
     return counts;
-  }, [students, getStudentStatus]);
+  }, [students]);
 
-  // Lines 175-185: Enhanced pricing breakdown with memoization
+  // Lines 155-200: FIXED pricing breakdown calculation - CLEAN VERSION
   const pricingBreakdown = useMemo(() => {
     if (!Array.isArray(students) || students.length === 0) {
       return {
-        total: 0,
         totalMonthly: 0,
-        averageRate: 0,
-        legacy: 0,
-        current: 0,
-        legacyRevenue: 0,
-        currentRevenue: 0
+        totalYearly: 0,
+        activePaidStudents: 0,
+        founding: 0,
+        early: 0,
+        standard: 0,
+        foundingRevenue: 0,
+        earlyRevenue: 0,
+        standardRevenue: 0,
+        currency: "₱"
       };
     }
 
-    return calculatePricingBreakdown(students);
+    let totalMonthly = 0;
+    let activePaidStudents = 0;
+    let founding = 0, early = 0, standard = 0;
+    let foundingRevenue = 0, earlyRevenue = 0, standardRevenue = 0;
+    
+    students.forEach(student => {
+      // CRITICAL FIX: Count ALL students with COMPLETED payments (active, expiring, overdue)
+      const status = getStudentStatus(student);
+      const hasPaid = student.payments && student.payments.length > 0 && 
+                     student.payments.some(payment => payment.status === 'COMPLETED');
+      
+      // Business Logic: Revenue includes all paying students regardless of membership status
+      const isPayingStudent = hasPaid && (status === 'active' || status === 'expiring' || status === 'overdue');
+      
+      // Only exclude students who haven't paid or are completely inactive
+      if (!isPayingStudent) {
+        return;
+      }
+
+      const monthlyRate = student.monthlyRate || 1400;
+      totalMonthly += monthlyRate;
+      activePaidStudents++;
+
+      // Categorize by rate to match expected breakdown: ₱1000 Founding, ₱1200 Early, ₱1400+ Standard
+      if (monthlyRate === 1000) {
+        founding++;
+        foundingRevenue += monthlyRate;
+      } else if (monthlyRate === 1200) {
+        early++;
+        earlyRevenue += monthlyRate;
+      } else {
+        standard++;
+        standardRevenue += monthlyRate;
+      }
+    });
+
+    return {
+      totalMonthly,
+      totalYearly: totalMonthly * 12,
+      activePaidStudents,
+      founding,
+      early, 
+      standard,
+      foundingRevenue,
+      earlyRevenue,
+      standardRevenue,
+      currency: "₱"
+    };
   }, [students]);
 
-  // Lines 190-220: Search management utilities
-  const handleSearchChange = useCallback((query) => {
-    setSearchQuery(query);
-    setIsSearchActive(query.trim().length > 0);
-  }, []);
+  // Lines 205-220: Enhanced search state management
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+    setIsSearchActive(value.trim().length > 0);
+  };
 
-  const clearSearch = useCallback(() => {
+  const clearSearch = () => {
     setSearchQuery("");
     setIsSearchActive(false);
-  }, []);
+  };
 
-  const handleTabChange = useCallback((tab) => {
-    setCurrentTab(tab);
-  }, []);
+  // Lines 225-240: Helper function for reminder eligibility
+  const canSendReminder = (student) => {
+    const status = getStudentStatus(student);
+    const hasPhone = Boolean(student.phone || student.phoneNumber);
+    return (status === "expiring" || status === "overdue") && hasPhone;
+  };
 
-  // Lines 225-245: Student statistics for dashboard
-  const studentStats = useMemo(() => {
-    const total = students.length;
-    const needsAttention = (tabCounts.expiring || 0) + (tabCounts.overdue || 0);
-    const attentionPercentage = total > 0 ? Math.round((needsAttention / total) * 100) : 0;
-    
-    return {
-      total,
-      needsAttention,
-      attentionPercentage,
-      activePercentage: total > 0 ? Math.round(((tabCounts.active || 0) / total) * 100) : 0,
-      overduePercentage: total > 0 ? Math.round(((tabCounts.overdue || 0) / total) * 100) : 0
-    };
-  }, [students.length, tabCounts]);
-
-  // Lines 250-265: Utility functions for external use
-  const getStudentsByStatus = useCallback((status) => {
-    return students.filter(student => getStudentStatus(student) === status);
-  }, [students, getStudentStatus]);
-
-  const getStudentsNeedingReminders = useCallback(() => {
-    return students.filter(student => canSendReminder(student));
-  }, [students, canSendReminder]);
-
-  const isStudentEligibleForAction = useCallback((student, action) => {
-    switch (action) {
-      case 'reminder':
-        return canSendReminder(student);
-      case 'payment':
-        return ['expiring', 'overdue'].includes(getStudentStatus(student));
-      case 'edit':
-        return true; // All students can be edited
-      case 'view':
-        return true; // All students can be viewed
-      default:
-        return false;
+  // Lines 245-290: Days remaining calculation for UI display
+  const getDaysRemaining = (student) => {
+    if (!student?.memberships || student.memberships.length === 0) {
+      return "No membership";
     }
-  }, [canSendReminder, getStudentStatus]);
 
-  // Lines 270-285: COMPLETELY FIXED return object - NO duplicates
+    // Use same logic as getStudentStatus for consistency
+    const sortedMemberships = [...student.memberships].sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.endDate || a.startDate);
+      const dateB = new Date(b.createdAt || b.endDate || b.startDate);
+      return dateB - dateA;
+    });
+
+    const latestMembership = sortedMemberships[0];
+    
+    if (!latestMembership?.endDate) return "No end date";
+
+    const endDate = new Date(latestMembership.endDate);
+    const today = new Date();
+    const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffDays = Math.ceil((endDateOnly - todayOnly) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return `Expired ${Math.abs(diffDays)} days ago`;
+    if (diffDays === 0) return "Expires today";
+    return `${diffDays} days remaining`;
+  };
+
+  // Lines 295-315: Return hook interface with all functionality
   return {
-    // Core filter state
+    // Filter state
     currentTab,
     searchQuery,
     isSearchActive,
@@ -245,21 +237,16 @@ export const useStudentManagement = (students = []) => {
     filteredStudents,
     tabCounts,
     pricingBreakdown,
-    studentStats,
-    
-    // Status functions
-    getStudentStatus,
-    canSendReminder,
-    isStudentEligibleForAction,
-    
-    // Filter operations
-    setCurrentTab: handleTabChange,
-    setSearchQuery: handleSearchChange,
-    setIsSearchActive,
-    clearSearch,
     
     // Utility functions
-    getStudentsByStatus,
-    getStudentsNeedingReminders
+    getStudentStatus,
+    getDaysRemaining,
+    canSendReminder,
+    
+    // State setters
+    setCurrentTab,
+    setSearchQuery: handleSearchChange,
+    setIsSearchActive,
+    clearSearch
   };
-};
+}
