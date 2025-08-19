@@ -1,219 +1,254 @@
 // File: client/src/components/dashboard/StudentManagementSection.jsx
-// CRITICAL FIX: Use hook's logic instead of component's own calculations
-import React from 'react';
+// Line 1: ENHANCED - Student Management with SMS Reminder Integration
+import React from "react";
+import StudentTableRow from "../student/StudentTableRow";
 
 const StudentManagementSection = ({
-  filteredStudents = [],
-  students = [],
-  tabCounts = {},
-  currentTab = "all",
-  searchQuery = "",
-  isSearchActive = false,
-  setCurrentTab = () => {},
-  setSearchQuery = () => {},
-  setIsSearchActive = () => {},
-  setAddStudentModalOpen = () => {},
-  onProcessPayment = () => {},
-  onViewStudent = () => {},
-  onEditStudent = () => {},
-  onSendReminder = () => {},
-  canSendReminder = () => false,
-  getStudentStatus = () => "active", // FIXED: Use hook's status function
-  getDaysRemaining = () => "No data", // FIXED: Use hook's days remaining function
-  smsLoading = false
+  filteredStudents,
+  students,
+  tabCounts,
+  currentTab,
+  searchQuery,
+  isSearchActive,
+  setCurrentTab,
+  setSearchQuery,
+  setIsSearchActive,
+  setAddStudentModalOpen,
+  onProcessPayment,
+  onViewStudent,
+  onEditStudent,
+  onSendReminder, // FIXED: Added SMS reminder handler
+  canSendReminder, // FIXED: Added SMS eligibility checker
+  getStudentStatus,
+  getDaysRemaining,
+  smsLoading = false, // FIXED: Added SMS loading state
 }) => {
-  // FIXED: Remove component's own calculation - use hook's logic instead
-  const handleSearchInput = (e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-  };
-
-  const handleClearSearch = () => {
-    setSearchQuery("");
-  };
-
-  // Tab configuration
+  // Line 25: Tab configuration with proper counts
   const tabs = [
-    { key: "all", label: "All Students", icon: "👥", count: tabCounts.all || 0 },
-    { key: "active", label: "Active", icon: "✅", count: tabCounts.active || 0 },
-    { key: "overdue", label: "Overdue", icon: "⚠️", count: tabCounts.overdue || 0 },
-    { key: "inactive", label: "Inactive", icon: "⭕", count: tabCounts.inactive || 0 }
+    { id: "all", label: "All Students", count: tabCounts.all },
+    { id: "active", label: "Active", count: tabCounts.active },
+    { id: "expiring", label: "Expiring Soon", count: tabCounts.expiring },
+    { id: "overdue", label: "Overdue", count: tabCounts.overdue },
+    { id: "inactive", label: "Inactive", count: tabCounts.inactive },
   ];
 
+  // Line 34: Handle search input changes
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setIsSearchActive(value.trim().length > 0);
+  };
+
+  // Line 41: Clear search functionality
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setIsSearchActive(false);
+  };
+
   return (
-    <div className="bg-gray-800 bg-opacity-90 backdrop-blur-sm rounded-xl border border-gray-600 shadow-xl">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-600">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold text-white">Students Management</h3>
-          
-          <div className="flex items-center space-x-4">
-            {/* Search input */}
+    <div className="bg-gray-800 shadow-xl rounded-xl overflow-hidden">
+      {/* Section Header */}
+      <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-6 py-4 border-b border-gray-700">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Student Management</h2>
+            <p className="text-gray-400 text-sm mt-1">
+              Manage student memberships, payments, and SMS reminders
+            </p>
+          </div>
+          <button
+            onClick={() => setAddStudentModalOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+          >
+            <span>➕</span>
+            <span>Add Student</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Search and Filter Controls */}
+      <div className="px-6 py-4 bg-gray-750 border-b border-gray-700">
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Search Input */}
+          <div className="flex-1">
             <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span className="text-gray-400">🔍</span>
+              </div>
               <input
                 type="text"
-                placeholder="Search students by name"
+                placeholder="Search students by name, email, or phone..."
                 value={searchQuery}
-                onChange={handleSearchInput}
-                className="w-80 px-4 py-2 pl-10 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={handleSearchChange}
+                className="block w-full pl-10 pr-10 py-2 border border-gray-600 rounded-md leading-5 bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:placeholder-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              {searchQuery && (
+              {isSearchActive && (
                 <button
                   onClick={handleClearSearch}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200"
                 >
-                  <svg className="h-5 w-5 text-gray-400 hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  ❌
                 </button>
               )}
             </div>
           </div>
+
+          {/* Status Filter Tabs */}
+          <div className="flex space-x-1 bg-gray-700 p-1 rounded-lg">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setCurrentTab(tab.id)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  currentTab === tab.id
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-300 hover:text-white hover:bg-gray-600"
+                }`}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            ))}
+          </div>
         </div>
-        
-        {/* Tab navigation */}
-        <div className="flex space-x-1">
-          {tabs.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setCurrentTab(tab.key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition-colors ${
-                currentTab === tab.key
-                  ? "bg-red-600 text-white"
-                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-              }`}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-              <span className="bg-gray-600 text-xs px-2 py-1 rounded-full">
-                ({tab.count})
+
+        {/* Active Filters Display */}
+        {(isSearchActive || currentTab !== "all") && (
+          <div className="mt-3 flex items-center space-x-2 text-sm">
+            <span className="text-gray-400">Active filters:</span>
+            {isSearchActive && (
+              <span className="bg-blue-600 text-white px-2 py-1 rounded">
+                Search: "{searchQuery}"
               </span>
+            )}
+            {currentTab !== "all" && (
+              <span className="bg-purple-600 text-white px-2 py-1 rounded">
+                Status: {tabs.find(t => t.id === currentTab)?.label}
+              </span>
+            )}
+            <button
+              onClick={() => {
+                setCurrentTab("all");
+                handleClearSearch();
+              }}
+              className="text-blue-400 hover:text-blue-300 ml-2"
+            >
+              Clear all
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Student table */}
-      <div className="overflow-x-auto">
-        {filteredStudents.length > 0 ? (
-          <table className="min-w-full">
-            <thead className="bg-gray-700">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">
-                  Student & Pricing
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">
-                  Status & Tier
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">
-                  Membership & Next Payment
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">
-                  Due Date
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-gray-800 divide-y divide-gray-600">
-              {filteredStudents.map((student) => {
-                // FIXED: Use hook's functions instead of component's own calculations
-                const status = getStudentStatus(student);
-                const daysRemaining = getDaysRemaining(student);
-                
-                const statusColors = {
-                  active: "bg-green-500",
-                  expiring: "bg-yellow-500", 
-                  overdue: "bg-red-500",
-                  inactive: "bg-gray-500"
-                };
-
-                return (
-                  <tr key={student.id} className="hover:bg-gray-750">
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="font-medium text-white">{student.name}</div>
-                        <div className="text-sm text-gray-400">{student.email}</div>
-                        <div className="text-sm text-gray-500">{student.phone || student.phoneNumber}</div>
-                        <div className="text-sm text-yellow-400">₱{student.monthlyRate || 1400}/mo</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col space-y-1">
-                        <span className={`inline-flex items-center w-16 h-6 rounded-full ${statusColors[status]} text-white text-xs font-medium justify-center`}>
-                          {status.toUpperCase()}
-                        </span>
-                        <div className="text-xs text-gray-400">
-                          {student.monthlyRate === 1000 ? "FOUNDING" : 
-                           student.monthlyRate === 1200 ? "EARLY" : 
-                           "STANDARD"}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm text-white">MONTHLY</div>
-                        <div className="text-xs text-gray-400">
-                          Started: {student.memberships?.[0]?.startDate ? 
-                            new Date(student.memberships[0].startDate).toLocaleDateString() : 
-                            "N/A"}
-                        </div>
-                        <div className="text-xs text-yellow-400">
-                          Next: ₱{student.monthlyRate || 1400} | ₱{(student.monthlyRate || 1400) * 12}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {/* FIXED: Use hook's getDaysRemaining function instead of component calculation */}
-                      <div className="text-sm text-green-400">{daysRemaining}</div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          onClick={() => onProcessPayment(student)}
-                          className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
-                        >
-                          💳 Pay
-                        </button>
-                        <button
-                          onClick={() => onViewStudent(student.id)}
-                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
-                        >
-                          👁️ View
-                        </button>
-                        <button
-                          onClick={() => onEditStudent(student)}
-                          className="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
-                        >
-                          🔧 Edit
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-lg mb-2">
-              {searchQuery ? "No students found" : "No students yet"}
-            </div>
-            <p className="text-gray-500">
-              {searchQuery 
-                ? `No students match "${searchQuery}"`
-                : "Add your first student to get started"
-              }
-            </p>
           </div>
         )}
       </div>
+
+      {/* Results Summary */}
+      <div className="px-6 py-3 bg-gray-750 border-b border-gray-700">
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-gray-300">
+            Showing {filteredStudents.length} of {students.length} students
+          </span>
+          {smsLoading && (
+            <span className="text-yellow-400 flex items-center space-x-2">
+              <span>📱</span>
+              <span>Sending SMS...</span>
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Student Table */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-700">
+          <thead className="bg-gray-700">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Student Information
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Membership
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Due Date
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-gray-800 divide-y divide-gray-700">
+            {filteredStudents.length > 0 ? (
+              filteredStudents.map((student) => (
+                <StudentTableRow
+                  key={student.id}
+                  student={student}
+                  onProcessPayment={onProcessPayment}
+                  onViewStudent={onViewStudent}
+                  onEditStudent={onEditStudent}
+                  onSendReminder={onSendReminder} // FIXED: Pass SMS handler
+                  canSendReminder={canSendReminder} // FIXED: Pass SMS eligibility checker
+                  smsLoading={smsLoading} // FIXED: Pass SMS loading state
+                  getStudentStatus={getStudentStatus}
+                  getDaysRemaining={getDaysRemaining}
+                />
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5" className="px-6 py-8 text-center text-gray-400">
+                  {isSearchActive ? (
+                    <div>
+                      <div className="text-4xl mb-2">🔍</div>
+                      <p>No students match your search criteria.</p>
+                      <button
+                        onClick={handleClearSearch}
+                        className="text-blue-400 hover:text-blue-300 mt-2"
+                      >
+                        Clear search
+                      </button>
+                    </div>
+                  ) : currentTab !== "all" ? (
+                    <div>
+                      <div className="text-4xl mb-2">📋</div>
+                      <p>No students found in the "{tabs.find(t => t.id === currentTab)?.label}" category.</p>
+                      <button
+                        onClick={() => setCurrentTab("all")}
+                        className="text-blue-400 hover:text-blue-300 mt-2"
+                      >
+                        View all students
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="text-4xl mb-2">👥</div>
+                      <p>No students found.</p>
+                      <button
+                        onClick={() => setAddStudentModalOpen(true)}
+                        className="text-blue-400 hover:text-blue-300 mt-2"
+                      >
+                        Add your first student
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ENHANCED: SMS Reminder Information Panel */}
+      {filteredStudents.some(student => canSendReminder(student)) && (
+        <div className="px-6 py-4 bg-purple-900 bg-opacity-30 border-t border-purple-700">
+          <div className="flex items-center space-x-2 text-sm text-purple-200">
+            <span>📱</span>
+            <span>
+              {filteredStudents.filter(student => canSendReminder(student)).length} student(s) 
+              eligible for SMS reminders
+            </span>
+            <span className="text-purple-400">•</span>
+            <span className="text-purple-300">₱0.60 per SMS</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

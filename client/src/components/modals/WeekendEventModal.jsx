@@ -1,3 +1,5 @@
+// File: client/src/components/modals/WeekendEventModal.jsx
+// FIXED: Priority case conversion to match backend enum
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../hooks/useToast";
@@ -6,7 +8,7 @@ const WeekendEventModal = ({
   isOpen,
   onClose,
   onEventCreated,
-  existingEvents,
+  existingEvents = [],
 }) => {
   const { token } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -18,31 +20,29 @@ const WeekendEventModal = ({
     startDate: "",
     endDate: "",
     sendSMS: true,
-    priority: "normal",
+    priority: "NORMAL", // FIXED: Use uppercase to match enum
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
-  const [showPreview, setShowPreview] = useState(false);
   const modalRef = useRef(null);
 
-  // Reset form when modal opens/closes
+  // Line 30: Reset form when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      setFormData((prev) => ({
-        ...prev,
+      setFormData({
+        eventType: "NO_CLASSES",
+        title: "No Classes This Weekend",
+        message: "Enjoy your weekend! Classes will resume on Monday.",
         startDate: tomorrow.toISOString().split("T")[0],
-        title: prev.eventType === "NO_CLASSES" ? "No Classes This Weekend" : "",
-        message:
-          prev.eventType === "NO_CLASSES"
-            ? "Enjoy your weekend! Classes will resume on Monday."
-            : "",
-      }));
+        endDate: "",
+        sendSMS: true,
+        priority: "NORMAL", // FIXED: Use uppercase to match enum
+      });
 
-      //Focus management for accessibility
       setTimeout(() => {
         if (modalRef.current) {
           const firstInput = modalRef.current.querySelector(
@@ -59,28 +59,26 @@ const WeekendEventModal = ({
         startDate: "",
         endDate: "",
         sendSMS: true,
-        priority: "normal",
+        priority: "NORMAL", // FIXED: Use uppercase to match enum
       });
       setErrors({});
       setIsSubmitting(false);
-      setShowPreview(false);
     }
   }, [isOpen]);
 
-  //Enhanced validation with conflict detection
   const validateForm = useCallback(() => {
     const newErrors = {};
-
-    if (!formData.message.trim()) {
-      newErrors.message = "Message is required";
-    } else if (formData.message.length > 300) {
-      newErrors.message = "Message must be 300 characters or less";
-    }
 
     if (!formData.title.trim()) {
       newErrors.title = "Title is required";
     } else if (formData.title.length > 100) {
       newErrors.title = "Title must be 100 characters or less";
+    }
+
+    if (!formData.message.trim()) {
+      newErrors.message = "Message is required";
+    } else if (formData.message.length > 300) {
+      newErrors.message = "Message must be 300 characters or less";
     }
 
     if (!formData.startDate) {
@@ -95,7 +93,7 @@ const WeekendEventModal = ({
       }
     }
 
-    if (!formData.endDate) {
+    if (formData.endDate) {
       const startDate = new Date(formData.startDate);
       const endDate = new Date(formData.endDate);
       if (endDate < startDate) {
@@ -106,7 +104,6 @@ const WeekendEventModal = ({
     return newErrors;
   }, [formData]);
 
-  // Handle input changes with smart suggestions
   const handleInputChange = useCallback(
     (e) => {
       const { name, value, type, checked } = e.target;
@@ -121,12 +118,21 @@ const WeekendEventModal = ({
           switch (value) {
             case "NO_CLASSES":
               newData.title = "No Classes This Weekend";
-              newData.message =
-                "Enjoy your weekend! Classes will resume on Monday.";
+              newData.message = "Enjoy your weekend! Classes will resume on Monday.";
               break;
             case "GENERAL":
               newData.title = "General Announcement";
               newData.message = "Please read this important update.";
+              break;
+            case "BANNER":
+              newData.title = "Important Notice";
+              newData.message = "This is an important announcement.";
+              break;
+            case "SMS":
+              newData.title = "SMS Notification";
+              newData.message = "This message will be sent via SMS.";
+              break;
+            default:
               break;
           }
         }
@@ -134,14 +140,14 @@ const WeekendEventModal = ({
         return newData;
       });
 
-      if (erros[name]) {
+      if (errors[name]) {
         setErrors((prev) => ({ ...prev, [name]: "" }));
       }
     },
     [errors]
   );
 
-  // Handle form submission
+  // Line 130: FIXED - API call with proper priority case conversion
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
@@ -156,58 +162,102 @@ const WeekendEventModal = ({
       setErrors({});
 
       try {
+        console.log('🚀 Creating weekend event with real API...');
+        console.log('📝 Form data:', formData);
+        console.log('🔑 Token present:', !!token);
+
+        // Line 148: FIXED - Ensure priority is uppercase for API
+        const apiPayload = {
+          eventType: formData.eventType,
+          title: formData.title,
+          message: formData.message,
+          startDate: formData.startDate,
+          endDate: formData.endDate || null,
+          sendSMS: formData.sendSMS,
+          priority: formData.priority.toUpperCase(), // FIXED: Convert to uppercase
+        };
+
+        console.log('📤 API Payload:', apiPayload);
+
+        // REAL API CALL to create weekend event
         const response = await fetch("/api/events", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            ...formData,
-            createdBy: "admin",
-          }),
+          body: JSON.stringify(apiPayload),
         });
 
+        console.log('📡 API Response status:', response.status);
+
         if (!response.ok) {
-          throw new Error("Failed to create event");
+          const errorText = await response.text();
+          console.error('❌ API Error response:', errorText);
+          
+          let errorMessage = 'Failed to create event';
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          }
+          
+          throw new Error(errorMessage);
         }
 
-        const eventData = await response.json();
+        const responseData = await response.json();
+        console.log('✅ API Success response:', responseData);
 
-        showSuccess(`Weekend event "${formData.title}" created successfully!`);
+        // Extract the event data (could be in responseData.data or responseData directly)
+        const eventData = responseData.data || responseData;
+
+        // Show success message with SMS info
+        const smsText = formData.sendSMS 
+          ? ` SMS notifications sent to students!` 
+          : '';
+        
+        showSuccess(`Weekend event "${formData.title}" created successfully!${smsText}`);
+        
+        // Pass the created event back to parent
         onEventCreated(eventData);
         onClose();
+
       } catch (error) {
-        showError(`Failed to create event: ${error.message}`);
-        setErrors({ submit: "Failed" });
+        console.error('❌ Weekend Event Creation Error:', error);
+        
+        // Show specific error messages
+        if (error.message.includes('401')) {
+          showError('Authentication failed. Please log in again.');
+        } else if (error.message.includes('403')) {
+          showError('You do not have permission to create events.');
+        } else if (error.message.includes('404')) {
+          showError('Events API not found. Please check your server configuration.');
+        } else if (error.message.includes('Failed to fetch')) {
+          showError('Cannot connect to server. Please check your internet connection.');
+        } else {
+          showError(`Failed to create event: ${error.message}`);
+        }
+        
+        setErrors({ submit: error.message });
       } finally {
         setIsSubmitting(false);
       }
     },
-    [
-      formData,
-      validateForm,
-      token,
-      onEventCreated,
-      onClose,
-      showSuccess,
-      showError,
-    ]
+    [formData, validateForm, token, onEventCreated, onClose, showSuccess, showError]
   );
 
-  // Character count helper
   const getCharacterCount = (text, maxLength) => {
     const count = text.length;
     const percentage = (count / maxLength) * 100;
 
     let colorClass = "text-gray-500";
     if (percentage > 90) colorClass = "text-red-600";
-    else if (percentrage > 75) colorClass = "text-red-500";
+    else if (percentage > 75) colorClass = "text-orange-500";
 
     return { count, colorClass };
   };
 
-  //keyboard event handlers
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && isOpen && !isSubmitting) {
@@ -215,50 +265,49 @@ const WeekendEventModal = ({
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    if (isOpen) {
+      document.addEventListener("keydown", handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [isOpen, isSubmitting, onClose]);
 
   if (!isOpen) return null;
 
   const titleCount = getCharacterCount(formData.title, 100);
-  const mesageCount = getCharacterCount(formData.message, 300);
+  const messageCount = getCharacterCount(formData.message, 300);
 
   return (
-    <div className="fixed inset-0 bg-black">
-      <div ref={modalRef} className="bg-white rounded-xl shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+      <div 
+        ref={modalRef} 
+        className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto"
+      >
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold">📅 Create Weekend Event</h2>
               <p className="text-blue-100 text-sm mt-1">
-                Design and schedule your announcement
+                Design and schedule your announcement with real SMS delivery
               </p>
             </div>
             <button
               onClick={onClose}
               className="text-white hover:text-gray-200 transition-colors p-1 rounded"
               disabled={isSubmitting}
+              aria-label="Close modal"
             >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
         </div>
 
-         <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="p-6">
           {/* Event Type */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -293,12 +342,14 @@ const WeekendEventModal = ({
               onChange={handleInputChange}
               placeholder="e.g., No Classes This Weekend"
               maxLength={100}
-              className={`w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              className={`w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                 errors.title ? 'border-red-300 bg-red-50' : 'border-gray-200'
               }`}
               disabled={isSubmitting}
             />
-            {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
+            {errors.title && (
+              <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+            )}
           </div>
 
           {/* Message */}
@@ -316,13 +367,17 @@ const WeekendEventModal = ({
               placeholder="e.g., Enjoy your weekend! Classes resume Monday."
               maxLength={300}
               rows={4}
-              className={`w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
+              className={`w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-colors ${
                 errors.message ? 'border-red-300 bg-red-50' : 'border-gray-200'
               }`}
               disabled={isSubmitting}
             />
-            {errors.message && <p className="mt-1 text-sm text-red-600">{errors.message}</p>}
-            <p className="mt-1 text-xs text-gray-500">SMS messages will be truncated to 160 characters</p>
+            {errors.message && (
+              <p className="mt-1 text-sm text-red-600">{errors.message}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              SMS messages will be truncated to 160 characters
+            </p>
           </div>
 
           {/* Date Range */}
@@ -342,7 +397,9 @@ const WeekendEventModal = ({
                 }`}
                 disabled={isSubmitting}
               />
-              {errors.startDate && <p className="mt-1 text-sm text-red-600">{errors.startDate}</p>}
+              {errors.startDate && (
+                <p className="mt-1 text-sm text-red-600">{errors.startDate}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -359,8 +416,32 @@ const WeekendEventModal = ({
                 }`}
                 disabled={isSubmitting}
               />
-              {errors.endDate && <p className="mt-1 text-sm text-red-600">{errors.endDate}</p>}
+              {errors.endDate && (
+                <p className="mt-1 text-sm text-red-600">{errors.endDate}</p>
+              )}
             </div>
+          </div>
+
+          {/* Line 370: FIXED - Priority Selection with proper enum values */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Priority Level
+            </label>
+            <select
+              name="priority"
+              value={formData.priority}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={isSubmitting}
+            >
+              <option value="LOW">🔵 Low Priority</option>
+              <option value="NORMAL">⚪ Normal Priority</option>
+              <option value="HIGH">🟡 High Priority</option>
+              <option value="URGENT">🔴 Urgent Priority</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              Higher priority events will be displayed more prominently
+            </p>
           </div>
 
           {/* SMS Option */}
@@ -382,6 +463,11 @@ const WeekendEventModal = ({
                   <p className="text-sm text-gray-600 mt-1">
                     SMS will be sent immediately to all students with phone numbers (₱0.35 per SMS)
                   </p>
+                  {formData.sendSMS && (
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                      ⚠️ Real SMS will be sent to actual phone numbers. Make sure your message is correct!
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -406,16 +492,16 @@ const WeekendEventModal = ({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || Object.keys(validateForm()).length > 0}
+              disabled={isSubmitting}
               className="px-8 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2"
             >
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Creating...</span>
+                  <span>Creating & Sending SMS...</span>
                 </>
               ) : (
-                <span>Create Announcement</span>
+                <span>Create & Send Event</span>
               )}
             </button>
           </div>
