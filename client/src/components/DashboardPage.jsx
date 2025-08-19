@@ -1,5 +1,5 @@
 // File: client/src/components/DashboardPage.jsx
-// FIXED: Complete edit functionality working
+// Line 1: ENHANCED - Added SMS reminder functionality integration
 import React, { useState, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -9,7 +9,7 @@ import useStudentManagement from "../hooks/useStudentManagement";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useToast } from "../hooks/useToast";
 
-// Components
+// Existing Components
 import StatisticsCards from "./dashboard/StatisticsCards";
 import PricingDistribution from "./dashboard/PricingDistribution";
 import StudentManagementSection from "./dashboard/StudentManagementSection";
@@ -20,16 +20,35 @@ import AddStudentModal from "./AddStudentModal";
 import SMSCreditsModal from "./modals/SMSCreditsModal";
 import SMSHistoryModal from "./modals/SMSHistoryModal";
 
+// NEW: Weekend Event Components
+import WeekendEventModal from "./modals/WeekendEventModal";
+import AnnouncementBanner from "./dashboard/AnnouncementBanner";
+
 export default function DashboardPage() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
 
-  // FIXED: View state management - Added "edit" view
-  const [currentView, setCurrentView] = useState("dashboard"); // dashboard, profile, edit
+  // Existing state management
+  const [currentView, setCurrentView] = useState("dashboard");
   const [selectedStudent, setSelectedStudent] = useState(null);
 
-  // Dashboard data hook
+  // Existing modals
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [addStudentModalOpen, setAddStudentModalOpen] = useState(false);
+  const [smsCreditsModalOpen, setSmsCreditsModalOpen] = useState(false);
+  const [smsHistoryModalOpen, setSmsHistoryModalOpen] = useState(false);
+
+  // NEW: Weekend Event Modal State
+  const [weekendEventModalOpen, setWeekendEventModalOpen] = useState(false);
+
+  // NEW: Announcements State
+  const [announcements, setAnnouncements] = useState([]);
+
+  // NEW: SMS Loading State
+  const [smsLoading, setSmsLoading] = useState(false);
+
+  // Existing dashboard data hook
   const { 
     dashboardData, 
     students, 
@@ -39,7 +58,7 @@ export default function DashboardPage() {
     refetch 
   } = useDashboardData(token);
 
-  // Enhanced student management hook
+  // Existing student management hook
   const {
     currentTab,
     searchQuery,
@@ -56,13 +75,7 @@ export default function DashboardPage() {
     clearSearch
   } = useStudentManagement(students);
 
-  // Modal states
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [addStudentModalOpen, setAddStudentModalOpen] = useState(false);
-  const [smsCreditsModalOpen, setSmsCreditsModalOpen] = useState(false);
-  const [smsHistoryModalOpen, setSmsHistoryModalOpen] = useState(false);
-
-  // FIXED: Event handlers for student navigation
+  // Existing event handlers
   const handleProcessPayment = useCallback((student) => {
     setSelectedStudent(student);
     setPaymentModalOpen(true);
@@ -78,19 +91,16 @@ export default function DashboardPage() {
     }
   }, [students, showError]);
 
-  // FIXED: Working edit handler - opens edit form
   const handleEditStudent = useCallback((student) => {
     setSelectedStudent(student);
     setCurrentView("edit");
   }, []);
 
-  // FIXED: Navigation handler
   const handleBackToDashboard = useCallback(() => {
     setCurrentView("dashboard");
     setSelectedStudent(null);
   }, []);
 
-  // FIXED: Edit save handler with API call
   const handleEditSave = useCallback(async (formData) => {
     try {
       const response = await fetch(`/api/students/${formData.id}`, {
@@ -110,18 +120,17 @@ export default function DashboardPage() {
       const updatedStudent = await response.json();
       
       showSuccess(`Student ${formData.name} updated successfully!`);
-      refetch(); // Refresh data
-      setCurrentView("dashboard"); // Return to dashboard
+      refetch();
+      setCurrentView("dashboard");
       setSelectedStudent(null);
     } catch (error) {
       throw new Error(error.message || 'Failed to update student');
     }
   }, [token, showSuccess, refetch]);
 
-  // Modal handlers
   const handlePaymentSuccess = useCallback((paymentData) => {
     showSuccess(`Payment of ₱${paymentData.amount} processed successfully!`);
-    refetch(); // Auto refresh after payment
+    refetch();
     setPaymentModalOpen(false);
     setSelectedStudent(null);
   }, [showSuccess, refetch]);
@@ -132,40 +141,149 @@ export default function DashboardPage() {
     setAddStudentModalOpen(false);
   }, [showSuccess, refetch]);
 
-  const handleSMSCreditsOpen = useCallback(() => {
-    setSmsCreditsModalOpen(true);
-  }, []);
-
-  const handleSMSHistoryOpen = useCallback(() => {
-    setSmsHistoryModalOpen(true);
-  }, []);
-
+  // Line 130: NEW - SMS Reminder Handler (FIXED IMPLEMENTATION)
   const handleSendReminder = useCallback(async (student) => {
-    try {
-      showSuccess(`SMS reminder sent to ${student.name}!`);
-    } catch (error) {
-      showError(`Failed to send SMS: ${error.message}`);
+    if (smsLoading) {
+      showError("SMS reminder already in progress. Please wait.");
+      return;
     }
-  }, [showSuccess, showError]);
+
+    // Validate student data
+    if (!student || !student.id) {
+      showError("Invalid student data");
+      return;
+    }
+
+    // Check if student has phone number
+    const phoneNumber = student.phone || student.phoneNumber;
+    if (!phoneNumber) {
+      showError(`${student.name} has no phone number on file`);
+      return;
+    }
+
+    // Check if student is eligible for reminder
+    if (!canSendReminder(student)) {
+      const status = getStudentStatus(student);
+      showError(`Cannot send reminder to ${student.name}. Status: ${status}`);
+      return;
+    }
+
+    setSmsLoading(true);
+
+    try {
+      console.log(`📱 Sending SMS reminder to ${student.name} (${phoneNumber})`);
+
+      const response = await fetch('/api/reminders/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentId: student.id,
+          testMode: false, // Set to true for testing without actual SMS
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || `HTTP ${response.status}`);
+      }
+
+      if (data.success) {
+        showSuccess(
+          `SMS reminder sent successfully to ${student.name}! ` +
+          `Cost: ₱${data.data?.cost || '0.60'}`
+        );
+        
+        console.log("✅ SMS reminder sent:", data);
+        
+        // Optionally refetch data to update reminder timestamps
+        // refetch();
+      } else {
+        throw new Error(data.message || 'SMS sending failed');
+      }
+
+    } catch (error) {
+      console.error("❌ SMS reminder error:", error);
+      
+      // Enhanced error handling with specific messages
+      if (error.message.includes('429')) {
+        showError(`Rate limit: Cannot send another reminder to ${student.name} yet. Please wait 24 hours.`);
+      } else if (error.message.includes('404')) {
+        showError(`Student ${student.name} not found`);
+      } else if (error.message.includes('400')) {
+        showError(`Invalid phone number for ${student.name}`);
+      } else if (error.message.includes('500')) {
+        showError('SMS service temporarily unavailable. Please try again later.');
+      } else {
+        showError(`Failed to send SMS to ${student.name}: ${error.message}`);
+      }
+    } finally {
+      setSmsLoading(false);
+    }
+  }, [token, showSuccess, showError, smsLoading, canSendReminder, getStudentStatus]);
+
+  // NEW: Weekend Event Handlers
+  const handleOpenWeekendEventModal = useCallback(() => {
+    setWeekendEventModalOpen(true);
+  }, []);
+
+  const handleEventCreated = useCallback((eventData) => {
+    // Add new announcement to the top of the list
+    setAnnouncements(prev => [eventData, ...prev]);
+    
+    // Show success notification
+    const smsText = eventData.sendSMS 
+      ? ` SMS notifications sent to all students.` 
+      : '';
+    
+    showSuccess(`Weekend event "${eventData.title}" created successfully!${smsText}`);
+  }, [showSuccess]);
+
+  const handleDismissAnnouncement = useCallback((announcementId) => {
+    setAnnouncements(prev => prev.filter(announcement => 
+      (announcement.id || announcement.index) !== announcementId
+    ));
+  }, []);
+
+  const handleEditAnnouncement = useCallback((announcement) => {
+    // Future: Open edit modal with pre-filled data
+    showSuccess('Edit functionality will be available in the next update');
+  }, [showSuccess]);
 
   // Loading and error states
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading dashboard...</div>
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-300">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
-        <div className="text-red-400 text-xl">{error}</div>
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-6xl mb-4">❌</div>
+          <h2 className="text-xl font-semibold text-gray-100 mb-2">Dashboard Error</h2>
+          <p className="text-gray-400 mb-4">{error}</p>
+          <button
+            onClick={refetch}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
-  // FIXED: Conditional rendering for all views
+  // Profile view
   if (currentView === "profile" && selectedStudent) {
     return (
       <StudentProfileView
@@ -176,104 +294,120 @@ export default function DashboardPage() {
     );
   }
 
-  // FIXED: Edit view rendering
+  // Edit view
   if (currentView === "edit" && selectedStudent) {
     return (
       <StudentEditForm
         student={selectedStudent}
-        onSave={handleEditSave}
         onBack={handleBackToDashboard}
-        isSaving={false}
+        onSave={handleEditSave}
       />
     );
   }
 
-  // Main dashboard view
+  // FIXED: Main dashboard view with SMS integration
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      <main className="container mx-auto px-4 py-8">
-        {/* Page Header with SMS Buttons and Logout */}
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">
-              Academy Dashboard
-            </h1>
-            <p className="text-gray-400">
-              Welcome back, {user?.name || 'Admin'}! Here's your academy overview.
-            </p>
-          </div>
-          
-          {/* SMS Controls and Logout */}
-          <div className="flex space-x-4">
-            <button
-              onClick={handleSMSCreditsOpen}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-            >
-              💳 SMS Credits
-            </button>
-            <button
-              onClick={handleSMSHistoryOpen}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
-            >
-              📊 SMS History
-            </button>
-            <button
-              onClick={() => {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                navigate('/login');
-              }}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
-            >
-              🚪 Logout
-            </button>
+    <div className="min-h-screen bg-gray-900">
+      {/* UPDATED: Enhanced Header with Weekend Event Button */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Student Membership Dashboard
+              </h1>
+              <p className="text-gray-600 mt-1">Welcome back, {user?.email}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* NEW: Weekend Event Button */}
+              <button
+                onClick={handleOpenWeekendEventModal}
+                className="flex items-center px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 transition-all duration-200 transform hover:scale-105 shadow-lg"
+                title="Create Weekend Event"
+              >
+                <span className="mr-2">📅</span>
+                <span>Weekend Event</span>
+              </button>
+              
+              {/* Existing SMS Buttons */}
+              <button
+                onClick={() => setSmsCreditsModalOpen(true)}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <span className="mr-2">💳</span>
+                <span>Credits</span>
+              </button>
+              <button
+                onClick={() => setSmsHistoryModalOpen(true)}
+                className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                <span className="mr-2">📊</span>
+                <span>History</span>
+              </button>
+              
+              {/* Existing buttons */}
+              <button
+                onClick={refetch}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Refresh Data
+              </button>
+            </div>
           </div>
         </div>
+      </header>
 
-        {/* Statistics Cards */}
-        <StatisticsCards 
-          students={students}
-          dashboardData={dashboardData}
-          tabCounts={tabCounts}
-          pricingBreakdown={pricingBreakdown}
-        />
+      {/* FIXED: Main Content with dark background container */}
+      <div className="min-h-screen bg-gray-900">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* NEW: Announcement Banner */}
+          <AnnouncementBanner 
+            announcements={announcements}
+            onDismiss={handleDismissAnnouncement}
+            onEdit={handleEditAnnouncement}
+          />
 
-        {/* Pricing Distribution */}
-        <PricingDistribution 
-          pricingBreakdown={pricingBreakdown}
-        />
+          {/* Existing Components */}
+          <StatisticsCards 
+            students={students}
+            dashboardData={dashboardData}
+            tabCounts={tabCounts}
+            pricingBreakdown={pricingBreakdown}
+          />
 
-        {/* Student Management Section */}
-        <StudentManagementSection
-          filteredStudents={filteredStudents}
-          students={students}
-          tabCounts={tabCounts}
-          currentTab={currentTab}
-          searchQuery={searchQuery}
-          isSearchActive={isSearchActive}
-          setCurrentTab={setCurrentTab}
-          setSearchQuery={setSearchQuery}
-          setIsSearchActive={setIsSearchActive}
-          setAddStudentModalOpen={setAddStudentModalOpen}
-          onProcessPayment={handleProcessPayment}
-          onViewStudent={handleViewStudent}
-          onEditStudent={handleEditStudent} // This now works properly
-          onSendReminder={handleSendReminder}
-          canSendReminder={canSendReminder}
-          getStudentStatus={getStudentStatus}
-          getDaysRemaining={getDaysRemaining}
-          smsLoading={false}
-        />
+          <PricingDistribution 
+            pricingBreakdown={pricingBreakdown}
+          />
 
-        {/* Data Timestamp */}
-        <div className="mt-6 text-center text-sm text-gray-500">
-          Last updated: {new Date(dashboardData?.timestamp || Date.now()).toLocaleString()}
-        </div>
-      </main>
+          {/* ENHANCED: Student Management Section with SMS Integration */}
+          <StudentManagementSection
+            filteredStudents={filteredStudents}
+            students={students}
+            tabCounts={tabCounts}
+            currentTab={currentTab}
+            searchQuery={searchQuery}
+            isSearchActive={isSearchActive}
+            setCurrentTab={setCurrentTab}
+            setSearchQuery={setSearchQuery}
+            setIsSearchActive={setIsSearchActive}
+            setAddStudentModalOpen={setAddStudentModalOpen}
+            onProcessPayment={handleProcessPayment}
+            onViewStudent={handleViewStudent}
+            onEditStudent={handleEditStudent}
+            onSendReminder={handleSendReminder} // FIXED: Connected SMS handler
+            canSendReminder={canSendReminder}
+            getStudentStatus={getStudentStatus}
+            getDaysRemaining={getDaysRemaining}
+            smsLoading={smsLoading} // FIXED: Connected SMS loading state
+          />
 
-      {/* All Modals */}
-      
-      {/* Payment Modal */}
+          <div className="mt-6 text-center text-sm text-gray-400">
+            Last updated: {new Date(dashboardData?.timestamp || Date.now()).toLocaleString()}
+          </div>
+        </main>
+      </div>
+
+      {/* Existing Modals */}
       <PaymentModal
         isOpen={paymentModalOpen}
         onClose={() => {
@@ -284,23 +418,28 @@ export default function DashboardPage() {
         onPaymentSuccess={handlePaymentSuccess}
       />
 
-      {/* Add Student Modal */}
       <AddStudentModal
         isOpen={addStudentModalOpen}
         onClose={() => setAddStudentModalOpen(false)}
         onStudentAdded={handleStudentAdded}
       />
 
-      {/* SMS Credits Modal */}
       <SMSCreditsModal
         isOpen={smsCreditsModalOpen}
         onClose={() => setSmsCreditsModalOpen(false)}
       />
 
-      {/* SMS History Modal */}
       <SMSHistoryModal
         isOpen={smsHistoryModalOpen}
         onClose={() => setSmsHistoryModalOpen(false)}
+      />
+
+      {/* NEW: Weekend Event Modal */}
+      <WeekendEventModal
+        isOpen={weekendEventModalOpen}
+        onClose={() => setWeekendEventModalOpen(false)}
+        onEventCreated={handleEventCreated}
+        existingEvents={announcements}
       />
     </div>
   );

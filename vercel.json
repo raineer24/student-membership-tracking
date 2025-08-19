@@ -23,6 +23,7 @@
     { "src": "/api/memberships(?:/(.*))?", "dest": "/api/memberships/[[...slug]].js" },
     { "src": "/api/payments(?:/(.*))?", "dest": "/api/payments/[[...slug]].js" },
     { "src": "/api/reminders(?:/(.*))?", "dest": "/api/reminders/[[...slug]].js" },
+    { "src": "/api/events(?:/(.*))?", "dest": "/api/events/[[...slug]].js" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/assets/(.*)", "dest": "client/dist/assets/$1" },
     { "src": "/(.*)", "dest": "client/dist/index.html", "status": 200 }
