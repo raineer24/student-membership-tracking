@@ -1,5 +1,5 @@
 // File: client/src/components/DashboardPage.jsx
-// Line 1: ENHANCED - Added SMS reminder functionality integration
+// Line 1: ENHANCED - Dashboard with Student Data Passing for Selective Messaging
 import React, { useState, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -20,9 +20,12 @@ import AddStudentModal from "./AddStudentModal";
 import SMSCreditsModal from "./modals/SMSCreditsModal";
 import SMSHistoryModal from "./modals/SMSHistoryModal";
 
-// NEW: Weekend Event Components
+// Enhanced Weekend Event Components
 import WeekendEventModal from "./modals/WeekendEventModal";
 import AnnouncementBanner from "./dashboard/AnnouncementBanner";
+
+// FIXED: Import missing LogoutButton component
+import LogoutButton from "./LogoutButton";
 
 export default function DashboardPage() {
   const { user, token } = useAuth();
@@ -39,16 +42,16 @@ export default function DashboardPage() {
   const [smsCreditsModalOpen, setSmsCreditsModalOpen] = useState(false);
   const [smsHistoryModalOpen, setSmsHistoryModalOpen] = useState(false);
 
-  // NEW: Weekend Event Modal State
+  // ENHANCED: Weekend Event Modal State
   const [weekendEventModalOpen, setWeekendEventModalOpen] = useState(false);
 
-  // NEW: Announcements State
+  // Announcements State
   const [announcements, setAnnouncements] = useState([]);
 
-  // NEW: SMS Loading State
+  // SMS Loading State
   const [smsLoading, setSmsLoading] = useState(false);
 
-  // Existing dashboard data hook
+  // Dashboard data hook
   const { 
     dashboardData, 
     students, 
@@ -58,7 +61,7 @@ export default function DashboardPage() {
     refetch 
   } = useDashboardData(token);
 
-  // Existing student management hook
+  // Student management hook
   const {
     currentTab,
     searchQuery,
@@ -75,7 +78,7 @@ export default function DashboardPage() {
     clearSearch
   } = useStudentManagement(students);
 
-  // Existing event handlers
+  // Existing event handlers (unchanged)
   const handleProcessPayment = useCallback((student) => {
     setSelectedStudent(student);
     setPaymentModalOpen(true);
@@ -141,7 +144,7 @@ export default function DashboardPage() {
     setAddStudentModalOpen(false);
   }, [showSuccess, refetch]);
 
-  // Line 130: NEW - SMS Reminder Handler (FIXED IMPLEMENTATION)
+  // SMS Reminder Handler (unchanged)
   const handleSendReminder = useCallback(async (student) => {
     if (smsLoading) {
       showError("SMS reminder already in progress. Please wait.");
@@ -181,7 +184,7 @@ export default function DashboardPage() {
         },
         body: JSON.stringify({
           studentId: student.id,
-          testMode: false, // Set to true for testing without actual SMS
+          testMode: false,
         }),
       });
 
@@ -198,9 +201,6 @@ export default function DashboardPage() {
         );
         
         console.log("✅ SMS reminder sent:", data);
-        
-        // Optionally refetch data to update reminder timestamps
-        // refetch();
       } else {
         throw new Error(data.message || 'SMS sending failed');
       }
@@ -225,7 +225,7 @@ export default function DashboardPage() {
     }
   }, [token, showSuccess, showError, smsLoading, canSendReminder, getStudentStatus]);
 
-  // NEW: Weekend Event Handlers
+  // ENHANCED: Weekend Event Handlers with Student Data Passing
   const handleOpenWeekendEventModal = useCallback(() => {
     setWeekendEventModalOpen(true);
   }, []);
@@ -234,12 +234,14 @@ export default function DashboardPage() {
     // Add new announcement to the top of the list
     setAnnouncements(prev => [eventData, ...prev]);
     
-    // Show success notification
-    const smsText = eventData.sendSMS 
-      ? ` SMS notifications sent to all students.` 
-      : '';
+    // Show enhanced success notification with detailed SMS info
+    let successMessage = `Weekend event "${eventData.title}" created successfully!`;
     
-    showSuccess(`Weekend event "${eventData.title}" created successfully!${smsText}`);
+    if (eventData.sendSMS && eventData.estimatedReach > 0) {
+      successMessage += ` SMS sent to ${eventData.estimatedReach} selected students (₱${eventData.estimatedCost})`;
+    }
+    
+    showSuccess(successMessage);
   }, [showSuccess]);
 
   const handleDismissAnnouncement = useCallback((announcementId) => {
@@ -305,10 +307,10 @@ export default function DashboardPage() {
     );
   }
 
-  // FIXED: Main dashboard view with SMS integration
+  // Main dashboard view
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* UPDATED: Enhanced Header with Weekend Event Button */}
+      {/* ENHANCED: Header with improved Weekend Event Button */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
@@ -319,14 +321,15 @@ export default function DashboardPage() {
               <p className="text-gray-600 mt-1">Welcome back, {user?.email}</p>
             </div>
             <div className="flex items-center gap-3">
-              {/* NEW: Weekend Event Button */}
+              {/* ENHANCED: Weekend Event Button with Better Styling */}
               <button
                 onClick={handleOpenWeekendEventModal}
                 className="flex items-center px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 transition-all duration-200 transform hover:scale-105 shadow-lg"
-                title="Create Weekend Event"
+                title="Create Weekend Event with Selective Messaging"
               >
                 <span className="mr-2">📅</span>
-                <span>Weekend Event</span>
+                <span className="hidden sm:inline">Weekend Event</span>
+                <span className="sm:hidden">Event</span>
               </button>
               
               {/* Existing SMS Buttons */}
@@ -335,32 +338,36 @@ export default function DashboardPage() {
                 className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 <span className="mr-2">💳</span>
-                <span>Credits</span>
+                <span className="hidden sm:inline">Credits</span>
               </button>
               <button
                 onClick={() => setSmsHistoryModalOpen(true)}
                 className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
               >
                 <span className="mr-2">📊</span>
-                <span>History</span>
+                <span className="hidden sm:inline">History</span>
               </button>
               
-              {/* Existing buttons */}
+              {/* Existing refresh button */}
               <button
                 onClick={refetch}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Refresh Data
+                <span className="hidden sm:inline">Refresh Data</span>
+                <span className="sm:hidden">🔄</span>
               </button>
+              
+              {/* FIXED: Add missing logout button */}
+              <LogoutButton />
             </div>
           </div>
         </div>
       </header>
 
-      {/* FIXED: Main Content with dark background container */}
+      {/* Main Content */}
       <div className="min-h-screen bg-gray-900">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* NEW: Announcement Banner */}
+          {/* Announcement Banner */}
           <AnnouncementBanner 
             announcements={announcements}
             onDismiss={handleDismissAnnouncement}
@@ -379,7 +386,7 @@ export default function DashboardPage() {
             pricingBreakdown={pricingBreakdown}
           />
 
-          {/* ENHANCED: Student Management Section with SMS Integration */}
+          {/* Student Management Section with SMS Integration */}
           <StudentManagementSection
             filteredStudents={filteredStudents}
             students={students}
@@ -394,11 +401,11 @@ export default function DashboardPage() {
             onProcessPayment={handleProcessPayment}
             onViewStudent={handleViewStudent}
             onEditStudent={handleEditStudent}
-            onSendReminder={handleSendReminder} // FIXED: Connected SMS handler
+            onSendReminder={handleSendReminder}
             canSendReminder={canSendReminder}
             getStudentStatus={getStudentStatus}
             getDaysRemaining={getDaysRemaining}
-            smsLoading={smsLoading} // FIXED: Connected SMS loading state
+            smsLoading={smsLoading}
           />
 
           <div className="mt-6 text-center text-sm text-gray-400">
@@ -434,12 +441,13 @@ export default function DashboardPage() {
         onClose={() => setSmsHistoryModalOpen(false)}
       />
 
-      {/* NEW: Weekend Event Modal */}
+      {/* ENHANCED: Weekend Event Modal with Student Data */}
       <WeekendEventModal
         isOpen={weekendEventModalOpen}
         onClose={() => setWeekendEventModalOpen(false)}
         onEventCreated={handleEventCreated}
         existingEvents={announcements}
+        students={students} // CRITICAL: Pass complete student data for recipient calculation
       />
     </div>
   );
