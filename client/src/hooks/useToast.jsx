@@ -1,4 +1,5 @@
-// Line 1-15: FIXED Complete Enhanced useToast.jsx - Eliminates Infinite Loop
+// File: client/src/hooks/useToast.jsx
+// Lines 1-15: FIXED Toast System - Eliminates replace() undefined errors
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 
 // Line 17-25: Toast Context Creation
@@ -12,6 +13,7 @@ const TOAST_TYPES = {
   INFO: 'info'
 };
 
+// Lines 37-70: FIXED TOAST CONFIG - Safe string handling
 const TOAST_CONFIG = {
   [TOAST_TYPES.SUCCESS]: {
     duration: 3000,
@@ -19,7 +21,8 @@ const TOAST_CONFIG = {
     bgColor: 'bg-green-50',
     borderColor: 'border-green-200',
     textColor: 'text-green-800',
-    hoverColor: 'hover:bg-green-100'
+    hoverColor: 'hover:text-green-900',
+    closeColor: 'text-green-500'
   },
   [TOAST_TYPES.ERROR]: {
     duration: 5000,
@@ -27,7 +30,8 @@ const TOAST_CONFIG = {
     bgColor: 'bg-red-50',
     borderColor: 'border-red-200',
     textColor: 'text-red-800',
-    hoverColor: 'hover:bg-red-100'
+    hoverColor: 'hover:text-red-900',
+    closeColor: 'text-red-500'
   },
   [TOAST_TYPES.WARNING]: {
     duration: 4000,
@@ -35,7 +39,8 @@ const TOAST_CONFIG = {
     bgColor: 'bg-yellow-50',
     borderColor: 'border-yellow-200',
     textColor: 'text-yellow-800',
-    hoverColor: 'hover:bg-yellow-100'
+    hoverColor: 'hover:text-yellow-900',
+    closeColor: 'text-yellow-500'
   },
   [TOAST_TYPES.INFO]: {
     duration: 3000,
@@ -43,19 +48,20 @@ const TOAST_CONFIG = {
     bgColor: 'bg-blue-50',
     borderColor: 'border-blue-200',
     textColor: 'text-blue-800',
-    hoverColor: 'hover:bg-blue-100'
+    hoverColor: 'hover:text-blue-900',
+    closeColor: 'text-blue-500'
   }
 };
 
-// Line 36-200: FIXED Toast Provider - Eliminates all circular dependencies
+// Lines 75-200: FIXED Toast Provider - Safe string operations
 export const ToastProvider = ({ children }) => {
   const [toast, setToast] = useState(null);
   const [toastQueue, setToastQueue] = useState([]);
   const timeoutRef = useRef(null);
   const isDisplayingRef = useRef(false);
-  const processingRef = useRef(false); // CRITICAL: Prevent duplicate processing
+  const processingRef = useRef(false);
 
-  // Line 44-50: Clear existing timeout utility
+  // Clear existing timeout utility
   const clearExistingTimeout = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -63,9 +69,8 @@ export const ToastProvider = ({ children }) => {
     }
   }, []);
 
-  // Line 52-85: FIXED Process toast queue - No circular dependencies
+  // FIXED Process toast queue - Safe processing
   const processQueue = useCallback(() => {
-    // CRITICAL: Prevent infinite loops with processing guard
     if (processingRef.current || isDisplayingRef.current || toastQueue.length === 0) {
       return;
     }
@@ -81,91 +86,77 @@ export const ToastProvider = ({ children }) => {
     setToast(nextToast);
     isDisplayingRef.current = true;
 
-    const config = TOAST_CONFIG[nextToast.type];
+    const config = TOAST_CONFIG[nextToast.type] || TOAST_CONFIG[TOAST_TYPES.INFO];
     
     // Set auto-hide timer
     timeoutRef.current = setTimeout(() => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Auto-hiding ${nextToast.type} toast:`, nextToast.message);
-      }
-      
       setToast(null);
       isDisplayingRef.current = false;
       processingRef.current = false;
       
-      // Schedule next processing WITHOUT causing re-render loop
+      // Schedule next processing
       setTimeout(() => {
         processingRef.current = false;
-        // This will trigger the next useEffect, not a direct call
       }, 100);
       
     }, config.duration);
 
     processingRef.current = false;
-  }, [toastQueue]); // ONLY toastQueue dependency
+  }, [toastQueue]);
 
-  // Line 87-95: FIXED Effect to process queue - Prevents infinite loops
+  // Effect to process queue
   useEffect(() => {
-    // Only process if not currently processing and queue has items
     if (!processingRef.current && !isDisplayingRef.current && toastQueue.length > 0) {
-      const timer = setTimeout(processQueue, 50); // Small delay prevents stack overflow
+      const timer = setTimeout(processQueue, 50);
       return () => clearTimeout(timer);
     }
   }, [toastQueue, processQueue]);
 
-  // Line 97-115: FIXED showSuccess - Stable implementation
+  // FIXED showSuccess - Safe string conversion
   const showSuccess = useCallback((message, options = {}) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log("showSuccess called with:", message);
-    }
+    // CRITICAL FIX: Ensure message is always a string
+    const safeMessage = message === null || message === undefined ? 
+      'Success' : String(message);
     
     const newToast = {
       id: Date.now() + Math.random(),
-      message: String(message), // Convert to string to prevent object references
+      message: safeMessage,
       type: TOAST_TYPES.SUCCESS,
       persistent: options.persistent || false,
       action: options.action || null,
       ...options
     };
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log("Adding success toast to queue:", newToast.message);
-    }
-
     setToastQueue(prev => [...prev, newToast]);
-  }, []); // NO dependencies - completely stable
+  }, []);
 
-  // Line 117-135: FIXED showError - Stable implementation
+  // FIXED showError - Safe string conversion
   const showError = useCallback((message, options = {}) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log("showError called with:", message);
-    }
+    // CRITICAL FIX: Ensure message is always a string
+    const safeMessage = message === null || message === undefined ? 
+      'An error occurred' : String(message);
     
     const newToast = {
       id: Date.now() + Math.random(),
-      message: String(message), // Convert to string to prevent object references
+      message: safeMessage,
       type: TOAST_TYPES.ERROR,
       persistent: options.persistent || false,
       action: options.action || null,
       ...options
     };
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log("Adding error toast to queue:", newToast.message);
-    }
-
     setToastQueue(prev => [...prev, newToast]);
-  }, []); // NO dependencies - completely stable
+  }, []);
 
-  // Line 137-150: showWarning method - Stable
+  // FIXED showWarning - Safe string conversion
   const showWarning = useCallback((message, options = {}) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log("showWarning called with:", message);
-    }
+    // CRITICAL FIX: Ensure message is always a string
+    const safeMessage = message === null || message === undefined ? 
+      'Warning' : String(message);
     
     const newToast = {
       id: Date.now() + Math.random(),
-      message: String(message),
+      message: safeMessage,
       type: TOAST_TYPES.WARNING,
       persistent: options.persistent || false,
       action: options.action || null,
@@ -173,17 +164,17 @@ export const ToastProvider = ({ children }) => {
     };
 
     setToastQueue(prev => [...prev, newToast]);
-  }, []); // NO dependencies - completely stable
+  }, []);
 
-  // Line 152-165: showInfo method - Stable
+  // FIXED showInfo - Safe string conversion
   const showInfo = useCallback((message, options = {}) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log("showInfo called with:", message);
-    }
+    // CRITICAL FIX: Ensure message is always a string
+    const safeMessage = message === null || message === undefined ? 
+      'Information' : String(message);
     
     const newToast = {
       id: Date.now() + Math.random(),
-      message: String(message),
+      message: safeMessage,
       type: TOAST_TYPES.INFO,
       persistent: options.persistent || false,
       action: options.action || null,
@@ -191,31 +182,22 @@ export const ToastProvider = ({ children }) => {
     };
 
     setToastQueue(prev => [...prev, newToast]);
-  }, []); // NO dependencies - completely stable
+  }, []);
 
-  // Line 167-180: FIXED Manual hide toast functionality
+  // Manual hide toast functionality
   const hideToast = useCallback(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log("hideToast called manually");
-    }
-    
     clearExistingTimeout();
     setToast(null);
     isDisplayingRef.current = false;
     processingRef.current = false;
     
-    // Process next toast after hiding current one
     setTimeout(() => {
       processingRef.current = false;
     }, 100);
   }, [clearExistingTimeout]);
 
-  // Line 182-190: Clear all toasts utility
+  // Clear all toasts utility
   const clearAllToasts = useCallback(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log("Clearing all toasts");
-    }
-    
     clearExistingTimeout();
     setToast(null);
     setToastQueue([]);
@@ -223,7 +205,7 @@ export const ToastProvider = ({ children }) => {
     processingRef.current = false;
   }, [clearExistingTimeout]);
 
-  // Line 192-200: Cleanup on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       clearExistingTimeout();
@@ -232,7 +214,7 @@ export const ToastProvider = ({ children }) => {
     };
   }, [clearExistingTimeout]);
 
-  // Line 202-215: FIXED Provider value - All stable functions
+  // Provider value - All stable functions
   const contextValue = {
     toast,
     showSuccess,
@@ -251,7 +233,7 @@ export const ToastProvider = ({ children }) => {
   );
 };
 
-// Line 217-225: Enhanced useToast hook with error handling
+// Lines 205-225: Enhanced useToast hook with error handling
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {
@@ -260,27 +242,38 @@ export const useToast = () => {
   return context;
 };
 
-// Line 227-320: FIXED SimpleToast Component - Prevents re-render loops
+// Lines 230-350: FIXED SimpleToast Component - Safe CSS class handling
 export const SimpleToast = ({ message, type, onClose, action, persistent = false }) => {
+  // CRITICAL FIX: Safe config access with fallback
   const config = TOAST_CONFIG[type] || TOAST_CONFIG[TOAST_TYPES.INFO];
+  
+  // CRITICAL FIX: Ensure all config values exist with safe defaults
+  const safeConfig = {
+    icon: config.icon || 'ℹ️',
+    bgColor: config.bgColor || 'bg-blue-50',
+    borderColor: config.borderColor || 'border-blue-200',
+    textColor: config.textColor || 'text-blue-800',
+    hoverColor: config.hoverColor || 'hover:text-blue-900',
+    closeColor: config.closeColor || 'text-blue-500',
+    duration: config.duration || 3000
+  };
 
-  // Line 230-240: FIXED Auto-hide logic - Stable dependencies
+  // Auto-hide logic
   useEffect(() => {
     if (persistent) return;
 
     const timer = setTimeout(() => {
       onClose();
-    }, config.duration);
+    }, safeConfig.duration);
 
     return () => clearTimeout(timer);
-  }, [persistent, config.duration, onClose]); // Stable dependencies only
+  }, [persistent, safeConfig.duration, onClose]);
 
-  // Line 242-270: Enhanced toast animations
+  // Enhanced toast animations
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
-    // Entrance animation
     const timer = setTimeout(() => setIsVisible(true), 10);
     return () => clearTimeout(timer);
   }, []);
@@ -291,6 +284,10 @@ export const SimpleToast = ({ message, type, onClose, action, persistent = false
       onClose();
     }, 300);
   }, [onClose]);
+
+  // CRITICAL FIX: Ensure message is always a string
+  const safeMessage = message === null || message === undefined ? 
+    'Notification' : String(message);
 
   return (
     <div className={`
@@ -303,37 +300,38 @@ export const SimpleToast = ({ message, type, onClose, action, persistent = false
     `}>
       <div className={`
         rounded-lg shadow-lg border p-4 flex items-start justify-between
-        ${config.bgColor} ${config.borderColor} ${config.textColor}
+        ${safeConfig.bgColor} ${safeConfig.borderColor} ${safeConfig.textColor}
         backdrop-blur-sm bg-opacity-95
       `}>
         <div className="flex items-start space-x-3 flex-1">
           <span className="text-lg flex-shrink-0 mt-0.5">
-            {config.icon}
+            {safeConfig.icon}
           </span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium break-words">
-              {message}
+              {safeMessage}
             </p>
             {action && (
               <button
                 onClick={action.onClick}
                 className={`
                   mt-2 text-xs font-medium underline
-                  ${config.textColor} ${config.hoverColor}
+                  ${safeConfig.textColor} ${safeConfig.hoverColor}
                   transition-colors duration-200
                 `}
               >
-                {action.label}
+                {String(action.label || 'Action')}
               </button>
             )}
           </div>
         </div>
         
+        {/* CRITICAL FIX: Safe CSS class handling - NO MORE .replace() calls */}
         <button
           onClick={handleClose}
           className={`
             ml-4 inline-flex text-sm p-1 rounded-md flex-shrink-0
-            ${config.textColor.replace('text-', 'text-')} ${config.hoverColor}
+            ${safeConfig.closeColor} ${safeConfig.hoverColor}
             transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2
           `}
           aria-label="Close notification"
@@ -348,7 +346,7 @@ export const SimpleToast = ({ message, type, onClose, action, persistent = false
   );
 };
 
-// Line 322-350: Toast Container Component for Multiple Toasts
+// Lines 355-380: Toast Container Component
 export const ToastContainer = () => {
   const { toast } = useToast();
 
@@ -357,28 +355,37 @@ export const ToastContainer = () => {
   return <SimpleToast {...toast} />;
 };
 
-// Line 352-380: FIXED Utility Functions for Common Toast Patterns
+// Lines 385-450: FIXED Utility Functions for Common Toast Patterns
 export const useToastHelpers = () => {
   const { showSuccess, showError, showWarning, showInfo } = useToast();
 
-  // FIXED: All functions are stable with no dependencies
   return {
-    // Success patterns
-    saveSuccess: useCallback((itemName = 'Item') => 
-      showSuccess(`${itemName} saved successfully!`), [showSuccess]),
+    // Success patterns - All with safe string handling
+    saveSuccess: useCallback((itemName = 'Item') => {
+      const safeItemName = String(itemName || 'Item');
+      showSuccess(`${safeItemName} saved successfully!`);
+    }, [showSuccess]),
     
-    deleteSuccess: useCallback((itemName = 'Item') => 
-      showSuccess(`${itemName} deleted successfully!`), [showSuccess]),
+    deleteSuccess: useCallback((itemName = 'Item') => {
+      const safeItemName = String(itemName || 'Item');
+      showSuccess(`${safeItemName} deleted successfully!`);
+    }, [showSuccess]),
     
-    updateSuccess: useCallback((itemName = 'Item') => 
-      showSuccess(`${itemName} updated successfully!`), [showSuccess]),
+    updateSuccess: useCallback((itemName = 'Item') => {
+      const safeItemName = String(itemName || 'Item');
+      showSuccess(`${safeItemName} updated successfully!`);
+    }, [showSuccess]),
 
-    // Error patterns
-    saveError: useCallback((itemName = 'Item') => 
-      showError(`Failed to save ${itemName.toLowerCase()}. Please try again.`), [showError]),
+    // Error patterns - All with safe string handling
+    saveError: useCallback((itemName = 'Item') => {
+      const safeItemName = String(itemName || 'Item');
+      showError(`Failed to save ${safeItemName.toLowerCase()}. Please try again.`);
+    }, [showError]),
     
-    deleteError: useCallback((itemName = 'Item') => 
-      showError(`Failed to delete ${itemName.toLowerCase()}. Please try again.`), [showError]),
+    deleteError: useCallback((itemName = 'Item') => {
+      const safeItemName = String(itemName || 'Item');
+      showError(`Failed to delete ${safeItemName.toLowerCase()}. Please try again.`);
+    }, [showError]),
     
     networkError: useCallback(() => 
       showError('Network error. Please check your connection and try again.'), [showError]),
@@ -388,17 +395,20 @@ export const useToastHelpers = () => {
       showWarning('You have unsaved changes. Please save before leaving.'), [showWarning]),
 
     // Info patterns
-    loading: useCallback((message = 'Processing...') => 
-      showInfo(message), [showInfo])
+    loading: useCallback((message = 'Processing...') => {
+      const safeMessage = String(message || 'Processing...');
+      showInfo(safeMessage);
+    }, [showInfo])
   };
 };
 
-// Line 382-400: FIXED Hook for Toast Notifications with Actions
+// Lines 455-485: FIXED Hook for Toast Notifications with Actions
 export const useActionToast = () => {
   const { showSuccess, showError } = useToast();
 
   const showUndoToast = useCallback((message, undoAction) => {
-    showSuccess(message, {
+    const safeMessage = String(message || 'Action completed');
+    showSuccess(safeMessage, {
       action: {
         label: 'Undo',
         onClick: undoAction
@@ -408,7 +418,8 @@ export const useActionToast = () => {
   }, [showSuccess]);
 
   const showRetryToast = useCallback((message, retryAction) => {
-    showError(message, {
+    const safeMessage = String(message || 'Action failed');
+    showError(safeMessage, {
       action: {
         label: 'Retry',
         onClick: retryAction
@@ -419,7 +430,7 @@ export const useActionToast = () => {
   return { showUndoToast, showRetryToast };
 };
 
-// Line 402-415: Export all components and utilities
+// Lines 490-500: Export all components and utilities
 export default {
   ToastProvider,
   useToast,

@@ -1,8 +1,185 @@
 // File: client/src/components/dashboard/StudentManagementSection.jsx
-// Line 1: MOBILE-FIRST RESPONSIVE STUDENT MANAGEMENT - Cards on mobile, table on desktop
+// Lines 1-20: FINAL FIX - Student Management with NaN Prevention
 import React from "react";
 
-// Line 4: MOBILE-OPTIMIZED STUDENT CARD - Touch-friendly with all functionality
+/**
+ * StudentManagementSection Component - PRODUCTION READY
+ * Complete student management with safe date calculations
+ * 
+ * CRITICAL FIXES APPLIED:
+ * - Eliminated all NaN date calculation errors
+ * - Safe string operations throughout
+ * - Inline safe date utilities to avoid import issues
+ * - Enhanced error handling for all edge cases
+ * - No console logging for production
+ */
+
+// Lines 25-100: SAFE DATE UTILITIES - Inline to prevent import issues
+const safeDateParse = (dateInput) => {
+  if (dateInput === null || dateInput === undefined) {
+    return null;
+  }
+  
+  try {
+    if (dateInput instanceof Date) {
+      return isNaN(dateInput.getTime()) ? null : dateInput;
+    }
+    
+    const dateStr = String(dateInput).trim();
+    if (!dateStr || dateStr === 'null' || dateStr === 'undefined') {
+      return null;
+    }
+    
+    const parsedDate = new Date(dateStr);
+    return isNaN(parsedDate.getTime()) ? null : parsedDate;
+  } catch (error) {
+    return null;
+  }
+};
+
+const calculateSafeDaysDifference = (endDateInput, startDateInput = null) => {
+  try {
+    const endDate = safeDateParse(endDateInput);
+    if (!endDate) return null;
+    
+    const startDate = startDateInput ? safeDateParse(startDateInput) : new Date();
+    if (!startDate) return null;
+    
+    const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    
+    const timeDiff = endDateOnly.getTime() - startDateOnly.getTime();
+    if (isNaN(timeDiff)) return null;
+    
+    const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+    return isNaN(daysDiff) ? null : daysDiff;
+  } catch (error) {
+    return null;
+  }
+};
+
+const formatSafeDueDate = (dateInput) => {
+  if (!dateInput) {
+    return { text: "N/A", color: "text-gray-400" };
+  }
+  
+  try {
+    const daysDiff = calculateSafeDaysDifference(dateInput);
+    
+    if (daysDiff === null || isNaN(daysDiff)) {
+      return { text: "Invalid Date", color: "text-red-400" };
+    }
+    
+    if (daysDiff > 7) {
+      return { 
+        text: `${daysDiff} days remaining`, 
+        color: "text-green-400" 
+      };
+    } else if (daysDiff > 0) {
+      return { 
+        text: `${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining`, 
+        color: "text-yellow-400" 
+      };
+    } else if (daysDiff === 0) {
+      return { 
+        text: "Due today", 
+        color: "text-orange-400 font-medium" 
+      };
+    } else {
+      const overdueDays = Math.abs(daysDiff);
+      return { 
+        text: `${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue`, 
+        color: "text-red-400 font-medium" 
+      };
+    }
+  } catch (error) {
+    return { text: "Error", color: "text-red-400" };
+  }
+};
+
+const getSafeLatestMembership = (student) => {
+  if (!student || typeof student !== 'object') {
+    return null;
+  }
+
+  if (!student.memberships || !Array.isArray(student.memberships) || student.memberships.length === 0) {
+    return null;
+  }
+
+  try {
+    const sortedMemberships = [...student.memberships].sort((a, b) => {
+      const getDateValue = (membership) => {
+        const dateStr = membership.createdAt || membership.endDate || membership.startDate;
+        const date = safeDateParse(dateStr);
+        return date ? date.getTime() : 0;
+      };
+      
+      return getDateValue(b) - getDateValue(a); // DESC order - newest first
+    });
+
+    return sortedMemberships[0] || null;
+  } catch (error) {
+    return null;
+  }
+};
+
+const getSafeStudentStatus = (student) => {
+  try {
+    if (!student || typeof student !== 'object') {
+      return 'inactive';
+    }
+
+    const latestMembership = getSafeLatestMembership(student);
+    if (!latestMembership || !latestMembership.endDate) {
+      return 'inactive';
+    }
+
+    const daysDiff = calculateSafeDaysDifference(latestMembership.endDate);
+    
+    if (daysDiff === null || isNaN(daysDiff)) {
+      return 'inactive';
+    }
+
+    if (daysDiff < 0) return 'overdue';
+    if (daysDiff <= 7) return 'expiring';
+    return 'active';
+  } catch (error) {
+    return 'inactive';
+  }
+};
+
+const getSafeDaysRemaining = (student) => {
+  try {
+    if (!student || typeof student !== 'object') {
+      return "No data";
+    }
+
+    const latestMembership = getSafeLatestMembership(student);
+    if (!latestMembership || !latestMembership.endDate) {
+      return "No membership";
+    }
+
+    const daysDiff = calculateSafeDaysDifference(latestMembership.endDate);
+    
+    if (daysDiff === null || isNaN(daysDiff)) {
+      return "Invalid date";
+    }
+
+    if (daysDiff < 0) {
+      const absDays = Math.abs(daysDiff);
+      return `Expired ${absDays} day${absDays === 1 ? '' : 's'} ago`;
+    }
+    if (daysDiff === 0) {
+      return "Expires today";
+    }
+    return `${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining`;
+    
+  } catch (error) {
+    return "Calculation error";
+  }
+};
+
+// Lines 105-200: SAFE STUDENT CARD COMPONENT - Mobile View
 const StudentCard = ({ 
   student, 
   onProcessPayment, 
@@ -10,121 +187,116 @@ const StudentCard = ({
   onEditStudent, 
   onSendReminder, 
   canSendReminder, 
-  getStudentStatus, 
-  getDaysRemaining,
   smsLoading 
 }) => {
-  const status = getStudentStatus(student);
-  const daysRemaining = getDaysRemaining(student);
-  const hasPhone = Boolean(student.phone || student.phoneNumber);
-  const canSendSMS = canSendReminder && canSendReminder(student) && hasPhone;
+  // Input validation
+  if (!student || typeof student !== 'object') {
+    return null;
+  }
 
-  // Status styling
+  // Safe data extraction
+  const studentName = String(student.name || 'Unknown Student');
+  const studentEmail = String(student.email || 'No email');
+  const studentPhone = String(student.phone || student.phoneNumber || 'No phone');
+  const monthlyRate = parseFloat(student.monthlyRate || student.rate || 1400);
+  const isLegacy = student.isLegacyStudent || monthlyRate < 1400;
+
+  // Use safe calculations
+  const status = getSafeStudentStatus(student);
+  const latestMembership = getSafeLatestMembership(student);
+  const dueDateInfo = latestMembership?.endDate 
+    ? formatSafeDueDate(latestMembership.endDate)
+    : { text: "No membership", color: "text-gray-400" };
+
+  // SMS eligibility check
+  const canSendSMS = canSendReminder ? canSendReminder(student) : (
+    (status === 'expiring' || status === 'overdue') && 
+    Boolean(student.phone || student.phoneNumber)
+  );
+
+  // Status configuration
   const statusConfig = {
-    active: { bg: "bg-green-100", text: "text-green-800", emoji: "✅" },
-    expiring: { bg: "bg-yellow-100", text: "text-yellow-800", emoji: "⚠️" },
-    overdue: { bg: "bg-red-100", text: "text-red-800", emoji: "🚨" },
-    inactive: { bg: "bg-gray-100", text: "text-gray-800", emoji: "⭕" }
+    active: { bg: "bg-green-600", text: "text-white", emoji: "✅", label: "Active" },
+    expiring: { bg: "bg-yellow-600", text: "text-white", emoji: "⚠️", label: "Expiring" },
+    overdue: { bg: "bg-red-600", text: "text-white", emoji: "🚨", label: "Overdue" },
+    inactive: { bg: "bg-gray-600", text: "text-white", emoji: "⚫", label: "Inactive" }
   };
 
   const config = statusConfig[status] || statusConfig.inactive;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-      {/* Header Row - Name and Status */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-base font-medium text-gray-900 truncate">
-            {student.name}
-          </h3>
-          <p className="text-sm text-gray-600 truncate">{student.email}</p>
+    <div className="bg-gray-750 rounded-lg p-4 border border-gray-600">
+      {/* Student Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center space-x-3">
+          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold">
+            {studentName.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <h3 className="text-white font-medium">{studentName}</h3>
+            <p className="text-gray-400 text-sm">{studentEmail}</p>
+          </div>
         </div>
-        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text} ml-2`}>
+        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
           <span className="mr-1">{config.emoji}</span>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
+          {config.label}
         </span>
       </div>
 
       {/* Student Details */}
       <div className="space-y-2 mb-4">
-        {/* Phone Number */}
-        {hasPhone && (
-          <div className="flex items-center text-sm text-gray-600">
-            <span className="mr-2">📱</span>
-            <span>{student.phone || student.phoneNumber}</span>
-          </div>
-        )}
-
-        {/* Monthly Rate */}
-        <div className="flex items-center text-sm text-gray-600">
-          <span className="mr-2">💰</span>
-          <span>₱{(student.monthlyRate || student.rate || 1400).toLocaleString()}/month</span>
-          {student.isLegacyStudent && (
-            <span className="ml-2 text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
-              🌟 Legacy
-            </span>
-          )}
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-400">Phone:</span>
+          <span className="text-white">{studentPhone}</span>
         </div>
-
-        {/* Due Date */}
-        <div className="flex items-center text-sm">
-          <span className="mr-2">📅</span>
-          <span className={
-            status === 'overdue' ? 'text-red-600 font-medium' :
-            status === 'expiring' ? 'text-yellow-600 font-medium' :
-            'text-gray-600'
-          }>
-            {status === 'overdue' ? `${Math.abs(daysRemaining)} days overdue` :
-             status === 'expiring' ? `${daysRemaining} days remaining` :
-             status === 'active' ? `${daysRemaining} days remaining` :
-             'No active membership'}
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-400">Rate:</span>
+          <span className="text-white">
+            ₱{monthlyRate.toLocaleString()}/mo
+            {isLegacy && <span className="ml-2 text-purple-400">⭐ Legacy</span>}
           </span>
         </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-400">Due Date:</span>
+          <span className={dueDateInfo.color}>{dueDateInfo.text}</span>
+        </div>
       </div>
 
-      {/* Action Buttons - Mobile-optimized grid */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* Action Buttons */}
+      <div className="flex space-x-2">
         <button
-          onClick={() => onViewStudent(student.id)}
-          className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors min-h-[40px]"
+          onClick={() => onViewStudent && onViewStudent(student.id)}
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm transition-colors"
         >
-          <span className="mr-1">👁️</span>
-          <span>View</span>
+          👁️ View
         </button>
-        
         <button
-          onClick={() => onEditStudent(student)}
-          className="flex items-center justify-center px-3 py-2 bg-gray-600 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors min-h-[40px]"
+          onClick={() => onEditStudent && onEditStudent(student)}
+          className="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm transition-colors"
         >
-          <span className="mr-1">✏️</span>
-          <span>Edit</span>
+          ✏️ Edit
         </button>
-        
         <button
-          onClick={() => onProcessPayment(student)}
-          className="flex items-center justify-center px-3 py-2 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors min-h-[40px]"
+          onClick={() => onProcessPayment && onProcessPayment(student)}
+          className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded text-sm transition-colors"
         >
-          <span className="mr-1">💳</span>
-          <span>Pay</span>
+          💳 Pay
         </button>
+        {canSendSMS && (
+          <button
+            onClick={() => onSendReminder && onSendReminder(student)}
+            disabled={smsLoading}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm transition-colors disabled:opacity-50"
+          >
+            {smsLoading ? "⏳" : "📱"}
+          </button>
+        )}
       </div>
-
-      {/* SMS Button - Full width if available */}
-      {canSendSMS && (
-        <button
-          onClick={() => onSendReminder(student)}
-          disabled={smsLoading}
-          className="w-full mt-2 flex items-center justify-center px-3 py-2 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 min-h-[40px]"
-        >
-          <span className="mr-1">{smsLoading ? "⏳" : "📱"}</span>
-          <span>{smsLoading ? "Sending..." : "Send SMS"}</span>
-        </button>
-      )}
     </div>
   );
 };
 
-// Line 96: DESKTOP TABLE ROW - Preserved existing functionality
+// Lines 205-320: SAFE STUDENT TABLE ROW COMPONENT - Desktop View
 const StudentTableRow = ({ 
   student, 
   onProcessPayment, 
@@ -132,109 +304,129 @@ const StudentTableRow = ({
   onEditStudent, 
   onSendReminder, 
   canSendReminder, 
-  getStudentStatus, 
-  getDaysRemaining,
   smsLoading 
 }) => {
-  const status = getStudentStatus(student);
-  const daysRemaining = getDaysRemaining(student);
-  const hasPhone = Boolean(student.phone || student.phoneNumber);
-  const canSendSMS = canSendReminder && canSendReminder(student) && hasPhone;
+  // Input validation
+  if (!student || typeof student !== 'object') {
+    return null;
+  }
 
-  // Status styling
+  // Safe data extraction
+  const studentName = String(student.name || 'Unknown Student');
+  const studentEmail = String(student.email || 'No email');
+  const studentPhone = String(student.phone || student.phoneNumber || 'No phone');
+  const monthlyRate = parseFloat(student.monthlyRate || student.rate || 1400);
+  const isLegacy = student.isLegacyStudent || monthlyRate < 1400;
+
+  // Use safe calculations
+  const status = getSafeStudentStatus(student);
+  const latestMembership = getSafeLatestMembership(student);
+  const dueDateInfo = latestMembership?.endDate 
+    ? formatSafeDueDate(latestMembership.endDate)
+    : { text: "No membership", color: "text-gray-400" };
+
+  // SMS eligibility check
+  const canSendSMS = canSendReminder ? canSendReminder(student) : (
+    (status === 'expiring' || status === 'overdue') && 
+    Boolean(student.phone || student.phoneNumber)
+  );
+
+  // Status configuration
   const statusConfig = {
-    active: { bg: "bg-green-100", text: "text-green-800", emoji: "✅" },
-    expiring: { bg: "bg-yellow-100", text: "text-yellow-800", emoji: "⚠️" },
-    overdue: { bg: "bg-red-100", text: "text-red-800", emoji: "🚨" },
-    inactive: { bg: "bg-gray-100", text: "text-gray-800", emoji: "⭕" }
+    active: { bg: "bg-green-600", text: "text-white", emoji: "✅", label: "Active" },
+    expiring: { bg: "bg-yellow-600", text: "text-white", emoji: "⚠️", label: "Expiring" },
+    overdue: { bg: "bg-red-600", text: "text-white", emoji: "🚨", label: "Overdue" },
+    inactive: { bg: "bg-gray-600", text: "text-white", emoji: "⚫", label: "Inactive" }
   };
 
   const config = statusConfig[status] || statusConfig.inactive;
 
   return (
-    <tr className="hover:bg-gray-50">
-      {/* Student Information */}
+    <tr className="hover:bg-gray-750 transition-colors">
+      {/* Student Information Cell */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center">
-          <div>
-            <div className="text-sm font-medium text-gray-900">{student.name}</div>
-            <div className="text-sm text-gray-500">{student.email}</div>
-            {hasPhone && (
-              <div className="text-xs text-gray-400">{student.phone || student.phoneNumber}</div>
-            )}
-            <div className="text-xs text-gray-500 mt-1">
-              ₱{(student.monthlyRate || student.rate || 1400).toLocaleString()}/mo
-              {student.isLegacyStudent && (
-                <span className="ml-2 text-purple-600">🌟 Legacy</span>
-              )}
+          <div className="flex-shrink-0 h-10 w-10">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold">
+              {studentName.charAt(0).toUpperCase()}
+            </div>
+          </div>
+          <div className="ml-4">
+            <div className="text-sm font-medium text-white">
+              {studentName}
+            </div>
+            <div className="text-sm text-gray-400">
+              {studentEmail}
+            </div>
+            <div className="text-xs text-gray-500">
+              {studentPhone}
             </div>
           </div>
         </div>
       </td>
-
-      {/* Status */}
+      
+      {/* Status Cell */}
       <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-          <span className="mr-1">{config.emoji}</span>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
-        </span>
-        {student.isLegacyStudent && (
-          <div className="mt-1">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-              🌟 Legacy
+        <div className="flex items-center space-x-2">
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+            <span className="mr-1">{config.emoji}</span>
+            {config.label}
+          </span>
+          {isLegacy && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-600 text-white">
+              ⭐ Legacy
             </span>
-          </div>
-        )}
-      </td>
-
-      {/* Membership Type */}
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm text-gray-900">
-          {student.latestMembership?.type || "MONTHLY"}
+          )}
         </div>
-        {student.latestMembership?.startDate && (
+      </td>
+      
+      {/* Membership Cell */}
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="text-sm text-white">MONTHLY</div>
+        <div className="text-sm text-gray-400">
+          ₱{monthlyRate.toLocaleString()}/mo
+        </div>
+        {latestMembership?.startDate && (
           <div className="text-xs text-gray-500">
-            Started: {new Date(student.latestMembership.startDate).toLocaleDateString()}
+            Started: {safeDateParse(latestMembership.startDate)?.toLocaleDateString() || 'N/A'}
           </div>
         )}
       </td>
-
-      {/* Due Date */}
+      
+      {/* Due Date Cell - FIXED: No more NaN errors */}
       <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`text-sm ${
-          status === 'overdue' ? 'text-red-600 font-medium' :
-          status === 'expiring' ? 'text-yellow-600 font-medium' :
-          'text-gray-900'
-        }`}>
-          {status === 'overdue' ? `${Math.abs(daysRemaining)} days overdue` :
-           status === 'expiring' ? `${daysRemaining} days remaining` :
-           status === 'active' ? `${daysRemaining} days remaining` :
-           'No active membership'}
+        <span className={`text-sm font-medium ${dueDateInfo.color}`}>
+          {dueDateInfo.text}
         </span>
+        {latestMembership?.endDate && (
+          <div className="text-xs text-gray-500">
+            End: {safeDateParse(latestMembership.endDate)?.toLocaleDateString() || 'N/A'}
+          </div>
+        )}
       </td>
-
-      {/* Actions */}
+      
+      {/* Actions Cell */}
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <div className="flex items-center justify-end space-x-2">
           <button
-            onClick={() => onViewStudent(student.id)}
-            className="text-blue-600 hover:text-blue-900 p-1 rounded transition-colors"
-            title="View Student"
+            onClick={() => onViewStudent && onViewStudent(student.id)}
+            className="text-blue-400 hover:text-blue-300 p-2 rounded-lg hover:bg-gray-700 transition-all duration-200"
+            title="View Student Details"
           >
             👁️
           </button>
           
           <button
-            onClick={() => onEditStudent(student)}
-            className="text-gray-600 hover:text-gray-900 p-1 rounded transition-colors"
-            title="Edit Student"
+            onClick={() => onEditStudent && onEditStudent(student)}
+            className="text-green-400 hover:text-green-300 p-2 rounded-lg hover:bg-gray-700 transition-all duration-200"
+            title="Edit Student Information"
           >
             ✏️
           </button>
           
           <button
-            onClick={() => onProcessPayment(student)}
-            className="text-green-600 hover:text-green-900 p-1 rounded transition-colors"
+            onClick={() => onProcessPayment && onProcessPayment(student)}
+            className="text-yellow-400 hover:text-yellow-300 p-2 rounded-lg hover:bg-gray-700 transition-all duration-200"
             title="Process Payment"
           >
             💳
@@ -242,10 +434,10 @@ const StudentTableRow = ({
           
           {canSendSMS && (
             <button
-              onClick={() => onSendReminder(student)}
+              onClick={() => onSendReminder && onSendReminder(student)}
               disabled={smsLoading}
-              className="text-purple-600 hover:text-purple-900 p-1 rounded transition-colors disabled:opacity-50"
-              title="Send SMS Reminder"
+              className="text-purple-400 hover:text-purple-300 p-2 rounded-lg hover:bg-gray-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={`Send SMS Reminder to ${studentName}`}
             >
               {smsLoading ? "⏳" : "📱"}
             </button>
@@ -256,7 +448,7 @@ const StudentTableRow = ({
   );
 };
 
-// Line 205: MAIN COMPONENT - Mobile-first responsive design
+// Lines 325-500: MAIN STUDENT MANAGEMENT SECTION COMPONENT
 const StudentManagementSection = ({
   filteredStudents,
   students,
@@ -273,113 +465,109 @@ const StudentManagementSection = ({
   onEditStudent,
   onSendReminder,
   canSendReminder,
-  getStudentStatus,
-  getDaysRemaining,
+  getStudentStatus, // May be passed but we use safe internal version
+  getDaysRemaining, // May be passed but we use safe internal version
   smsLoading = false,
 }) => {
-  // Line 225: Tab configuration with proper counts
+  // Tab configuration with proper counts
   const tabs = [
-    { id: "all", label: "All Students", count: tabCounts.all },
-    { id: "active", label: "Active", count: tabCounts.active },
-    { id: "expiring", label: "Expiring Soon", count: tabCounts.expiring },
-    { id: "overdue", label: "Overdue", count: tabCounts.overdue },
-    { id: "inactive", label: "Inactive", count: tabCounts.inactive },
+    { id: "all", label: "All Students", count: tabCounts.all || 0 },
+    { id: "active", label: "Active", count: tabCounts.active || 0 },
+    { id: "expiring", label: "Expiring Soon", count: tabCounts.expiring || 0 },
+    { id: "overdue", label: "Overdue", count: tabCounts.overdue || 0 },
+    { id: "inactive", label: "Inactive", count: tabCounts.inactive || 0 },
   ];
 
-  // Line 234: Handle search input changes
+  // Handle search input changes
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
     setIsSearchActive(value.trim().length > 0);
   };
 
-  // Line 241: Clear search functionality
+  // Clear search functionality
   const handleClearSearch = () => {
     setSearchQuery("");
     setIsSearchActive(false);
   };
 
   return (
-    <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-      {/* Header Section - Mobile-optimized */}
-      <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div className="mb-4 sm:mb-0">
-            <h3 className="text-lg font-medium text-gray-900">Students</h3>
-            <p className="text-sm text-gray-500 mt-1">
+    <div className="bg-gray-800 shadow-xl rounded-xl overflow-hidden">
+      {/* Section Header */}
+      <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-6 py-4 border-b border-gray-700">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Student Management</h2>
+            <p className="text-gray-400 text-sm mt-1">
               Manage student memberships, payments, and SMS reminders
             </p>
           </div>
-          <div className="flex-shrink-0">
-            <button
-              onClick={() => setAddStudentModalOpen(true)}
-              className="w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium min-h-[44px]"
-            >
-              <span className="mr-2">➕</span>
-              <span>Add Student</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setAddStudentModalOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+          >
+            <span>➕</span>
+            <span>Add Student</span>
+          </button>
         </div>
       </div>
 
-      {/* Search and Filters - Mobile-first layout */}
-      <div className="px-4 py-4 sm:px-6 bg-gray-50 border-b border-gray-200">
-        {/* Search Input - Full width on mobile */}
-        <div className="mb-4">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+      {/* Search and Filter Controls */}
+      <div className="px-6 py-4 bg-gray-750 border-b border-gray-700">
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Search Input */}
+          <div className="flex-1">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span className="text-gray-400">🔍</span>
+              </div>
+              <input
+                type="text"
+                placeholder="Search students by name, email, or phone..."
+                value={searchQuery || ''}
+                onChange={handleSearchChange}
+                className="block w-full pl-10 pr-10 py-2 border border-gray-600 rounded-md leading-5 bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:placeholder-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {isSearchActive && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200"
+                >
+                  ❌
+                </button>
+              )}
             </div>
-            <input
-              type="text"
-              placeholder="Search students by name, email, or phone..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
-            {searchQuery && (
-              <button
-                onClick={handleClearSearch}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-              >
-                <svg className="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
           </div>
-        </div>
 
-        {/* Tab Navigation - Horizontal scroll on mobile */}
-        <div className="flex space-x-1 overflow-x-auto pb-2">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setCurrentTab(tab.id)}
-              className={`flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                currentTab === tab.id
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-300"
-              }`}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
+          {/* Status Filter Tabs */}
+          <div className="flex space-x-1 bg-gray-700 p-1 rounded-lg">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setCurrentTab(tab.id)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  currentTab === tab.id
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-300 hover:text-white hover:bg-gray-600"
+                }`}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Active Filters Display */}
         {(isSearchActive || currentTab !== "all") && (
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-gray-500">Active filters:</span>
+          <div className="mt-3 flex items-center space-x-2 text-sm">
+            <span className="text-gray-400">Active filters:</span>
             {isSearchActive && (
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+              <span className="bg-blue-600 text-white px-2 py-1 rounded">
                 Search: "{searchQuery}"
               </span>
             )}
             {currentTab !== "all" && (
-              <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+              <span className="bg-purple-600 text-white px-2 py-1 rounded">
                 Status: {tabs.find(t => t.id === currentTab)?.label}
               </span>
             )}
@@ -388,7 +576,7 @@ const StudentManagementSection = ({
                 setCurrentTab("all");
                 handleClearSearch();
               }}
-              className="text-blue-600 hover:text-blue-800 ml-2"
+              className="text-blue-400 hover:text-blue-300 ml-2"
             >
               Clear all
             </button>
@@ -397,13 +585,13 @@ const StudentManagementSection = ({
       </div>
 
       {/* Results Summary */}
-      <div className="px-4 py-3 sm:px-6 bg-gray-50 border-b border-gray-200">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-          <span className="text-sm text-gray-600 mb-2 sm:mb-0">
+      <div className="px-6 py-3 bg-gray-750 border-b border-gray-700">
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-gray-300">
             Showing {filteredStudents.length} of {students.length} students
           </span>
           {smsLoading && (
-            <span className="text-yellow-600 flex items-center space-x-2 text-sm">
+            <span className="text-yellow-400 flex items-center space-x-2">
               <span>📱</span>
               <span>Sending SMS...</span>
             </span>
@@ -411,7 +599,7 @@ const StudentManagementSection = ({
         </div>
       </div>
 
-      {/* Student List - Mobile: Cards, Desktop: Table */}
+      {/* Student List - FIXED: Using safe components */}
       {filteredStudents.length > 0 ? (
         <>
           {/* Mobile Cards View */}
@@ -426,8 +614,6 @@ const StudentManagementSection = ({
                   onEditStudent={onEditStudent}
                   onSendReminder={onSendReminder}
                   canSendReminder={canSendReminder}
-                  getStudentStatus={getStudentStatus}
-                  getDaysRemaining={getDaysRemaining}
                   smsLoading={smsLoading}
                 />
               ))}
@@ -436,27 +622,27 @@ const StudentManagementSection = ({
 
           {/* Desktop Table View */}
           <div className="hidden sm:block overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-700">
+              <thead className="bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Student Information
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Membership
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Due Date
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-gray-800 divide-y divide-gray-700">
                 {filteredStudents.map((student) => (
                   <StudentTableRow
                     key={student.id}
@@ -466,8 +652,6 @@ const StudentManagementSection = ({
                     onEditStudent={onEditStudent}
                     onSendReminder={onSendReminder}
                     canSendReminder={canSendReminder}
-                    getStudentStatus={getStudentStatus}
-                    getDaysRemaining={getDaysRemaining}
                     smsLoading={smsLoading}
                   />
                 ))}
@@ -476,24 +660,31 @@ const StudentManagementSection = ({
           </div>
         </>
       ) : (
-        /* Empty State - Mobile-friendly */
+        /* Empty State */
         <div className="p-8 text-center">
           <div className="text-6xl mb-4">🔍</div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No students found</h3>
-          <p className="text-gray-500 mb-4">
-            {isSearchActive || currentTab !== "all" ? 
-              "Try adjusting your search or filters." : 
-              "Get started by adding your first student."
+          <h3 className="text-lg font-medium text-white mb-2">No students found</h3>
+          <p className="text-gray-400 mb-4">
+            {isSearchActive || currentTab !== "all" 
+              ? "Try adjusting your search or filter criteria"
+              : "Get started by adding your first student"
             }
           </p>
-          {(!isSearchActive && currentTab === "all") && (
-            <button
-              onClick={() => setAddStudentModalOpen(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Add Student
-            </button>
-          )}
+          <button
+            onClick={() => {
+              setCurrentTab("all");
+              handleClearSearch();
+            }}
+            className="text-blue-400 hover:text-blue-300 mr-4"
+          >
+            Clear filters
+          </button>
+          <button
+            onClick={() => setAddStudentModalOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            Add First Student
+          </button>
         </div>
       )}
     </div>
