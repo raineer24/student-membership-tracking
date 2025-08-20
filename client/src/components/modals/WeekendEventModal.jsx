@@ -41,6 +41,12 @@ const WeekendEventModal = ({
     totalSelected: 0,
     estimatedCost: 0,
   });
+  // NEW: Individual student selection state
+  const [studentSelection, setStudentSelection] = useState({
+    mode: "categories", // "categories" or "individual"
+    selectedStudentIds: new Set(),
+    searchQuery: "", // NEW: Search filter for students
+  });
   const modalRef = useRef(null);
 
   // Line 45: Helper function to get student status (matches existing logic)
@@ -84,34 +90,50 @@ const WeekendEventModal = ({
       return;
     }
 
-    // Categorize students by status
-    const stats = students.reduce(
-      (acc, student) => {
-        const hasPhone = Boolean(student.phone || student.phoneNumber);
-        if (!hasPhone) return acc; // Only count students with phone numbers
-
-        const status = getStudentStatus(student);
-        acc[status] = (acc[status] || 0) + 1;
-        return acc;
-      },
-      { active: 0, expiring: 0, overdue: 0, inactive: 0 }
-    );
-
-    // Calculate selected recipients based on checkboxes
     let totalSelected = 0;
-    if (formData.recipientOptions.activeStudents) totalSelected += stats.active;
-    if (formData.recipientOptions.expiringStudents) totalSelected += stats.expiring;
-    if (formData.recipientOptions.overdueStudents) totalSelected += stats.overdue;
-    if (formData.recipientOptions.inactiveStudents) totalSelected += stats.inactive;
+    let estimatedCost = 0;
 
-    const estimatedCost = totalSelected * 0.60; // ₱0.60 per SMS
+    if (studentSelection.mode === "individual") {
+      // Count individually selected students with phone numbers
+      totalSelected = students.filter(student => {
+        const hasPhone = Boolean(student.phone || student.phoneNumber);
+        return hasPhone && studentSelection.selectedStudentIds.has(student.id);
+      }).length;
+    } else {
+      // Original category-based calculation
+      const stats = students.reduce(
+        (acc, student) => {
+          const hasPhone = Boolean(student.phone || student.phoneNumber);
+          if (!hasPhone) return acc;
 
-    setRecipientStats({
-      ...stats,
+          const status = getStudentStatus(student);
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        },
+        { active: 0, expiring: 0, overdue: 0, inactive: 0 }
+      );
+
+      if (formData.recipientOptions.activeStudents) totalSelected += stats.active;
+      if (formData.recipientOptions.expiringStudents) totalSelected += stats.expiring;
+      if (formData.recipientOptions.overdueStudents) totalSelected += stats.overdue;
+      if (formData.recipientOptions.inactiveStudents) totalSelected += stats.inactive;
+
+      setRecipientStats({
+        ...stats,
+        totalSelected,
+        estimatedCost: totalSelected * 0.60,
+      });
+      return;
+    }
+
+    estimatedCost = totalSelected * 0.60;
+
+    setRecipientStats(prev => ({
+      ...prev,
       totalSelected,
       estimatedCost,
-    });
-  }, [students, formData.recipientOptions, getStudentStatus]);
+    }));
+  }, [students, formData.recipientOptions, studentSelection, getStudentStatus]);
 
   // Line 114: Reset form when modal opens/closes
   useEffect(() => {
@@ -135,6 +157,13 @@ const WeekendEventModal = ({
         },
       });
 
+      // Reset student selection
+      setStudentSelection({
+        mode: "categories",
+        selectedStudentIds: new Set(),
+        searchQuery: "",
+      });
+
       setTimeout(() => {
         if (modalRef.current) {
           const firstInput = modalRef.current.querySelector("select, input, textarea");
@@ -156,6 +185,13 @@ const WeekendEventModal = ({
           overdueStudents: true,
           inactiveStudents: false,
         },
+      });
+
+      // Reset student selection
+      setStudentSelection({
+        mode: "categories",
+        selectedStudentIds: new Set(),
+        searchQuery: "",
       });
       setErrors({});
       setIsSubmitting(false);
@@ -200,16 +236,22 @@ const WeekendEventModal = ({
 
     // NEW: Validate SMS recipient selection
     if (formData.sendSMS) {
-      const hasAnyRecipients = Object.values(formData.recipientOptions).some(selected => selected);
-      if (!hasAnyRecipients) {
-        newErrors.recipients = "Please select at least one student category for SMS";
-      } else if (recipientStats.totalSelected === 0) {
-        newErrors.recipients = "No students with phone numbers in selected categories";
+      if (studentSelection.mode === "individual") {
+        if (studentSelection.selectedStudentIds.size === 0) {
+          newErrors.recipients = "Please select at least one student for SMS";
+        }
+      } else {
+        const hasAnyRecipients = Object.values(formData.recipientOptions).some(selected => selected);
+        if (!hasAnyRecipients) {
+          newErrors.recipients = "Please select at least one student category for SMS";
+        } else if (recipientStats.totalSelected === 0) {
+          newErrors.recipients = "No students with phone numbers in selected categories";
+        }
       }
     }
 
     return newErrors;
-  }, [formData, recipientStats.totalSelected]);
+  }, [formData, recipientStats.totalSelected, studentSelection]);
 
   // Line 195: Enhanced input change handler
   const handleInputChange = useCallback((e) => {
@@ -265,6 +307,40 @@ const WeekendEventModal = ({
     }
   }, [errors]);
 
+  // NEW: Handle selection mode change
+  const handleSelectionModeChange = useCallback((mode) => {
+    setStudentSelection(prev => ({
+      ...prev,
+      mode,
+      selectedStudentIds: new Set(), // Reset selections when switching modes
+      searchQuery: "", // Reset search when switching modes
+    }));
+  }, []);
+
+  // NEW: Handle student search
+  const handleStudentSearch = useCallback((query) => {
+    setStudentSelection(prev => ({
+      ...prev,
+      searchQuery: query,
+    }));
+  }, []);
+
+  // NEW: Handle individual student selection
+  const handleStudentToggle = useCallback((studentId) => {
+    setStudentSelection(prev => {
+      const newSelected = new Set(prev.selectedStudentIds);
+      if (newSelected.has(studentId)) {
+        newSelected.delete(studentId);
+      } else {
+        newSelected.add(studentId);
+      }
+      return {
+        ...prev,
+        selectedStudentIds: newSelected,
+      };
+    });
+  }, []);
+
   // Line 245: Enhanced submit handler with selective messaging
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -291,7 +367,11 @@ const WeekendEventModal = ({
         sendSMS: formData.sendSMS,
         priority: formData.priority.toUpperCase(),
         // NEW: Include recipient selection options
-        recipientOptions: formData.sendSMS ? formData.recipientOptions : null,
+        recipientOptions: formData.sendSMS ? (
+          studentSelection.mode === "individual" 
+            ? { selectedStudentIds: Array.from(studentSelection.selectedStudentIds) }
+            : formData.recipientOptions
+        ) : null,
       };
 
       console.log('📤 API Payload:', apiPayload);
@@ -554,147 +634,206 @@ const WeekendEventModal = ({
             </select>
           </div>
 
-          {/* NEW: Enhanced SMS Options with Selective Messaging */}
+          {/* MINIMAL: SMS Options with Dropdown and Individual Selection */}
           <div className="mb-6">
-            <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
               {/* SMS Enable Checkbox */}
-              <div className="flex items-start space-x-3 mb-4">
+              <div className="flex items-center space-x-3 mb-4">
                 <input
                   type="checkbox"
                   name="sendSMS"
                   checked={formData.sendSMS}
                   onChange={handleInputChange}
-                  className="mt-1 text-blue-600 focus:ring-blue-500"
+                  className="text-blue-600 focus:ring-blue-500"
                   disabled={isSubmitting}
                 />
-                <div className="flex-1">
-                  <label className="text-lg font-semibold text-gray-900">
-                    📱 Send SMS notifications to students
-                  </label>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Choose which student categories should receive SMS notifications
-                  </p>
-                </div>
+                <label className="font-medium text-gray-900">
+                  📱 Send SMS notifications to students
+                </label>
               </div>
 
-              {/* Conditional: Recipient Selection Options */}
+              {/* Conditional: Minimal Recipient Selection */}
               {formData.sendSMS && (
-                <div className="ml-6 space-y-4 border-l-4 border-blue-300 pl-4">
-                  <h4 className="font-medium text-gray-900 mb-3">Select Recipients:</h4>
-                  
-                  {/* Student Category Checkboxes */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        name="recipient_activeStudents"
-                        checked={formData.recipientOptions.activeStudents}
-                        onChange={handleInputChange}
-                        className="text-green-600 focus:ring-green-500"
-                        disabled={isSubmitting}
-                      />
-                      <div className="flex-1">
-                        <span className="text-sm font-medium text-gray-900 flex items-center">
-                          <span className="text-green-500 mr-2">🟢</span>
-                          Active Students
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {recipientStats.active} students with phone numbers
-                        </span>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        name="recipient_expiringStudents"
-                        checked={formData.recipientOptions.expiringStudents}
-                        onChange={handleInputChange}
-                        className="text-yellow-600 focus:ring-yellow-500"
-                        disabled={isSubmitting}
-                      />
-                      <div className="flex-1">
-                        <span className="text-sm font-medium text-gray-900 flex items-center">
-                          <span className="text-yellow-500 mr-2">🟡</span>
-                          Expiring Soon
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {recipientStats.expiring} students (≤7 days remaining)
-                        </span>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        name="recipient_overdueStudents"
-                        checked={formData.recipientOptions.overdueStudents}
-                        onChange={handleInputChange}
-                        className="text-red-600 focus:ring-red-500"
-                        disabled={isSubmitting}
-                      />
-                      <div className="flex-1">
-                        <span className="text-sm font-medium text-gray-900 flex items-center">
-                          <span className="text-red-500 mr-2">🔴</span>
-                          Overdue
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {recipientStats.overdue} students (past due)
-                        </span>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        name="recipient_inactiveStudents"
-                        checked={formData.recipientOptions.inactiveStudents}
-                        onChange={handleInputChange}
-                        className="text-gray-600 focus:ring-gray-500"
-                        disabled={isSubmitting}
-                      />
-                      <div className="flex-1">
-                        <span className="text-sm font-medium text-gray-900 flex items-center">
-                          <span className="text-gray-500 mr-2">⚫</span>
-                          Inactive Students
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {recipientStats.inactive} students (no membership)
-                        </span>
-                      </div>
-                    </label>
+                <div className="space-y-4 border-l-4 border-blue-300 pl-4">
+                  {/* Selection Mode Dropdown */}
+                  <div>
+                    <select
+                      value={studentSelection.mode}
+                      onChange={(e) => handleSelectionModeChange(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      disabled={isSubmitting}
+                    >
+                      <option value="categories">Select by Categories</option>
+                      <option value="individual">Select Individual Students</option>
+                    </select>
                   </div>
 
-                  {/* Cost Summary */}
-                  <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="text-sm font-medium text-purple-900">
-                          SMS Summary:
-                        </span>
-                        <span className="text-sm text-purple-700 ml-2">
-                          {recipientStats.totalSelected} recipients selected
-                        </span>
+                  {/* Category Selection Mode */}
+                  {studentSelection.mode === "categories" && (
+                    <div className="flex flex-wrap gap-2">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="recipient_activeStudents"
+                          checked={formData.recipientOptions.activeStudents}
+                          onChange={handleInputChange}
+                          className="text-green-600 focus:ring-green-500 mr-2"
+                          disabled={isSubmitting}
+                        />
+                        <span className="text-sm">🟢 Active ({recipientStats.active})</span>
+                      </label>
+
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="recipient_expiringStudents"
+                          checked={formData.recipientOptions.expiringStudents}
+                          onChange={handleInputChange}
+                          className="text-yellow-600 focus:ring-yellow-500 mr-2"
+                          disabled={isSubmitting}
+                        />
+                        <span className="text-sm">🟡 Expiring ({recipientStats.expiring})</span>
+                      </label>
+
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="recipient_overdueStudents"
+                          checked={formData.recipientOptions.overdueStudents}
+                          onChange={handleInputChange}
+                          className="text-red-600 focus:ring-red-500 mr-2"
+                          disabled={isSubmitting}
+                        />
+                        <span className="text-sm">🔴 Overdue ({recipientStats.overdue})</span>
+                      </label>
+
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          name="recipient_inactiveStudents"
+                          checked={formData.recipientOptions.inactiveStudents}
+                          onChange={handleInputChange}
+                          className="text-gray-600 focus:ring-gray-500 mr-2"
+                          disabled={isSubmitting}
+                        />
+                        <span className="text-sm">⚫ Inactive ({recipientStats.inactive})</span>
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Individual Student Selection Mode */}
+                  {studentSelection.mode === "individual" && (
+                    <div className="bg-white rounded border border-gray-200 max-h-64 overflow-hidden">
+                      {/* Header with Search */}
+                      <div className="p-3 border-b border-gray-200 bg-gray-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">Select Students</span>
+                          <span className="text-xs text-gray-500">
+                            {students.filter(student => Boolean(student.phone || student.phoneNumber)).length} with phone
+                          </span>
+                        </div>
+                        {/* Search Input */}
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Search students..."
+                            value={studentSelection.searchQuery}
+                            onChange={(e) => handleStudentSearch(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            disabled={isSubmitting}
+                          />
+                          {studentSelection.searchQuery && (
+                            <button
+                              onClick={() => handleStudentSearch("")}
+                              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-lg font-bold text-purple-900">
-                          ₱{recipientStats.estimatedCost.toFixed(2)}
-                        </span>
-                        <p className="text-xs text-purple-600">(₱0.60 per SMS)</p>
+                      
+                      {/* Student List */}
+                      <div className="max-h-48 overflow-y-auto">
+                        <div className="p-2 space-y-1">
+                          {students
+                            .filter(student => {
+                              const hasPhone = Boolean(student.phone || student.phoneNumber);
+                              const matchesSearch = studentSelection.searchQuery === "" || 
+                                student.name.toLowerCase().includes(studentSelection.searchQuery.toLowerCase());
+                              return hasPhone && matchesSearch;
+                            })
+                            .map(student => {
+                              const status = getStudentStatus(student);
+                              const statusEmoji = {
+                                active: "🟢",
+                                expiring: "🟡", 
+                                overdue: "🔴",
+                                inactive: "⚫"
+                              }[status];
+
+                              return (
+                                <label key={student.id} className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={studentSelection.selectedStudentIds.has(student.id)}
+                                    onChange={() => handleStudentToggle(student.id)}
+                                    className="mr-3 text-blue-600 focus:ring-blue-500"
+                                    disabled={isSubmitting}
+                                  />
+                                  <span className="mr-2">{statusEmoji}</span>
+                                  <span className="text-sm text-gray-900">{student.name}</span>
+                                </label>
+                              );
+                            })}
+                          
+                          {/* No Results Message */}
+                          {students.filter(student => {
+                            const hasPhone = Boolean(student.phone || student.phoneNumber);
+                            const matchesSearch = studentSelection.searchQuery === "" || 
+                              student.name.toLowerCase().includes(studentSelection.searchQuery.toLowerCase());
+                            return hasPhone && matchesSearch;
+                          }).length === 0 && (
+                            <div className="p-4 text-center text-gray-500">
+                              {studentSelection.searchQuery ? (
+                                <div>
+                                  <p className="text-sm">No students found matching "{studentSelection.searchQuery}"</p>
+                                  <button
+                                    onClick={() => handleStudentSearch("")}
+                                    className="text-xs text-blue-600 hover:text-blue-800 mt-1"
+                                  >
+                                    Clear search
+                                  </button>
+                                </div>
+                              ) : (
+                                <p className="text-sm">No students with phone numbers found</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
+                  )}
+
+                  {/* SMS Summary */}
+                  <div className="flex justify-between items-center p-3 bg-purple-50 border border-purple-200 rounded">
+                    <span className="text-sm font-medium text-purple-900">
+                      {recipientStats.totalSelected} recipients selected
+                    </span>
+                    <span className="text-lg font-bold text-purple-900">
+                      ₱{recipientStats.estimatedCost.toFixed(2)}
+                    </span>
                   </div>
 
                   {/* Recipient Selection Error */}
                   {errors.recipients && (
-                    <p className="mt-2 text-sm text-red-600">{errors.recipients}</p>
+                    <p className="text-sm text-red-600">{errors.recipients}</p>
                   )}
 
                   {/* Warning for Real SMS */}
                   {recipientStats.totalSelected > 0 && (
-                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-                      ⚠️ <strong>Real SMS will be sent</strong> to {recipientStats.totalSelected} actual phone numbers. 
-                      Double-check your message before sending!
+                    <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                      ⚠️ Real SMS will be sent to {recipientStats.totalSelected} phone numbers. Double-check your message!
                     </div>
                   )}
                 </div>

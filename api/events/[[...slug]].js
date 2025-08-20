@@ -256,18 +256,29 @@ async function handlePost(req, res, pathParts, userId) {
       }
     }
 
-    // Line 232: NEW - Validate recipient options if SMS is enabled
+    // Line 232: ENHANCED - Validate recipient options for both selection modes
     if (sendSMS && recipientOptions) {
-      const validOptions = ['activeStudents', 'expiringStudents', 'overdueStudents', 'inactiveStudents'];
-      const hasValidOptions = Object.keys(recipientOptions).some(key => 
-        validOptions.includes(key) && recipientOptions[key] === true
-      );
+      // Check if it's individual student selection
+      if (recipientOptions.selectedStudentIds && Array.isArray(recipientOptions.selectedStudentIds)) {
+        if (recipientOptions.selectedStudentIds.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'At least one student must be selected for SMS'
+          });
+        }
+      } else {
+        // Category-based selection validation
+        const validOptions = ['activeStudents', 'expiringStudents', 'overdueStudents', 'inactiveStudents'];
+        const hasValidOptions = Object.keys(recipientOptions).some(key => 
+          validOptions.includes(key) && recipientOptions[key] === true
+        );
 
-      if (!hasValidOptions) {
-        return res.status(400).json({
-          success: false,
-          message: 'At least one recipient category must be selected for SMS'
-        });
+        if (!hasValidOptions) {
+          return res.status(400).json({
+            success: false,
+            message: 'At least one recipient category must be selected for SMS'
+          });
+        }
       }
     }
 
@@ -441,14 +452,41 @@ async function handleDelete(req, res, pathParts) {
   }
 }
 
-// Line 400: NEW - Helper function to calculate recipient statistics
+// Line 400: ENHANCED - Helper function to calculate recipient statistics for both modes
 async function calculateRecipientStats(recipientOptions) {
   try {
     if (!recipientOptions) {
       return { totalStudents: 0, estimatedCost: 0.00 };
     }
 
-    // Get all students with phone numbers
+    // Check if it's individual student selection
+    if (recipientOptions.selectedStudentIds && Array.isArray(recipientOptions.selectedStudentIds)) {
+      // Individual student selection mode
+      const studentIds = recipientOptions.selectedStudentIds;
+      
+      if (studentIds.length === 0) {
+        return { totalStudents: 0, estimatedCost: 0.00 };
+      }
+
+      // Count selected students with phone numbers
+      const studentsWithPhones = await prisma.student.count({
+        where: {
+          id: { in: studentIds },
+          phone: { not: null }
+        }
+      });
+
+      const estimatedCost = studentsWithPhones * 0.60;
+
+      console.log(`📊 Individual selection: ${studentsWithPhones} students selected for SMS (₱${estimatedCost.toFixed(2)})`);
+
+      return {
+        totalStudents: studentsWithPhones,
+        estimatedCost: parseFloat(estimatedCost.toFixed(2))
+      };
+    }
+
+    // Category-based selection mode (original logic)
     const students = await prisma.student.findMany({
       where: {
         phone: { not: null }
@@ -460,7 +498,7 @@ async function calculateRecipientStats(recipientOptions) {
       }
     });
 
-    // Line 417: Helper function to determine student status (matches frontend logic)
+    // Helper function to determine student status (matches frontend logic)
     const getStudentStatus = (student) => {
       if (!student?.memberships || student.memberships.length === 0) {
         return "inactive";
@@ -480,7 +518,7 @@ async function calculateRecipientStats(recipientOptions) {
       return "active";
     };
 
-    // Line 437: Count students by category and filter by selected options
+    // Count students by category and filter by selected options
     let totalSelected = 0;
     
     students.forEach(student => {
@@ -499,7 +537,7 @@ async function calculateRecipientStats(recipientOptions) {
 
     const estimatedCost = totalSelected * 0.60; // ₱0.60 per SMS
 
-    console.log(`📊 Recipient calculation: ${totalSelected} students selected for SMS (₱${estimatedCost.toFixed(2)})`);
+    console.log(`📊 Category selection: ${totalSelected} students selected for SMS (₱${estimatedCost.toFixed(2)})`);
 
     return {
       totalStudents: totalSelected,
@@ -512,64 +550,98 @@ async function calculateRecipientStats(recipientOptions) {
   }
 }
 
-// Line 465: ENHANCED - Send SMS to selected student categories only
+// Line 465: ENHANCED - Send SMS to selected students (both modes)
 async function sendSelectiveEventSMS(event, recipientOptions) {
   try {
-    // Get students with phone numbers and their membership data
-    const students = await prisma.student.findMany({
-      where: {
-        phone: { not: null }
-      },
-      include: {
-        memberships: {
-          orderBy: { createdAt: 'desc' }
+    let eligibleStudents = [];
+
+    // Check if it's individual student selection
+    if (recipientOptions.selectedStudentIds && Array.isArray(recipientOptions.selectedStudentIds)) {
+      // Individual student selection mode
+      const studentIds = recipientOptions.selectedStudentIds;
+      
+      if (studentIds.length === 0) {
+        console.log('⚠️ No students selected for individual SMS');
+        return {
+          totalAttempts: 0,
+          successCount: 0,
+          failCount: 0,
+          results: []
+        };
+      }
+
+      // Get selected students with phone numbers
+      eligibleStudents = await prisma.student.findMany({
+        where: {
+          id: { in: studentIds },
+          phone: { not: null }
+        },
+        select: {
+          id: true,
+          name: true,
+          phone: true
         }
-      },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        memberships: true
-      }
-    });
+      });
 
-    console.log(`📱 Found ${students.length} students with phone numbers`);
+      console.log(`📝 Individual selection: ${eligibleStudents.length} students with phone numbers from ${studentIds.length} selected`);
 
-    // Line 486: Helper function to determine student status (same logic as calculateRecipientStats)
-    const getStudentStatus = (student) => {
-      if (!student?.memberships || student.memberships.length === 0) {
-        return "inactive";
-      }
+    } else {
+      // Category-based selection mode (original logic)
+      const students = await prisma.student.findMany({
+        where: {
+          phone: { not: null }
+        },
+        include: {
+          memberships: {
+            orderBy: { createdAt: 'desc' }
+          }
+        },
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          memberships: true
+        }
+      });
 
-      const latestMembership = student.memberships[0];
-      if (!latestMembership?.endDate) return "inactive";
+      console.log(`📱 Found ${students.length} students with phone numbers for category selection`);
 
-      const endDate = new Date(latestMembership.endDate);
-      const today = new Date();
-      const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-      const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const diffDays = Math.ceil((endDateOnly - todayOnly) / (1000 * 60 * 60 * 24));
+      // Helper function to determine student status (same logic as calculateRecipientStats)
+      const getStudentStatus = (student) => {
+        if (!student?.memberships || student.memberships.length === 0) {
+          return "inactive";
+        }
 
-      if (diffDays < 0) return "overdue";
-      if (diffDays <= 7) return "expiring";
-      return "active";
-    };
+        const latestMembership = student.memberships[0];
+        if (!latestMembership?.endDate) return "inactive";
 
-    // Line 505: Filter students based on recipient options
-    const eligibleStudents = students.filter(student => {
-      if (!recipientOptions) return false; // No options = no recipients
-      
-      const status = getStudentStatus(student);
-      
-      return (
-        (status === "active" && recipientOptions.activeStudents) ||
-        (status === "expiring" && recipientOptions.expiringStudents) ||
-        (status === "overdue" && recipientOptions.overdueStudents) ||
-        (status === "inactive" && recipientOptions.inactiveStudents)
-      );
-    });
+        const endDate = new Date(latestMembership.endDate);
+        const today = new Date();
+        const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const diffDays = Math.ceil((endDateOnly - todayOnly) / (1000 * 60 * 60 * 24));
 
-    console.log(`📝 Filtered to ${eligibleStudents.length} eligible students based on selection:`, recipientOptions);
+        if (diffDays < 0) return "overdue";
+        if (diffDays <= 7) return "expiring";
+        return "active";
+      };
+
+      // Filter students based on recipient options
+      eligibleStudents = students.filter(student => {
+        if (!recipientOptions) return false; // No options = no recipients
+        
+        const status = getStudentStatus(student);
+        
+        return (
+          (status === "active" && recipientOptions.activeStudents) ||
+          (status === "expiring" && recipientOptions.expiringStudents) ||
+          (status === "overdue" && recipientOptions.overdueStudents) ||
+          (status === "inactive" && recipientOptions.inactiveStudents)
+        );
+      });
+
+      console.log(`📝 Category selection: ${eligibleStudents.length} eligible students based on categories:`, recipientOptions);
+    }
 
     if (eligibleStudents.length === 0) {
       console.log('⚠️ No eligible students found for SMS');
@@ -581,16 +653,17 @@ async function sendSelectiveEventSMS(event, recipientOptions) {
       };
     }
 
-    // Line 527: Prepare SMS message (truncate to 160 chars for SMS)
+    // Line 560: Prepare SMS message (truncate to 160 chars for SMS)
     const smsMessage = `${event.title} - ${event.message}`.substring(0, 160);
 
-    // Line 530: Use the robust SMS service from reminders API
+    // Line 563: Use the robust SMS service from reminders API
     const { sendSMSViaSemaphore } = await import("../../utils/smsService.js");
     
-    // Line 533: Send SMS to each eligible student
+    // Line 566: Send SMS to each eligible student
     const smsPromises = eligibleStudents.map(async (student) => {
       try {
-        console.log(`📤 Sending selective SMS to ${student.name} (${student.phone}): ${smsMessage}`);
+        const selectionMode = recipientOptions.selectedStudentIds ? 'individual' : 'category';
+        console.log(`📤 Sending ${selectionMode} SMS to ${student.name} (${student.phone}): ${smsMessage}`);
         
         // Use the robust Semaphore service
         const smsResult = await sendSMSViaSemaphore(student.phone, smsMessage, {
@@ -607,14 +680,14 @@ async function sendSelectiveEventSMS(event, recipientOptions) {
               cost: 0.60,
               phoneNumber: smsResult.phone,
               method: 'SMS',
-              response: `Weekend event SMS (selective) sent successfully via Semaphore. Event ID: ${event.id}, MessageID: ${smsResult.messageId || 'unknown'}`
+              response: `Weekend event SMS (${selectionMode}) sent successfully via Semaphore. Event ID: ${event.id}, MessageID: ${smsResult.messageId || 'unknown'}`
             }
           });
           
-          console.log(`✅ Selective SMS sent successfully to ${student.name}`);
+          console.log(`✅ ${selectionMode} SMS sent successfully to ${student.name}`);
           return { success: true, studentId: student.id, messageId: smsResult.messageId };
         } else {
-          console.log(`❌ Selective SMS failed for ${student.name}: ${smsResult.error}`);
+          console.log(`❌ ${selectionMode} SMS failed for ${student.name}: ${smsResult.error}`);
           
           // Create failed reminder record
           await prisma.reminder.create({
@@ -625,7 +698,7 @@ async function sendSelectiveEventSMS(event, recipientOptions) {
               cost: 0,
               phoneNumber: student.phone,
               method: 'SMS',
-              response: `Weekend event SMS (selective) failed: ${smsResult.error}. Event ID: ${event.id}`
+              response: `Weekend event SMS (${selectionMode}) failed: ${smsResult.error}. Event ID: ${event.id}`
             }
           });
           
@@ -633,7 +706,8 @@ async function sendSelectiveEventSMS(event, recipientOptions) {
         }
         
       } catch (error) {
-        console.error(`Failed to send selective SMS to ${student.name}:`, error);
+        const selectionMode = recipientOptions.selectedStudentIds ? 'individual' : 'category';
+        console.error(`Failed to send ${selectionMode} SMS to ${student.name}:`, error);
         
         // Create failed reminder record
         try {
@@ -645,7 +719,7 @@ async function sendSelectiveEventSMS(event, recipientOptions) {
               cost: 0,
               phoneNumber: student.phone,
               method: 'SMS',
-              response: `Weekend event SMS (selective) failed: ${error.message}. Event ID: ${event.id}`
+              response: `Weekend event SMS (${selectionMode}) failed: ${error.message}. Event ID: ${event.id}`
             }
           });
         } catch (dbError) {
@@ -658,11 +732,12 @@ async function sendSelectiveEventSMS(event, recipientOptions) {
 
     const results = await Promise.allSettled(smsPromises);
     
-    // Line 589: Process results
+    // Line 630: Process results
     const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
     const failCount = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length;
     
-    console.log(`📊 Selective SMS results: ${successCount} successful, ${failCount} failed out of ${eligibleStudents.length} attempts`);
+    const selectionMode = recipientOptions.selectedStudentIds ? 'individual' : 'category';
+    console.log(`📊 ${selectionMode} SMS results: ${successCount} successful, ${failCount} failed out of ${eligibleStudents.length} attempts`);
     console.log(`🎯 Recipient selection was:`, recipientOptions);
     
     return {
