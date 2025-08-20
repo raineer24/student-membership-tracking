@@ -1,7 +1,8 @@
 // File: client/src/components/DashboardPage.jsx
-// Lines 1-25: DARK THEME DASHBOARD - Matches the provided design exactly
+// Lines 1-35: Enhanced imports and dependencies
 import React, { useState, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 // Custom Hooks - Real API data management
 import useStudentManagement from "../hooks/useStudentManagement";
@@ -20,9 +21,8 @@ import SMSCreditsModal from "./modals/SMSCreditsModal";
 import SMSHistoryModal from "./modals/SMSHistoryModal";
 import WeekendEventModal from "./modals/WeekendEventModal";
 import AnnouncementBanner from "./dashboard/AnnouncementBanner";
-import LogoutButton from "./LogoutButton";
 
-// Lines 26-80: Revenue calculation functions (unchanged)
+// Lines 26-90: Revenue calculation functions with proper business logic
 const calculateRevenueData = (students) => {
   if (!students || students.length === 0) {
     return {
@@ -47,6 +47,7 @@ const calculateRevenueData = (students) => {
     const monthlyRate = student.monthlyRate || student.rate || 1400;
     const isLegacy = student.isLegacyStudent || monthlyRate < 1400;
     
+    // Only count active students with valid memberships
     const hasActiveMembership = student.memberships && student.memberships.length > 0;
     const latestMembership = hasActiveMembership ? 
       student.memberships.reduce((latest, current) => {
@@ -85,7 +86,7 @@ const calculateRevenueData = (students) => {
   };
 };
 
-// Lines 85-150: Status and date calculation functions (unchanged but dark theme ready)
+// Lines 95-160: Status and date calculation functions with NaN prevention
 const calculateStudentStatus = (student) => {
   if (!student?.memberships || student.memberships.length === 0) {
     return 'inactive';
@@ -156,7 +157,31 @@ const canSendReminder = (student) => {
   return (status === 'expiring' || status === 'overdue') && hasPhone;
 };
 
-// Lines 155-220: DARK THEME HEADER - Matches your design exactly
+// Lines 165-190: Enhanced Dark Theme Logout Button Component
+const DarkThemeLogoutButton = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    if (window.confirm("Are you sure you want to logout?")) {
+      logout();
+      navigate('/');
+    }
+  };
+
+  return (
+    <button
+      onClick={handleLogout}
+      className="flex items-center justify-center px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium min-h-[44px] focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+      title="Logout"
+    >
+      <span className="mr-2">🚪</span>
+      <span>Logout</span>
+    </button>
+  );
+};
+
+// Lines 195-290: ENHANCED DARK THEME HEADER - Mobile-first responsive design
 const DarkThemeHeader = ({ 
   user, 
   onRefresh, 
@@ -166,69 +191,91 @@ const DarkThemeHeader = ({
   loading 
 }) => (
   <header className="bg-gray-900 border-b border-gray-800">
-    <div className="px-6 py-6">
-      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-        {/* Title Section */}
-        <div>
-          <h1 className="text-2xl font-bold text-white lg:text-3xl">
+    <div className="px-4 py-4 sm:px-6 lg:px-8">
+      {/* Mobile-first layout with proper breathing space */}
+      <div className="flex flex-col space-y-6 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+        
+        {/* Title Section - Better mobile typography */}
+        <div className="text-center lg:text-left">
+          <h1 className="text-xl font-bold text-white sm:text-2xl lg:text-3xl">
             Student Membership Dashboard
           </h1>
-          <p className="text-gray-400 text-sm mt-1">
+          <p className="text-gray-400 text-sm mt-2 sm:text-base">
             Welcome back, {user?.email || 'Administrator'}
           </p>
         </div>
         
-        {/* Action Buttons - Matches your design */}
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={onOpenWeekendEvent}
-            className="flex items-center justify-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-medium min-h-[44px]"
-            title="Create Weekend Event"
-            disabled={loading}
-          >
-            <span className="mr-2">📅</span>
-            <span>Weekend Event</span>
-          </button>
-
-          <button
-            onClick={onOpenCredits}
-            className="flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium min-h-[44px]"
-            disabled={loading}
-          >
-            <span className="mr-2">💳</span>
-            <span>Credits</span>
-          </button>
-
-          <button
-            onClick={onOpenHistory}
-            className="flex items-center justify-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm font-medium min-h-[44px]"
-            disabled={loading}
-          >
-            <span className="mr-2">📊</span>
-            <span>History</span>
-          </button>
+        {/* Action Buttons Section - Mobile-optimized layout */}
+        <div className="flex flex-col space-y-4 sm:space-y-3 lg:flex-row lg:items-center lg:space-y-0 lg:space-x-4">
           
-          <button
-            onClick={onRefresh}
-            disabled={loading}
-            className="flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium min-h-[44px] disabled:opacity-50"
-          >
-            {loading ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <>
-                <span className="mr-2">🔄</span>
-                <span>Refresh Data</span>
-              </>
-            )}
-          </button>
+          {/* Primary Action Buttons - Grid layout for mobile */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:items-center lg:gap-3">
+            
+            {/* Weekend Event Button */}
+            <button
+              onClick={onOpenWeekendEvent}
+              className="flex items-center justify-center px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-medium min-h-[44px] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+              title="Create Weekend Event"
+              disabled={loading}
+            >
+              <span className="mr-2">📅</span>
+              <span>Weekend Event</span>
+            </button>
+
+            {/* Credits Button */}
+            <button
+              onClick={onOpenCredits}
+              className="flex items-center justify-center px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium min-h-[44px] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+              title="Manage SMS Credits"
+              disabled={loading}
+            >
+              <span className="mr-2">💳</span>
+              <span>Credits</span>
+            </button>
+
+            {/* History Button */}
+            <button
+              onClick={onOpenHistory}
+              className="flex items-center justify-center px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm font-medium min-h-[44px] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+              title="View SMS History"
+              disabled={loading}
+            >
+              <span className="mr-2">📊</span>
+              <span>History</span>
+            </button>
+            
+            {/* Refresh Button */}
+            <button
+              onClick={onRefresh}
+              disabled={loading}
+              className="flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+              title="Refresh Dashboard Data"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  <span>Loading...</span>
+                </>
+              ) : (
+                <>
+                  <span className="mr-2">🔄</span>
+                  <span>Refresh Data</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Logout Button Section - Properly separated with visual distinction */}
+          <div className="flex justify-center lg:justify-end pt-3 lg:pt-0 border-t border-gray-700 lg:border-t-0 lg:border-l lg:border-gray-700 lg:pl-4">
+            <DarkThemeLogoutButton />
+          </div>
         </div>
       </div>
     </div>
   </header>
 );
 
-// Lines 225-300: DARK THEME STATISTICS CARDS - Matches your design exactly
+// Lines 295-370: ENHANCED DARK THEME STATISTICS - Horizontal layout matching design
 const DarkThemeStatistics = ({ dashboardData, students, tabCounts, pricingBreakdown }) => {
   const statisticsData = [
     {
@@ -301,12 +348,12 @@ const DarkThemeStatistics = ({ dashboardData, students, tabCounts, pricingBreakd
   );
 };
 
-// Lines 305-700: MAIN DASHBOARD COMPONENT WITH DARK THEME
+// Lines 375-800: MAIN DASHBOARD COMPONENT - Complete implementation
 export default function DashboardPage() {
   const { user, token } = useAuth();
   const { showSuccess, showError } = useToast();
 
-  // State management
+  // State management - Comprehensive modal and view state
   const [currentView, setCurrentView] = useState("dashboard");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -317,7 +364,7 @@ export default function DashboardPage() {
   const [announcements, setAnnouncements] = useState([]);
   const [smsLoading, setSmsLoading] = useState(false);
 
-  // API data hooks
+  // API data hooks - Enhanced error handling
   const { 
     dashboardData, 
     students, 
@@ -327,7 +374,7 @@ export default function DashboardPage() {
     refetch 
   } = useDashboardData(token);
 
-  // Use hook's filteredStudents and calculations
+  // Enhanced student management hook - All student operations
   const {
     filteredStudents,
     tabCounts,
@@ -344,12 +391,12 @@ export default function DashboardPage() {
     canSendReminder: hookCanSendReminder
   } = useStudentManagement(students);
 
-  // Revenue calculation from hook's pricing breakdown
+  // Revenue calculation with proper business logic
   const revenueData = useMemo(() => {
     return calculateRevenueData(students);
   }, [students]);
 
-  // Event handlers (unchanged)
+  // Event handlers - Comprehensive student operations
   const handleProcessPayment = useCallback((student) => {
     setSelectedStudent(student);
     setPaymentModalOpen(true);
@@ -375,7 +422,7 @@ export default function DashboardPage() {
     setSelectedStudent(null);
   }, []);
 
-  // SMS reminder handler (unchanged)
+  // Enhanced SMS reminder handler with comprehensive error handling
   const handleSendReminder = useCallback(async (student) => {
     if (smsLoading) {
       showError("SMS reminder already in progress. Please wait.");
@@ -448,7 +495,7 @@ export default function DashboardPage() {
     }
   }, [token, showSuccess, showError, smsLoading, hookCanSendReminder, getStudentStatus]);
 
-  // Additional handlers (unchanged)
+  // Additional comprehensive handlers
   const handleEditSave = useCallback(async (formData) => {
     try {
       const response = await fetch(`/api/students/${formData.id}`, {
@@ -487,7 +534,7 @@ export default function DashboardPage() {
     setAddStudentModalOpen(false);
   }, [showSuccess, refetch]);
 
-  // Weekend event handlers (unchanged)
+  // Weekend event handlers - Enhanced functionality
   const handleOpenWeekendEventModal = useCallback(() => {
     setWeekendEventModalOpen(true);
   }, []);
@@ -512,35 +559,39 @@ export default function DashboardPage() {
     showSuccess('Edit functionality coming soon');
   }, [showSuccess]);
 
-  // Loading state - Dark theme
+  // Loading state - Enhanced dark theme loading
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-4"></div>
-          <p className="text-gray-300 text-sm">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <p className="text-gray-300 text-lg font-medium">Loading dashboard...</p>
+          <p className="text-gray-500 text-sm mt-2">Fetching student data and statistics</p>
         </div>
       </div>
     );
   }
 
-  // Error state - Dark theme
+  // Error state - Enhanced dark theme error handling
   if (error) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-        <div className="bg-gray-800 rounded-lg shadow-lg p-6 max-w-sm w-full text-center border border-gray-700">
-          <div className="text-red-400 mb-4">❌</div>
-          <h3 className="text-lg font-semibold text-white mb-2">Dashboard Error</h3>
-          <p className="text-red-400 text-sm mb-4">{error}</p>
-          <button onClick={refetch} className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Retry
+        <div className="bg-gray-800 rounded-lg shadow-lg p-6 max-w-md w-full text-center border border-gray-700">
+          <div className="text-red-400 mb-4 text-4xl">❌</div>
+          <h3 className="text-xl font-semibold text-white mb-2">Dashboard Error</h3>
+          <p className="text-red-400 text-sm mb-6">{error}</p>
+          <button 
+            onClick={refetch} 
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Retry Loading
           </button>
         </div>
       </div>
     );
   }
 
-  // Profile view - Dark theme
+  // Profile view - Enhanced dark theme profile
   if (currentView === "profile" && selectedStudent) {
     return (
       <div className="min-h-screen bg-gray-900">
@@ -556,7 +607,7 @@ export default function DashboardPage() {
           <div className="max-w-4xl mx-auto">
             <button
               onClick={handleBackToDashboard}
-              className="mb-4 flex items-center text-blue-400 hover:text-blue-300 text-sm font-medium min-h-[44px]"
+              className="mb-6 flex items-center text-blue-400 hover:text-blue-300 text-sm font-medium min-h-[44px] transition-colors"
             >
               ← Back to Dashboard
             </button>
@@ -571,7 +622,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Edit view - Dark theme
+  // Edit view - Enhanced dark theme editing
   if (currentView === "edit" && selectedStudent) {
     return (
       <div className="min-h-screen bg-gray-900">
@@ -587,7 +638,7 @@ export default function DashboardPage() {
           <div className="max-w-2xl mx-auto">
             <button
               onClick={() => setCurrentView("profile")}
-              className="mb-4 flex items-center text-blue-400 hover:text-blue-300 text-sm font-medium min-h-[44px]"
+              className="mb-6 flex items-center text-blue-400 hover:text-blue-300 text-sm font-medium min-h-[44px] transition-colors"
             >
               ← Back to Profile
             </button>
@@ -602,7 +653,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Main dashboard view - Dark theme
+  // Main dashboard view - Enhanced dark theme implementation
   return (
     <div className="min-h-screen bg-gray-900">
       <DarkThemeHeader 
@@ -615,7 +666,8 @@ export default function DashboardPage() {
       />
 
       <main className="px-4 py-6 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Announcements Banner */}
           {announcements.length > 0 && (
             <AnnouncementBanner 
               announcements={announcements}
@@ -624,7 +676,7 @@ export default function DashboardPage() {
             />
           )}
 
-          {/* Statistics Section - Dark theme */}
+          {/* Statistics Section - Enhanced dark theme */}
           <DarkThemeStatistics 
             dashboardData={dashboardData}
             students={students}
@@ -632,31 +684,33 @@ export default function DashboardPage() {
             pricingBreakdown={revenueData}
           />
 
-          {/* Student Management Section - Will use dark theme version */}
-          <StudentManagementSection
-            filteredStudents={filteredStudents}
-            students={students}
-            tabCounts={tabCounts}
-            currentTab={currentTab}
-            searchQuery={searchQuery}
-            isSearchActive={isSearchActive}
-            setCurrentTab={setCurrentTab}
-            setSearchQuery={setSearchQuery}
-            setIsSearchActive={setIsSearchActive}
-            setAddStudentModalOpen={setAddStudentModalOpen}
-            onProcessPayment={handleProcessPayment}
-            onViewStudent={handleViewStudent}
-            onEditStudent={handleEditStudent}
-            onSendReminder={handleSendReminder}
-            canSendReminder={hookCanSendReminder}
-            getStudentStatus={getStudentStatus}
-            getDaysRemaining={getDaysRemaining}
-            smsLoading={smsLoading}
-          />
+          {/* Student Management Section - Enhanced container */}
+          <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden shadow-lg">
+            <StudentManagementSection
+              filteredStudents={filteredStudents}
+              students={students}
+              tabCounts={tabCounts}
+              currentTab={currentTab}
+              searchQuery={searchQuery}
+              isSearchActive={isSearchActive}
+              setCurrentTab={setCurrentTab}
+              setSearchQuery={setSearchQuery}
+              setIsSearchActive={setIsSearchActive}
+              setAddStudentModalOpen={setAddStudentModalOpen}
+              onProcessPayment={handleProcessPayment}
+              onViewStudent={handleViewStudent}
+              onEditStudent={handleEditStudent}
+              onSendReminder={handleSendReminder}
+              canSendReminder={hookCanSendReminder}
+              getStudentStatus={getStudentStatus}
+              getDaysRemaining={getDaysRemaining}
+              smsLoading={smsLoading}
+            />
+          </div>
         </div>
       </main>
 
-      {/* All Modals */}
+      {/* All Enhanced Modals */}
       <PaymentModal
         isOpen={paymentModalOpen}
         onClose={() => {
