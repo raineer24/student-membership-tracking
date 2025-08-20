@@ -1,5 +1,5 @@
 // File: api/events/[[...slug]].js
-// Line 1: Weekend Event Management API - Fixed destructuring and validation
+// Line 1: ENHANCED - Weekend Event API with Selective Student Messaging
 import prisma from "../../utils/db.js";
 import { authenticate, authorizeRole } from "../../utils/auth.js";
 
@@ -14,11 +14,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Line 16: FIXED - Use same auth pattern as other working APIs
+    // Line 16: Authentication using working pattern
     const user = await authenticate(req);
     await authorizeRole("ADMIN", user);
 
-    // Line 20: Route handling using URL parsing (same as reminders API)
+    // Line 20: Route handling using URL parsing
     const url = new URL(req.url, `http://${req.headers.host}`);
     const pathname = url.pathname;
     
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     const eventsIndex = parts.indexOf("events");
     const pathParts = eventsIndex !== -1 ? parts.slice(eventsIndex + 1) : [];
     
-    console.log("📅 Events API");
+    console.log("📅 Enhanced Events API");
     console.log("REQ.URL:", req.url);
     console.log("PATHNAME:", pathname);
     console.log("PATH PARTS:", pathParts);
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Events API Error:', error);
     
-    // Line 51: Enhanced error handling following reminders API pattern
+    // Line 51: Enhanced error handling
     if (error.message === "Authentication required") {
       return res.status(401).json({ 
         success: false, 
@@ -75,8 +75,7 @@ export default async function handler(req, res) {
   }
 }
 
-// Line 70: GET /api/events - Get all events
-// GET /api/events/[id] - Get specific event
+// Line 70: GET endpoints - unchanged from original
 async function handleGet(req, res, pathParts) {
   try {
     if (pathParts.length === 1 && !isNaN(Number(pathParts[0]))) {
@@ -103,14 +102,14 @@ async function handleGet(req, res, pathParts) {
         data: event
       });
     } else if (pathParts.length === 0) {
-      // Get all events
+      // Get all events with pagination
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const status = req.query.status; // active, past, upcoming
       
       const offset = (page - 1) * limit;
       
-      // Line 101: Build where clause
+      // Build where clause for status filtering
       let whereClause = {};
       const now = new Date();
       
@@ -182,7 +181,7 @@ async function handleGet(req, res, pathParts) {
   }
 }
 
-// Line 160: POST /api/events - Create new event
+// Line 160: ENHANCED - POST endpoint with selective messaging
 async function handlePost(req, res, pathParts, userId) {
   try {
     // Only allow creation at root endpoint
@@ -193,7 +192,7 @@ async function handlePost(req, res, pathParts, userId) {
       });
     }
 
-    // Line 171: FIXED - Proper destructuring from req.body
+    // Line 171: ENHANCED - Extract recipient options from request
     const {
       eventType,
       title,
@@ -201,14 +200,15 @@ async function handlePost(req, res, pathParts, userId) {
       startDate,
       endDate,
       sendSMS,
-      priority = 'NORMAL'
+      priority = 'NORMAL',
+      recipientOptions // NEW: Selective messaging options
     } = req.body;
 
-    console.log('📝 Creating weekend event:', {
-      eventType, title, startDate, endDate, sendSMS, priority, userId
+    console.log('📝 Creating weekend event with selective messaging:', {
+      eventType, title, startDate, endDate, sendSMS, priority, recipientOptions, userId
     });
 
-    // Line 185: Validation
+    // Line 185: Validation (unchanged)
     if (!eventType || !title || !message || !startDate) {
       return res.status(400).json({
         success: false,
@@ -256,32 +256,39 @@ async function handlePost(req, res, pathParts, userId) {
       }
     }
 
-    // Line 232: DISABLED - Allow multiple events on same date
-    // Conflict checking disabled to allow multiple event types per day
-    // const conflictingEvents = await prisma.weekendEvent.findMany({
-    //   where: {
-    //     AND: [
-    //       { startDate: { lte: endDate ? new Date(endDate) : new Date(startDate) } },
-    //       {
-    //         OR: [
-    //           { endDate: null },
-    //           { endDate: { gte: new Date(startDate) } }
-    //         ]
-    //       },
-    //       { eventType: eventType }, // Only check conflicts within same event type
-    //       { eventType: { not: 'SMS' } } // SMS events don't conflict with anything
-    //     ]
-    //   }
-    // });
+    // Line 232: ENHANCED - Validate recipient options for both selection modes
+    if (sendSMS && recipientOptions) {
+      // Check if it's individual student selection
+      if (recipientOptions.selectedStudentIds && Array.isArray(recipientOptions.selectedStudentIds)) {
+        if (recipientOptions.selectedStudentIds.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'At least one student must be selected for SMS'
+          });
+        }
+      } else {
+        // Category-based selection validation
+        const validOptions = ['activeStudents', 'expiringStudents', 'overdueStudents', 'inactiveStudents'];
+        const hasValidOptions = Object.keys(recipientOptions).some(key => 
+          validOptions.includes(key) && recipientOptions[key] === true
+        );
 
-    // if (conflictingEvents.length > 0) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: `${eventType} event conflicts with existing ${eventType} event: "${conflictingEvents[0].title}"`
-    //   });
-    // }
+        if (!hasValidOptions) {
+          return res.status(400).json({
+            success: false,
+            message: 'At least one recipient category must be selected for SMS'
+          });
+        }
+      }
+    }
 
-    // Line 253: Create event
+    // Line 246: Calculate recipient statistics
+    const recipientStats = sendSMS ? await calculateRecipientStats(recipientOptions) : {
+      totalStudents: 0,
+      estimatedCost: 0.00
+    };
+
+    // Line 253: Create event with enhanced data
     const event = await prisma.weekendEvent.create({
       data: {
         eventType,
@@ -292,8 +299,8 @@ async function handlePost(req, res, pathParts, userId) {
         sendSMS: Boolean(sendSMS),
         priority,
         creatorId: userId,
-        estimatedReach: sendSMS ? await getStudentCount() : 0,
-        estimatedCost: sendSMS ? await calculateSMSCost() : 0.00
+        estimatedReach: recipientStats.totalStudents,
+        estimatedCost: recipientStats.estimatedCost
       },
       include: {
         creator: {
@@ -304,11 +311,23 @@ async function handlePost(req, res, pathParts, userId) {
 
     console.log('✅ Event created successfully:', event.id);
 
-    // Line 272: Send SMS if requested
+    // Line 275: ENHANCED - Send SMS with selective targeting
     if (sendSMS) {
       try {
-        console.log('📱 Attempting to send SMS...');
-        await sendEventSMS(event);
+        console.log('📱 Attempting to send selective SMS...');
+        const smsResults = await sendSelectiveEventSMS(event, recipientOptions);
+        
+        // Update event with actual SMS results
+        await prisma.weekendEvent.update({
+          where: { id: event.id },
+          data: {
+            estimatedReach: smsResults.successCount,
+            estimatedCost: smsResults.successCount * 0.60
+          }
+        });
+        
+        console.log(`✅ SMS sent to ${smsResults.successCount}/${smsResults.totalAttempts} students`);
+        
       } catch (smsError) {
         console.error('❌ SMS sending failed:', smsError);
         // Continue - event is created, SMS failure is logged
@@ -331,7 +350,7 @@ async function handlePost(req, res, pathParts, userId) {
   }
 }
 
-// Line 294: PUT /api/events/[id] - Update event
+// Line 309: PUT and DELETE handlers unchanged from original
 async function handlePut(req, res, pathParts, userId) {
   try {
     if (pathParts.length !== 1 || isNaN(Number(pathParts[0]))) {
@@ -353,7 +372,7 @@ async function handlePut(req, res, pathParts, userId) {
       });
     }
 
-    // Line 316: Only creator can edit
+    // Only creator can edit
     if (event.creatorId !== userId) {
       return res.status(403).json({
         success: false,
@@ -394,7 +413,6 @@ async function handlePut(req, res, pathParts, userId) {
   }
 }
 
-// Line 354: DELETE /api/events/[id] - Delete event
 async function handleDelete(req, res, pathParts) {
   try {
     if (pathParts.length !== 1 || isNaN(Number(pathParts[0]))) {
@@ -434,66 +452,225 @@ async function handleDelete(req, res, pathParts) {
   }
 }
 
-// Line 394: Helper functions
-async function getStudentCount() {
+// Line 400: ENHANCED - Helper function to calculate recipient statistics for both modes
+async function calculateRecipientStats(recipientOptions) {
   try {
-    const count = await prisma.student.count({
-      where: {
-        phone: { not: null }
+    if (!recipientOptions) {
+      return { totalStudents: 0, estimatedCost: 0.00 };
+    }
+
+    // Check if it's individual student selection
+    if (recipientOptions.selectedStudentIds && Array.isArray(recipientOptions.selectedStudentIds)) {
+      // Individual student selection mode
+      const studentIds = recipientOptions.selectedStudentIds;
+      
+      if (studentIds.length === 0) {
+        return { totalStudents: 0, estimatedCost: 0.00 };
       }
-    });
-    return count;
-  } catch (error) {
-    console.error('Error getting student count:', error);
-    return 0;
-  }
-}
 
-// Line 408: Calculate SMS cost helper
-async function calculateSMSCost() {
-  try {
-    const studentCount = await getStudentCount();
-    return parseFloat((studentCount * 0.35).toFixed(2));
-  } catch (error) {
-    console.error('Error calculating SMS cost:', error);
-    return 0.00;
-  }
-}
+      // Count selected students with phone numbers
+      const studentsWithPhones = await prisma.student.count({
+        where: {
+          id: { in: studentIds },
+          phone: { not: null }
+        }
+      });
 
-// Line 419: ENHANCED - Send SMS to students using robust service
-async function sendEventSMS(event) {
-  try {
-    // Get students with phone numbers
+      const estimatedCost = studentsWithPhones * 0.60;
+
+      console.log(`📊 Individual selection: ${studentsWithPhones} students selected for SMS (₱${estimatedCost.toFixed(2)})`);
+
+      return {
+        totalStudents: studentsWithPhones,
+        estimatedCost: parseFloat(estimatedCost.toFixed(2))
+      };
+    }
+
+    // Category-based selection mode (original logic)
     const students = await prisma.student.findMany({
       where: {
         phone: { not: null }
       },
-      select: {
-        id: true,
-        name: true,
-        phone: true
+      include: {
+        memberships: {
+          orderBy: { createdAt: 'desc' }
+        }
       }
     });
 
-    console.log(`📱 Sending SMS to ${students.length} students`);
+    // Helper function to determine student status (matches frontend logic)
+    const getStudentStatus = (student) => {
+      if (!student?.memberships || student.memberships.length === 0) {
+        return "inactive";
+      }
 
-    // Line 435: Prepare SMS message (truncate to 160 chars)
+      const latestMembership = student.memberships[0]; // Already sorted by createdAt desc
+      if (!latestMembership?.endDate) return "inactive";
+
+      const endDate = new Date(latestMembership.endDate);
+      const today = new Date();
+      const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const diffDays = Math.ceil((endDateOnly - todayOnly) / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) return "overdue";
+      if (diffDays <= 7) return "expiring";
+      return "active";
+    };
+
+    // Count students by category and filter by selected options
+    let totalSelected = 0;
+    
+    students.forEach(student => {
+      const status = getStudentStatus(student);
+      
+      // Check if this student category is selected for SMS
+      if (
+        (status === "active" && recipientOptions.activeStudents) ||
+        (status === "expiring" && recipientOptions.expiringStudents) ||
+        (status === "overdue" && recipientOptions.overdueStudents) ||
+        (status === "inactive" && recipientOptions.inactiveStudents)
+      ) {
+        totalSelected++;
+      }
+    });
+
+    const estimatedCost = totalSelected * 0.60; // ₱0.60 per SMS
+
+    console.log(`📊 Category selection: ${totalSelected} students selected for SMS (₱${estimatedCost.toFixed(2)})`);
+
+    return {
+      totalStudents: totalSelected,
+      estimatedCost: parseFloat(estimatedCost.toFixed(2))
+    };
+
+  } catch (error) {
+    console.error('Error calculating recipient stats:', error);
+    return { totalStudents: 0, estimatedCost: 0.00 };
+  }
+}
+
+// Line 465: ENHANCED - Send SMS to selected students (both modes)
+async function sendSelectiveEventSMS(event, recipientOptions) {
+  try {
+    let eligibleStudents = [];
+
+    // Check if it's individual student selection
+    if (recipientOptions.selectedStudentIds && Array.isArray(recipientOptions.selectedStudentIds)) {
+      // Individual student selection mode
+      const studentIds = recipientOptions.selectedStudentIds;
+      
+      if (studentIds.length === 0) {
+        console.log('⚠️ No students selected for individual SMS');
+        return {
+          totalAttempts: 0,
+          successCount: 0,
+          failCount: 0,
+          results: []
+        };
+      }
+
+      // Get selected students with phone numbers
+      eligibleStudents = await prisma.student.findMany({
+        where: {
+          id: { in: studentIds },
+          phone: { not: null }
+        },
+        select: {
+          id: true,
+          name: true,
+          phone: true
+        }
+      });
+
+      console.log(`📝 Individual selection: ${eligibleStudents.length} students with phone numbers from ${studentIds.length} selected`);
+
+    } else {
+      // Category-based selection mode (original logic)
+      const students = await prisma.student.findMany({
+        where: {
+          phone: { not: null }
+        },
+        include: {
+          memberships: {
+            orderBy: { createdAt: 'desc' }
+          }
+        },
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          memberships: true
+        }
+      });
+
+      console.log(`📱 Found ${students.length} students with phone numbers for category selection`);
+
+      // Helper function to determine student status (same logic as calculateRecipientStats)
+      const getStudentStatus = (student) => {
+        if (!student?.memberships || student.memberships.length === 0) {
+          return "inactive";
+        }
+
+        const latestMembership = student.memberships[0];
+        if (!latestMembership?.endDate) return "inactive";
+
+        const endDate = new Date(latestMembership.endDate);
+        const today = new Date();
+        const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const diffDays = Math.ceil((endDateOnly - todayOnly) / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) return "overdue";
+        if (diffDays <= 7) return "expiring";
+        return "active";
+      };
+
+      // Filter students based on recipient options
+      eligibleStudents = students.filter(student => {
+        if (!recipientOptions) return false; // No options = no recipients
+        
+        const status = getStudentStatus(student);
+        
+        return (
+          (status === "active" && recipientOptions.activeStudents) ||
+          (status === "expiring" && recipientOptions.expiringStudents) ||
+          (status === "overdue" && recipientOptions.overdueStudents) ||
+          (status === "inactive" && recipientOptions.inactiveStudents)
+        );
+      });
+
+      console.log(`📝 Category selection: ${eligibleStudents.length} eligible students based on categories:`, recipientOptions);
+    }
+
+    if (eligibleStudents.length === 0) {
+      console.log('⚠️ No eligible students found for SMS');
+      return {
+        totalAttempts: 0,
+        successCount: 0,
+        failCount: 0,
+        results: []
+      };
+    }
+
+    // Line 560: Prepare SMS message (truncate to 160 chars for SMS)
     const smsMessage = `${event.title} - ${event.message}`.substring(0, 160);
 
-    // Line 438: ENHANCED - Use the same SMS service as reminders API
+    // Line 563: Use the robust SMS service from reminders API
     const { sendSMSViaSemaphore } = await import("../../utils/smsService.js");
     
-    // Line 441: Send SMS to each student using robust service
-    const smsPromises = students.map(async (student) => {
+    // Line 566: Send SMS to each eligible student
+    const smsPromises = eligibleStudents.map(async (student) => {
       try {
-        console.log(`📤 Sending SMS to ${student.name} (${student.phone}): ${smsMessage}`);
+        const selectionMode = recipientOptions.selectedStudentIds ? 'individual' : 'category';
+        console.log(`📤 Sending ${selectionMode} SMS to ${student.name} (${student.phone}): ${smsMessage}`);
         
-        // Line 446: Use the robust Semaphore service
+        // Use the robust Semaphore service
         const smsResult = await sendSMSViaSemaphore(student.phone, smsMessage, {
           senderId: "OgmokBJJGym"
         });
         
-        // Line 451: Create reminder record only if SMS was successful
+        // Create reminder record with enhanced metadata
         if (smsResult.success) {
           await prisma.reminder.create({
             data: {
@@ -503,14 +680,14 @@ async function sendEventSMS(event) {
               cost: 0.60,
               phoneNumber: smsResult.phone,
               method: 'SMS',
-              response: `Weekend event SMS sent successfully via Semaphore. MessageID: ${smsResult.messageId || 'unknown'}`
+              response: `Weekend event SMS (${selectionMode}) sent successfully via Semaphore. Event ID: ${event.id}, MessageID: ${smsResult.messageId || 'unknown'}`
             }
           });
           
-          console.log(`✅ SMS sent successfully to ${student.name}`);
+          console.log(`✅ ${selectionMode} SMS sent successfully to ${student.name}`);
           return { success: true, studentId: student.id, messageId: smsResult.messageId };
         } else {
-          console.log(`❌ SMS failed for ${student.name}: ${smsResult.error}`);
+          console.log(`❌ ${selectionMode} SMS failed for ${student.name}: ${smsResult.error}`);
           
           // Create failed reminder record
           await prisma.reminder.create({
@@ -521,7 +698,7 @@ async function sendEventSMS(event) {
               cost: 0,
               phoneNumber: student.phone,
               method: 'SMS',
-              response: `Weekend event SMS failed: ${smsResult.error}`
+              response: `Weekend event SMS (${selectionMode}) failed: ${smsResult.error}. Event ID: ${event.id}`
             }
           });
           
@@ -529,7 +706,8 @@ async function sendEventSMS(event) {
         }
         
       } catch (error) {
-        console.error(`Failed to send SMS to ${student.name}:`, error);
+        const selectionMode = recipientOptions.selectedStudentIds ? 'individual' : 'category';
+        console.error(`Failed to send ${selectionMode} SMS to ${student.name}:`, error);
         
         // Create failed reminder record
         try {
@@ -541,7 +719,7 @@ async function sendEventSMS(event) {
               cost: 0,
               phoneNumber: student.phone,
               method: 'SMS',
-              response: `Weekend event SMS failed: ${error.message}`
+              response: `Weekend event SMS (${selectionMode}) failed: ${error.message}. Event ID: ${event.id}`
             }
           });
         } catch (dbError) {
@@ -554,21 +732,23 @@ async function sendEventSMS(event) {
 
     const results = await Promise.allSettled(smsPromises);
     
-    // Line 500: Process results
+    // Line 630: Process results
     const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
     const failCount = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length;
     
-    console.log(`📊 SMS sending results: ${successCount} successful, ${failCount} failed out of ${students.length} attempts`);
+    const selectionMode = recipientOptions.selectedStudentIds ? 'individual' : 'category';
+    console.log(`📊 ${selectionMode} SMS results: ${successCount} successful, ${failCount} failed out of ${eligibleStudents.length} attempts`);
+    console.log(`🎯 Recipient selection was:`, recipientOptions);
     
     return {
-      totalStudents: students.length,
+      totalAttempts: eligibleStudents.length,
       successCount,
       failCount,
       results: results.map(r => r.status === 'fulfilled' ? r.value : { success: false, error: r.reason?.message || 'Unknown error' })
     };
     
   } catch (error) {
-    console.error('Error in sendEventSMS:', error);
+    console.error('Error in sendSelectiveEventSMS:', error);
     throw error;
   }
 }
