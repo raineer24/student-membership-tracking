@@ -20,6 +20,7 @@ import AddStudentModal from "./AddStudentModal";
 import SMSCreditsModal from "./modals/SMSCreditsModal";
 import SMSHistoryModal from "./modals/SMSHistoryModal";
 import WeekendEventModal from "./modals/WeekendEventModal";
+import MonthlyReportModal from "./modals/MonthlyReportModal"; // NEW: Monthly Report Modal
 import AnnouncementBanner from "./dashboard/AnnouncementBanner";
 
 // Lines 26-90: Revenue calculation functions with proper business logic
@@ -181,13 +182,14 @@ const DarkThemeLogoutButton = () => {
   );
 };
 
-// Lines 195-290: ENHANCED DARK THEME HEADER - Mobile-first responsive design
+// Lines 195-320: ENHANCED DARK THEME HEADER - Mobile-first responsive design with Monthly Report Button
 const DarkThemeHeader = ({ 
   user, 
   onRefresh, 
   onOpenCredits, 
   onOpenHistory, 
   onOpenWeekendEvent,
+  onOpenMonthlyReport, // NEW: Monthly Report callback
   loading 
 }) => (
   <header className="bg-gray-900 border-b border-gray-800">
@@ -208,9 +210,20 @@ const DarkThemeHeader = ({
         {/* Action Buttons Section - Mobile-optimized layout */}
         <div className="flex flex-col space-y-4 sm:space-y-3 lg:flex-row lg:items-center lg:space-y-0 lg:space-x-4">
           
-          {/* Primary Action Buttons - Grid layout for mobile */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:items-center lg:gap-3">
+          {/* Primary Action Buttons - Enhanced grid layout for mobile */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 lg:flex lg:items-center lg:gap-3">
             
+            {/* NEW: Monthly Report Button - Purple theme */}
+            <button
+              onClick={onOpenMonthlyReport}
+              className="flex items-center justify-center px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium min-h-[44px] focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+              title="Generate Monthly Payment Report"
+              disabled={loading}
+            >
+              <span className="mr-2">📊</span>
+              <span>Monthly Report</span>
+            </button>
+
             {/* Weekend Event Button */}
             <button
               onClick={onOpenWeekendEvent}
@@ -240,7 +253,7 @@ const DarkThemeHeader = ({
               title="View SMS History"
               disabled={loading}
             >
-              <span className="mr-2">📊</span>
+              <span className="mr-2">📈</span>
               <span>History</span>
             </button>
             
@@ -275,7 +288,7 @@ const DarkThemeHeader = ({
   </header>
 );
 
-// Lines 295-370: ENHANCED DARK THEME STATISTICS - Horizontal layout matching design
+// Lines 325-400: ENHANCED DARK THEME STATISTICS - Horizontal layout matching design
 const DarkThemeStatistics = ({ dashboardData, students, tabCounts, pricingBreakdown }) => {
   const statisticsData = [
     {
@@ -348,12 +361,12 @@ const DarkThemeStatistics = ({ dashboardData, students, tabCounts, pricingBreakd
   );
 };
 
-// Lines 375-800: MAIN DASHBOARD COMPONENT - Complete implementation
+// Lines 405-450: ENHANCED MAIN DASHBOARD COMPONENT - Complete implementation with Monthly Report
 export default function DashboardPage() {
   const { user, token } = useAuth();
   const { showSuccess, showError } = useToast();
 
-  // State management - Comprehensive modal and view state
+  // State management - Comprehensive modal and view state (ENHANCED)
   const [currentView, setCurrentView] = useState("dashboard");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -361,6 +374,7 @@ export default function DashboardPage() {
   const [smsCreditsModalOpen, setSmsCreditsModalOpen] = useState(false);
   const [smsHistoryModalOpen, setSmsHistoryModalOpen] = useState(false);
   const [weekendEventModalOpen, setWeekendEventModalOpen] = useState(false);
+  const [monthlyReportModalOpen, setMonthlyReportModalOpen] = useState(false); // NEW: Monthly Report Modal State
   const [announcements, setAnnouncements] = useState([]);
   const [smsLoading, setSmsLoading] = useState(false);
 
@@ -396,7 +410,16 @@ export default function DashboardPage() {
     return calculateRevenueData(students);
   }, [students]);
 
-  // Event handlers - Comprehensive student operations
+  // NEW: Monthly Report modal handlers - Lines 455-465
+  const handleOpenMonthlyReportModal = useCallback(() => {
+    setMonthlyReportModalOpen(true);
+  }, []);
+
+  const handleCloseMonthlyReportModal = useCallback(() => {
+    setMonthlyReportModalOpen(false);
+  }, []);
+
+  // Event handlers - Comprehensive student operations (PRESERVED)
   const handleProcessPayment = useCallback((student) => {
     setSelectedStudent(student);
     setPaymentModalOpen(true);
@@ -422,7 +445,7 @@ export default function DashboardPage() {
     setSelectedStudent(null);
   }, []);
 
-  // Enhanced SMS reminder handler with comprehensive error handling
+  // Enhanced SMS reminder handler with comprehensive error handling (PRESERVED)
   const handleSendReminder = useCallback(async (student) => {
     if (smsLoading) {
       showError("SMS reminder already in progress. Please wait.");
@@ -495,7 +518,7 @@ export default function DashboardPage() {
     }
   }, [token, showSuccess, showError, smsLoading, hookCanSendReminder, getStudentStatus]);
 
-  // Additional comprehensive handlers
+  // Additional comprehensive handlers (PRESERVED)
   const handleEditSave = useCallback(async (formData) => {
     try {
       const response = await fetch(`/api/students/${formData.id}`, {
@@ -534,7 +557,7 @@ export default function DashboardPage() {
     setAddStudentModalOpen(false);
   }, [showSuccess, refetch]);
 
-  // Weekend event handlers - Enhanced functionality
+  // Weekend event handlers - Enhanced functionality (PRESERVED)
   const handleOpenWeekendEventModal = useCallback(() => {
     setWeekendEventModalOpen(true);
   }, []);
@@ -559,7 +582,7 @@ export default function DashboardPage() {
     showSuccess('Edit functionality coming soon');
   }, [showSuccess]);
 
-  // Loading state - Enhanced dark theme loading
+  // Loading state - Enhanced dark theme loading (PRESERVED)
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -572,7 +595,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Error state - Enhanced dark theme error handling
+  // Error state - Enhanced dark theme error handling (PRESERVED)
   if (error) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -591,7 +614,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Profile view - Enhanced dark theme profile
+  // Profile view - Enhanced dark theme profile (ENHANCED with Monthly Report)
   if (currentView === "profile" && selectedStudent) {
     return (
       <div className="min-h-screen bg-gray-900">
@@ -601,6 +624,7 @@ export default function DashboardPage() {
           onOpenCredits={() => setSmsCreditsModalOpen(true)}
           onOpenHistory={() => setSmsHistoryModalOpen(true)}
           onOpenWeekendEvent={handleOpenWeekendEventModal}
+          onOpenMonthlyReport={handleOpenMonthlyReportModal} // NEW: Pass Monthly Report handler
           loading={loading}
         />
         <main className="px-4 py-6 sm:px-6 lg:px-8">
@@ -622,7 +646,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Edit view - Enhanced dark theme editing
+  // Edit view - Enhanced dark theme editing (ENHANCED with Monthly Report)
   if (currentView === "edit" && selectedStudent) {
     return (
       <div className="min-h-screen bg-gray-900">
@@ -632,6 +656,7 @@ export default function DashboardPage() {
           onOpenCredits={() => setSmsCreditsModalOpen(true)}
           onOpenHistory={() => setSmsHistoryModalOpen(true)}
           onOpenWeekendEvent={handleOpenWeekendEventModal}
+          onOpenMonthlyReport={handleOpenMonthlyReportModal} // NEW: Pass Monthly Report handler
           loading={loading}
         />
         <main className="px-4 py-6 sm:px-6 lg:px-8">
@@ -653,7 +678,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Main dashboard view - Enhanced dark theme implementation
+  // Main dashboard view - Enhanced dark theme implementation (ENHANCED with Monthly Report)
   return (
     <div className="min-h-screen bg-gray-900">
       <DarkThemeHeader 
@@ -662,6 +687,7 @@ export default function DashboardPage() {
         onOpenCredits={() => setSmsCreditsModalOpen(true)}
         onOpenHistory={() => setSmsHistoryModalOpen(true)}
         onOpenWeekendEvent={handleOpenWeekendEventModal}
+        onOpenMonthlyReport={handleOpenMonthlyReportModal} // NEW: Pass Monthly Report handler
         loading={loading}
       />
 
@@ -710,7 +736,7 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* All Enhanced Modals */}
+      {/* All Enhanced Modals (ENHANCED - Add Monthly Report Modal) */}
       <PaymentModal
         isOpen={paymentModalOpen}
         onClose={() => {
@@ -743,6 +769,12 @@ export default function DashboardPage() {
         onEventCreated={handleEventCreated}
         existingEvents={announcements}
         students={students}
+      />
+
+      {/* NEW: Monthly Report Modal */}
+      <MonthlyReportModal
+        isOpen={monthlyReportModalOpen}
+        onClose={handleCloseMonthlyReportModal}
       />
     </div>
   );
