@@ -1,5 +1,5 @@
 // File: client/src/components/DashboardPage.jsx
-// Lines 1-35: Enhanced imports and dependencies
+// Lines 1-35: Enhanced imports with Phase 1 utility functions
 import React, { useState, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +8,14 @@ import { useNavigate } from "react-router-dom";
 import useStudentManagement from "../hooks/useStudentManagement";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useToast } from "../hooks/useToast";
+
+// PHASE 1: Utility Functions - Extracted zero-risk pure functions
+import { 
+  calculateRevenueData,
+  calculateStudentStatus,
+  calculateDaysRemaining,
+  canSendReminder
+} from "../utils/studentCalculations";
 
 // Existing Components - Preserved all functionality
 import StatisticsCards from "./dashboard/StatisticsCards";
@@ -23,142 +31,7 @@ import WeekendEventModal from "./modals/WeekendEventModal";
 import MonthlyReportModal from "./modals/MonthlyReportModal"; // NEW: Monthly Report Modal
 import AnnouncementBanner from "./dashboard/AnnouncementBanner";
 
-// Lines 26-90: Revenue calculation functions with proper business logic
-const calculateRevenueData = (students) => {
-  if (!students || students.length === 0) {
-    return {
-      totalRevenue: 0,
-      totalMonthly: 0,
-      total: 0,
-      legacy: 0,
-      legacyRevenue: 0,
-      current: 0,
-      currentRevenue: 0,
-      breakdown: []
-    };
-  }
-
-  let totalRevenue = 0;
-  let legacyCount = 0;
-  let legacyRevenue = 0;
-  let standardCount = 0;
-  let standardRevenue = 0;
-
-  students.forEach(student => {
-    const monthlyRate = student.monthlyRate || student.rate || 1400;
-    const isLegacy = student.isLegacyStudent || monthlyRate < 1400;
-    
-    // Only count active students with valid memberships
-    const hasActiveMembership = student.memberships && student.memberships.length > 0;
-    const latestMembership = hasActiveMembership ? 
-      student.memberships.reduce((latest, current) => {
-        const currentDate = new Date(current.endDate || current.createdAt);
-        const latestDate = new Date(latest.endDate || latest.createdAt);
-        return currentDate > latestDate ? current : latest;
-      }, student.memberships[0]) : null;
-
-    const isActive = latestMembership && new Date(latestMembership.endDate) > new Date();
-    
-    if (isActive) {
-      totalRevenue += monthlyRate;
-      
-      if (isLegacy) {
-        legacyCount++;
-        legacyRevenue += monthlyRate;
-      } else {
-        standardCount++;
-        standardRevenue += monthlyRate;
-      }
-    }
-  });
-
-  return {
-    totalRevenue,
-    totalMonthly: totalRevenue,
-    total: students.length,
-    legacy: legacyCount,
-    legacyRevenue,
-    current: standardCount,
-    currentRevenue: standardRevenue,
-    breakdown: [
-      { type: 'legacy', count: legacyCount, revenue: legacyRevenue },
-      { type: 'standard', count: standardCount, revenue: standardRevenue }
-    ]
-  };
-};
-
-// Lines 95-160: Status and date calculation functions with NaN prevention
-const calculateStudentStatus = (student) => {
-  if (!student?.memberships || student.memberships.length === 0) {
-    return 'inactive';
-  }
-
-  const latestMembership = student.memberships.reduce((latest, current) => {
-    const currentDate = new Date(current.endDate || current.createdAt);
-    const latestDate = new Date(latest?.endDate || latest?.createdAt || 0);
-    return currentDate > latestDate ? current : latest;
-  }, null);
-
-  if (!latestMembership?.endDate) return 'inactive';
-
-  try {
-    const endDate = new Date(latestMembership.endDate);
-    const today = new Date();
-    
-    if (isNaN(endDate.getTime()) || isNaN(today.getTime())) return 'inactive';
-    
-    today.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-    
-    const timeDiff = endDate.getTime() - today.getTime();
-    const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-    
-    if (daysDiff < 0) return 'overdue';
-    if (daysDiff <= 7) return 'expiring';
-    return 'active';
-  } catch (error) {
-    console.warn("Date calculation error:", error);
-    return 'inactive';
-  }
-};
-
-const calculateDaysRemaining = (student) => {
-  if (!student?.memberships || student.memberships.length === 0) return 0;
-  
-  const latestMembership = student.memberships.reduce((latest, current) => {
-    const currentDate = new Date(current.endDate || current.createdAt);
-    const latestDate = new Date(latest?.endDate || latest?.createdAt || 0);
-    return currentDate > latestDate ? current : latest;
-  }, null);
-
-  if (!latestMembership?.endDate) return 0;
-
-  try {
-    const endDate = new Date(latestMembership.endDate);
-    const today = new Date();
-    
-    if (isNaN(endDate.getTime()) || isNaN(today.getTime())) return 0;
-    
-    today.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-    
-    const timeDiff = endDate.getTime() - today.getTime();
-    const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-    
-    return daysDiff;
-  } catch (error) {
-    console.warn("Date calculation error:", error);
-    return 0;
-  }
-};
-
-const canSendReminder = (student) => {
-  const status = calculateStudentStatus(student);
-  const hasPhone = Boolean(student.phone || student.phoneNumber);
-  return (status === 'expiring' || status === 'overdue') && hasPhone;
-};
-
-// Lines 165-190: Enhanced Dark Theme Logout Button Component
+// Lines 35-90: Dark Theme Logout Button Component (PRESERVED)
 const DarkThemeLogoutButton = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -182,7 +55,7 @@ const DarkThemeLogoutButton = () => {
   );
 };
 
-// Lines 195-320: ENHANCED DARK THEME HEADER - Mobile-first responsive design with Monthly Report Button
+// Lines 55-180: ENHANCED DARK THEME HEADER - Mobile-first responsive design with Monthly Report Button (PRESERVED)
 const DarkThemeHeader = ({ 
   user, 
   onRefresh, 
@@ -288,7 +161,7 @@ const DarkThemeHeader = ({
   </header>
 );
 
-// Lines 325-400: ENHANCED DARK THEME STATISTICS - Horizontal layout matching design
+// Lines 185-260: ENHANCED DARK THEME STATISTICS - Horizontal layout matching design (PRESERVED)
 const DarkThemeStatistics = ({ dashboardData, students, tabCounts, pricingBreakdown }) => {
   const statisticsData = [
     {
@@ -361,7 +234,7 @@ const DarkThemeStatistics = ({ dashboardData, students, tabCounts, pricingBreakd
   );
 };
 
-// Lines 405-450: ENHANCED MAIN DASHBOARD COMPONENT - Complete implementation with Monthly Report
+// Lines 265-315: ENHANCED MAIN DASHBOARD COMPONENT - Complete implementation with imported utilities
 export default function DashboardPage() {
   const { user, token } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -405,12 +278,12 @@ export default function DashboardPage() {
     canSendReminder: hookCanSendReminder
   } = useStudentManagement(students);
 
-  // Revenue calculation with proper business logic
+  // PHASE 1: Revenue calculation using imported utility function
   const revenueData = useMemo(() => {
     return calculateRevenueData(students);
   }, [students]);
 
-  // NEW: Monthly Report modal handlers - Lines 455-465
+  // NEW: Monthly Report modal handlers - Lines 315-325
   const handleOpenMonthlyReportModal = useCallback(() => {
     setMonthlyReportModalOpen(true);
   }, []);
@@ -463,8 +336,9 @@ export default function DashboardPage() {
       return;
     }
 
-    if (!hookCanSendReminder(student)) {
-      const status = getStudentStatus(student);
+    // PHASE 1: Using imported utility function for SMS eligibility check
+    if (!canSendReminder(student)) {
+      const status = calculateStudentStatus(student);
       showError(`Cannot send reminder to ${student.name}. SMS reminders are only available for expiring and overdue students. Status: ${status}`);
       return;
     }
@@ -516,7 +390,7 @@ export default function DashboardPage() {
     } finally {
       setSmsLoading(false);
     }
-  }, [token, showSuccess, showError, smsLoading, hookCanSendReminder, getStudentStatus]);
+  }, [token, showSuccess, showError, smsLoading]);
 
   // Additional comprehensive handlers (PRESERVED)
   const handleEditSave = useCallback(async (formData) => {
@@ -736,7 +610,7 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* All Enhanced Modals (ENHANCED - Add Monthly Report Modal) */}
+      {/* All Enhanced Modals - PRESERVED functionality */}
       <PaymentModal
         isOpen={paymentModalOpen}
         onClose={() => {
@@ -771,7 +645,6 @@ export default function DashboardPage() {
         students={students}
       />
 
-      {/* NEW: Monthly Report Modal */}
       <MonthlyReportModal
         isOpen={monthlyReportModalOpen}
         onClose={handleCloseMonthlyReportModal}
