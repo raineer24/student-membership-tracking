@@ -1,7 +1,11 @@
+
 {
   "version": 2,
   "builds": [
-    { "src": "api/**/*.js", "use": "@vercel/node" },
+    { 
+      "src": "api/**/*.js", 
+      "use": "@vercel/node" 
+    },
     {
       "src": "package.json",
       "use": "@vercel/static-build",
@@ -16,17 +20,82 @@
     }
   ],
   "routes": [
-    { "src": "/api/auth/login", "dest": "/api/auth/login.js", "methods": ["POST"] },
-    { "src": "/api/auth/register", "dest": "/api/auth/register.js", "methods": ["POST"] },
-    { "src": "/api/dashboard(?:/(.*))?", "dest": "/api/dashboard/[[...slug]].js" },
-    { "src": "/api/students(?:/(.*))?", "dest": "/api/students/[[...slug]].js" },
-    { "src": "/api/memberships(?:/(.*))?", "dest": "/api/memberships/[[...slug]].js" },
-    { "src": "/api/payments(?:/(.*))?", "dest": "/api/payments/[[...slug]].js" },
-    { "src": "/api/reminders(?:/(.*))?", "dest": "/api/reminders/[[...slug]].js" },
-    { "src": "/api/events(?:/(.*))?", "dest": "/api/events/[[...slug]].js" },
-    { "src": "/api/reports(?:/(.*))?", "dest": "/api/reports/[[...slug]].js" },
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/assets/(.*)", "dest": "client/dist/assets/$1" },
-    { "src": "/(.*)", "dest": "client/dist/index.html", "status": 200 }
-  ]
+
+    { 
+      "src": "/api/auth/login", 
+      "dest": "/api/auth/login.js", 
+      "methods": ["POST"] 
+    },
+    { 
+      "src": "/api/auth/register", 
+      "dest": "/api/auth/register.js", 
+      "methods": ["POST"] 
+    },
+
+    { 
+      "src": "/api/dashboard(?:/(.*))?", 
+      "dest": "/api/dashboard/[[...slug]].js" 
+    },
+    { 
+      "src": "/api/students(?:/(.*))?", 
+      "dest": "/api/students/[[...slug]].js" 
+    },
+    { 
+      "src": "/api/memberships(?:/(.*))?", 
+      "dest": "/api/memberships/[[...slug]].js" 
+    },
+    { 
+      "src": "/api/payments(?:/(.*))?", 
+      "dest": "/api/payments/[[...slug]].js" 
+    },
+    { 
+      "src": "/api/reminders(?:/(.*))?", 
+      "dest": "/api/reminders/[[...slug]].js" 
+    },
+    { 
+      "src": "/api/events(?:/(.*))?", 
+      "dest": "/api/events/[[...slug]].js" 
+    },
+
+
+    { 
+      "src": "/api/training-sessions(?:/(.*))?", 
+      "dest": "/api/training-sessions/[[...slug]].js",
+      "methods": ["GET", "POST", "DELETE"]
+    },
+    { 
+      "src": "/api/reports(?:/(.*))?", 
+      "dest": "/api/reports/[[...slug]].js",
+      "methods": ["GET"]
+    },
+
+   
+    { 
+      "src": "/api/(.*)", 
+      "dest": "/api/$1" 
+    },
+
+   
+    { 
+      "src": "/assets/(.*)", 
+      "dest": "client/dist/assets/$1" 
+    },
+
+ 
+    { 
+      "src": "/(.*)", 
+      "dest": "client/dist/index.html", 
+      "status": 200 
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "@database-url",
+    "JWT_SECRET": "@jwt-secret",
+    "SEMAPHORE_API_KEY": "@semaphore-api-key"
+  },
+  "build": {
+    "env": {
+      "VITE_API_URL": "https://your-app.vercel.app"
+    }
+  }
 }

@@ -1,5 +1,5 @@
 // File: client/src/components/DashboardPage.jsx
-// Lines 1-25: Enhanced imports with Phase 1 & Phase 2 components
+// Lines 1-25: Enhanced imports with training tracking integration
 import React, { useState, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../hooks/useToast";
@@ -8,15 +8,17 @@ import { useToast } from "../hooks/useToast";
 import useStudentManagement from "../hooks/useStudentManagement";
 import { useDashboardData } from "../hooks/useDashboardData";
 
-// PHASE 1: Utility Functions - Extracted zero-risk pure functions
+// Utility Functions - Extracted pure functions following KISS principles
 import { 
   calculateRevenueData,
   calculateStudentStatus,
   calculateDaysRemaining,
-  canSendReminder
+  canSendReminder,
+  getTrainingStatus,
+  getStudentInsight
 } from "../utils/studentCalculations";
 
-// PHASE 2: Extracted Components - UI separation of concerns
+// Component imports - UI separation of concerns
 import DashboardHeader from "./dashboard/DashboardHeader";
 import DashboardStatistics from "./dashboard/DashboardStatistics";
 import { LoadingView, ErrorView, ProfileView, EditView } from "./dashboard/DashboardViews";
@@ -25,20 +27,21 @@ import { LoadingView, ErrorView, ProfileView, EditView } from "./dashboard/Dashb
 import StudentManagementSection from "./dashboard/StudentManagementSection";
 import AnnouncementBanner from "./dashboard/AnnouncementBanner";
 
-// Modal Components - Preserved all functionality
+// Modal Components - All existing plus new training modal
 import PaymentModal from "./PaymentModal";
 import AddStudentModal from "./AddStudentModal";
 import SMSCreditsModal from "./modals/SMSCreditsModal";
 import SMSHistoryModal from "./modals/SMSHistoryModal";
 import WeekendEventModal from "./modals/WeekendEventModal";
 import MonthlyReportModal from "./modals/MonthlyReportModal";
+import TrainingSessionModal from "./modals/TrainingSessionModal"; // NEW
 
-// Lines 35-165: Enhanced Main Dashboard Component - Phase 2 Integration
+// Lines 35-80: Enhanced Main Dashboard Component with training integration
 export default function DashboardPage() {
   const { user, token } = useAuth();
   const { showSuccess, showError } = useToast();
 
-  // State management - Comprehensive modal and view state (PRESERVED)
+  // State management - All existing modals plus training session modal
   const [currentView, setCurrentView] = useState("dashboard");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -47,10 +50,11 @@ export default function DashboardPage() {
   const [smsHistoryModalOpen, setSmsHistoryModalOpen] = useState(false);
   const [weekendEventModalOpen, setWeekendEventModalOpen] = useState(false);
   const [monthlyReportModalOpen, setMonthlyReportModalOpen] = useState(false);
+  const [trainingSessionModalOpen, setTrainingSessionModalOpen] = useState(false); // NEW
   const [announcements, setAnnouncements] = useState([]);
   const [smsLoading, setSmsLoading] = useState(false);
 
-  // API data hooks - Enhanced error handling (PRESERVED)
+  // API data hooks - Enhanced with training data
   const { 
     dashboardData, 
     students, 
@@ -60,7 +64,7 @@ export default function DashboardPage() {
     refetch 
   } = useDashboardData(token);
 
-  // Enhanced student management hook - All student operations (PRESERVED)
+  // Enhanced student management hook - All operations preserved
   const {
     filteredStudents,
     tabCounts,
@@ -77,12 +81,12 @@ export default function DashboardPage() {
     canSendReminder: hookCanSendReminder
   } = useStudentManagement(students);
 
-  // PHASE 1: Revenue calculation using imported utility function
+  // Revenue calculation using imported utility function
   const revenueData = useMemo(() => {
     return calculateRevenueData(students);
   }, [students]);
 
-  // Modal handlers - All preserved functionality
+  // Lines 85-120: Enhanced event handlers - All existing functionality preserved
   const handleOpenMonthlyReportModal = useCallback(() => {
     setMonthlyReportModalOpen(true);
   }, []);
@@ -91,7 +95,6 @@ export default function DashboardPage() {
     setMonthlyReportModalOpen(false);
   }, []);
 
-  // Event handlers - Comprehensive student operations (PRESERVED)
   const handleProcessPayment = useCallback((student) => {
     setSelectedStudent(student);
     setPaymentModalOpen(true);
@@ -117,7 +120,20 @@ export default function DashboardPage() {
     setSelectedStudent(null);
   }, []);
 
-  // Enhanced SMS reminder handler with comprehensive error handling (PRESERVED)
+  // Lines 125-145: NEW Training session handlers
+  const handleLogTraining = useCallback((student) => {
+    setSelectedStudent(student);
+    setTrainingSessionModalOpen(true);
+  }, []);
+
+  const handleTrainingSessionLogged = useCallback((sessionData) => {
+    showSuccess(`Training session logged successfully!`);
+    refetch(); // Refresh dashboard data to show updated training status
+    setTrainingSessionModalOpen(false);
+    setSelectedStudent(null);
+  }, [showSuccess, refetch]);
+
+  // Lines 150-220: Enhanced SMS reminder handler - All existing functionality preserved
   const handleSendReminder = useCallback(async (student) => {
     if (smsLoading) {
       showError("SMS reminder already in progress. Please wait.");
@@ -135,7 +151,7 @@ export default function DashboardPage() {
       return;
     }
 
-    // PHASE 1: Using imported utility function for SMS eligibility check
+    // Using imported utility function for SMS eligibility check
     if (!canSendReminder(student)) {
       const status = calculateStudentStatus(student);
       showError(`Cannot send reminder to ${student.name}. SMS reminders are only available for expiring and overdue students. Status: ${status}`);
@@ -191,7 +207,7 @@ export default function DashboardPage() {
     }
   }, [token, showSuccess, showError, smsLoading]);
 
-  // Additional comprehensive handlers (PRESERVED)
+  // Lines 225-280: Additional handlers - All existing functionality preserved
   const handleEditSave = useCallback(async (formData) => {
     try {
       const response = await fetch(`/api/students/${formData.id}`, {
@@ -230,7 +246,7 @@ export default function DashboardPage() {
     setAddStudentModalOpen(false);
   }, [showSuccess, refetch]);
 
-  // Weekend event handlers - Enhanced functionality (PRESERVED)
+  // Weekend event handlers - Enhanced functionality preserved
   const handleOpenWeekendEventModal = useCallback(() => {
     setWeekendEventModalOpen(true);
   }, []);
@@ -255,17 +271,15 @@ export default function DashboardPage() {
     showSuccess('Edit functionality coming soon');
   }, [showSuccess]);
 
-  // PHASE 2: Loading state using extracted component
+  // View components - All existing functionality preserved
   if (loading) {
     return <LoadingView />;
   }
 
-  // PHASE 2: Error state using extracted component
   if (error) {
     return <ErrorView error={error} onRetry={refetch} />;
   }
 
-  // PHASE 2: Profile view using extracted component
   if (currentView === "profile" && selectedStudent) {
     return (
       <ProfileView
@@ -278,12 +292,12 @@ export default function DashboardPage() {
         onOpenHistory={() => setSmsHistoryModalOpen(true)}
         onOpenWeekendEvent={handleOpenWeekendEventModal}
         onOpenMonthlyReport={handleOpenMonthlyReportModal}
+        onLogTraining={handleLogTraining} // NEW
         loading={loading}
       />
     );
   }
 
-  // PHASE 2: Edit view using extracted component
   if (currentView === "edit" && selectedStudent) {
     return (
       <EditView
@@ -301,10 +315,10 @@ export default function DashboardPage() {
     );
   }
 
-  // PHASE 2: Main dashboard view using extracted components
+  // Lines 285-350: Main dashboard view with enhanced components
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* PHASE 2: Extracted Header Component */}
+      {/* Enhanced Header Component */}
       <DashboardHeader 
         user={user}
         onRefresh={refetch}
@@ -317,7 +331,7 @@ export default function DashboardPage() {
 
       <main className="px-4 py-6 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto space-y-8">
-          {/* Announcements Banner - PRESERVED */}
+          {/* Announcements Banner - Preserved */}
           {announcements.length > 0 && (
             <AnnouncementBanner 
               announcements={announcements}
@@ -326,7 +340,7 @@ export default function DashboardPage() {
             />
           )}
 
-          {/* PHASE 2: Extracted Statistics Component */}
+          {/* Enhanced Statistics Component with Training Analytics */}
           <DashboardStatistics 
             dashboardData={dashboardData}
             students={students}
@@ -334,7 +348,7 @@ export default function DashboardPage() {
             pricingBreakdown={revenueData}
           />
 
-          {/* Student Management Section - PRESERVED with enhanced container */}
+          {/* Student Management Section - Enhanced with training button */}
           <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden shadow-lg">
             <StudentManagementSection
               filteredStudents={filteredStudents}
@@ -351,6 +365,7 @@ export default function DashboardPage() {
               onViewStudent={handleViewStudent}
               onEditStudent={handleEditStudent}
               onSendReminder={handleSendReminder}
+              onLogTraining={handleLogTraining} // NEW
               canSendReminder={hookCanSendReminder}
               getStudentStatus={getStudentStatus}
               getDaysRemaining={getDaysRemaining}
@@ -360,7 +375,7 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* All Enhanced Modals - PRESERVED functionality */}
+      {/* All Enhanced Modals - Preserved functionality plus new training modal */}
       <PaymentModal
         isOpen={paymentModalOpen}
         onClose={() => {
@@ -398,6 +413,17 @@ export default function DashboardPage() {
       <MonthlyReportModal
         isOpen={monthlyReportModalOpen}
         onClose={handleCloseMonthlyReportModal}
+      />
+
+      {/* NEW Training Session Modal */}
+      <TrainingSessionModal
+        isOpen={trainingSessionModalOpen}
+        onClose={() => {
+          setTrainingSessionModalOpen(false);
+          setSelectedStudent(null);
+        }}
+        student={selectedStudent}
+        onSessionLogged={handleTrainingSessionLogged}
       />
     </div>
   );

@@ -35,7 +35,7 @@ const DashboardHeader = ({
   onOpenCredits, 
   onOpenHistory, 
   onOpenWeekendEvent,
-  onOpenMonthlyReport, // NEW: Monthly Report callback
+  onOpenMonthlyReport, // Monthly Report callback
   loading 
 }) => (
   <header className="bg-gray-900 border-b border-gray-800">
@@ -59,7 +59,7 @@ const DashboardHeader = ({
           {/* Primary Action Buttons - Enhanced grid layout for mobile */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 lg:flex lg:items-center lg:gap-3">
             
-            {/* NEW: Monthly Report Button - Purple theme */}
+            {/* Monthly Report Button - Purple theme */}
             <button
               onClick={onOpenMonthlyReport}
               className="flex items-center justify-center px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium min-h-[44px] focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900"

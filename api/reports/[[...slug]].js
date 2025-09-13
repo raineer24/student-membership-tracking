@@ -1,5 +1,6 @@
 // File: api/reports/[[...slug]].js
-// Lines 1-20: Monthly Payment Report API with Excel Export - DATABASE SAFE VERSION
+// Lines 1-300: Monthly Reports API following existing database connection pattern
+
 import prisma from "../../utils/db.js";
 import { authenticate, authorizeRole } from "../../utils/auth.js";
 
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
     const user = await authenticate(req);
     await authorizeRole("ADMIN", user);
 
-    // Lines 19-28: Route handling using URL parsing - Consistent with Events API
+    // Lines 19-28: Route handling using URL parsing - Consistent with existing APIs
     const url = new URL(req.url, `http://${req.headers.host}`);
     const pathname = url.pathname;
     
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Reports API Error:', error);
     
-    // Lines 43-55: Enhanced error handling - Following Events API pattern
+    // Lines 43-55: Enhanced error handling - Following existing pattern
     if (error.message === "Authentication required") {
       return res.status(401).json({ 
         success: false, 
@@ -78,7 +79,7 @@ async function handleGet(req, res, pathParts) {
             {
               type: "monthly",
               path: "/api/reports/monthly",
-              description: "Monthly payment report with Excel export"
+              description: "Monthly payment report with CSV export"
             }
           ]
         }
@@ -113,9 +114,9 @@ async function handleGet(req, res, pathParts) {
       
       const reportData = await generateMonthlyReport(targetMonth, targetYear);
       
-      // Excel export functionality
+      // CSV export functionality
       if (exportFormat === 'excel') {
-        return await generateExcelReport(res, reportData, targetMonth, targetYear);
+        return await generateCSVExport(res, reportData, targetMonth, targetYear);
       }
       
       // JSON response for dashboard consumption
@@ -142,7 +143,7 @@ async function handleGet(req, res, pathParts) {
   }
 }
 
-// Lines 115-200: Core business logic - Monthly report generation (DATABASE SAFE)
+// Lines 115-220: Core business logic - Monthly report generation (DATABASE SAFE)
 async function generateMonthlyReport(month, year) {
   // Date range calculation
   const startDate = new Date(year, month, 1);
@@ -168,11 +169,8 @@ async function generateMonthlyReport(month, year) {
               name: true,
               email: true,
               phone: true,
-              // Safe access - use optional fields with defaults
-              memberships: {
-                orderBy: { endDate: 'desc' },
-                take: 1
-              }
+              monthlyRate: true,
+              isLegacyStudent: true
             }
           }
         },
@@ -183,9 +181,7 @@ async function generateMonthlyReport(month, year) {
       
       // All students for context (total count, active status) - DATABASE SAFE
       prisma.student.findMany({
-        select: {
-          id: true,
-          name: true,
+        include: {
           memberships: {
             orderBy: { endDate: 'desc' },
             take: 1
@@ -216,12 +212,14 @@ async function generateMonthlyReport(month, year) {
     paymentsData.forEach(payment => {
       // Use safe defaults for missing fields
       const amount = payment.amount || 0;
+      const monthlyRate = payment.student?.monthlyRate || 1400;
+      const isLegacy = payment.student?.isLegacyStudent || false;
       
-      // Since monthlyRate/isLegacyStudent may not exist, use amount-based categorization
-      if (amount <= 1200) {
+      // Categorize by tier based on monthly rate or legacy status
+      if (isLegacy || monthlyRate <= 1200) {
         pricingBreakdown.founding.count++;
         pricingBreakdown.founding.revenue += amount;
-      } else if (amount <= 1300) {
+      } else if (monthlyRate <= 1300) {
         pricingBreakdown.early.count++;
         pricingBreakdown.early.revenue += amount;
       } else {
@@ -237,7 +235,7 @@ async function generateMonthlyReport(month, year) {
     });
 
     // Calculate student payment status - SAFE ACCESS
-    const paidStudentIds = new Set(paymentsData.map(p => p.student.id));
+    const paidStudentIds = new Set(paymentsData.map(p => p.student?.id).filter(Boolean));
     
     studentsData.forEach(student => {
       if (!paidStudentIds.has(student.id)) {
@@ -247,7 +245,7 @@ async function generateMonthlyReport(month, year) {
           activeStudentsWhoNotPaid.push({
             id: student.id,
             name: student.name,
-            expectedAmount: 1400, // Default rate if monthlyRate not available
+            expectedAmount: student.monthlyRate || 1400, // Safe default
             membershipEndDate: latestMembership.endDate
           });
         }
@@ -300,14 +298,15 @@ async function generateMonthlyReport(month, year) {
       
       payments: paymentsData.map(payment => ({
         id: payment.id,
-        studentName: payment.student.name,
-        studentEmail: payment.student.email,
+        studentName: payment.student?.name || 'Unknown',
+        studentEmail: payment.student?.email || '',
         amount: payment.amount || 0,
         method: payment.method || 'CASH',
         description: payment.description || '',
         paidAt: payment.paidAt,
-        studentTier: 'Standard', // Default since we can't access isLegacyStudent safely
-        expectedRate: 1400 // Default rate
+        status: payment.status || 'COMPLETED',
+        studentTier: payment.student?.isLegacyStudent ? 'Legacy' : 'Standard',
+        expectedRate: payment.student?.monthlyRate || 1400
       })),
 
       missedPayments: activeStudentsWhoNotPaid
@@ -319,31 +318,34 @@ async function generateMonthlyReport(month, year) {
   }
 }
 
-// Lines 235-280: Excel export functionality - Phase 2 implementation placeholder
-async function generateExcelReport(res, reportData, month, year) {
-  // Phase 1: Basic CSV export (immediate implementation)
-  const csvData = generateCSVReport(reportData);
-  
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename="monthly-report-${year}-${String(month + 1).padStart(2, '0')}.csv"`);
-  
-  return res.status(200).send(csvData);
-  
-  // Phase 2: Excel implementation (future enhancement)
-  // TODO: Implement ExcelJS integration
-  // const ExcelJS = require('exceljs');
-  // const workbook = new ExcelJS.Workbook();
-  // ... Excel generation logic
+// Lines 225-260: CSV export functionality - Direct response
+async function generateCSVExport(res, reportData, month, year) {
+  try {
+    const csvData = generateCSVContent(reportData);
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="monthly-report-${year}-${String(month + 1).padStart(2, '0')}.csv"`);
+    
+    return res.status(200).send(csvData);
+  } catch (error) {
+    console.error('CSV export error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to export CSV',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 }
 
-// Lines 285-320: CSV generation utility - Simple and effective
-function generateCSVReport(reportData) {
+// Lines 265-300: CSV generation utility - Simple and effective
+function generateCSVContent(reportData) {
   const headers = [
     'Student Name',
     'Email', 
     'Amount',
     'Payment Method',
     'Date Paid',
+    'Status',
     'Student Tier',
     'Expected Rate',
     'Description'
@@ -355,6 +357,7 @@ function generateCSVReport(reportData) {
     payment.amount || 0,
     payment.method || 'CASH',
     payment.paidAt ? new Date(payment.paidAt).toISOString().split('T')[0] : '',
+    payment.status || 'COMPLETED',
     payment.studentTier || 'Standard',
     payment.expectedRate || 1400,
     `"${payment.description || ''}"`

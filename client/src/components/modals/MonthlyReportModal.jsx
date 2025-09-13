@@ -1,10 +1,10 @@
 // File: client/src/components/modals/MonthlyReportModal.jsx
-// Lines 1-25: Enhanced imports and dependencies - Following established patterns
+// Lines 1-350: Fixed Monthly Report Modal with correct API integration
+
 import React, { useState, useCallback, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../hooks/useToast";
 
-// Lines 26-70: Monthly Payment Report Modal Component
 export default function MonthlyReportModal({ 
   isOpen, 
   onClose 
@@ -47,7 +47,7 @@ export default function MonthlyReportModal({
     years.push(i);
   }
 
-  // Lines 55-90: Generate report handler - Clean error handling
+  // Lines 45-80: Generate report handler - Fixed API endpoint
   const handleGenerateReport = useCallback(async () => {
     if (loading) return;
 
@@ -57,6 +57,7 @@ export default function MonthlyReportModal({
     try {
       console.log(`📊 Generating report for ${selectedYear}/${selectedMonth}`);
 
+      // FIXED: Use correct API endpoint structure
       const response = await fetch(
         `/api/reports/monthly?month=${selectedMonth}&year=${selectedYear}`,
         {
@@ -70,7 +71,7 @@ export default function MonthlyReportModal({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP ${response.status}`);
+        throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
       }
 
       const data = await response.json();
@@ -89,9 +90,9 @@ export default function MonthlyReportModal({
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth, selectedYear, token, showSuccess, showError, loading]);
+  }, [selectedMonth, selectedYear, token, showSuccess, showError, loading, months]);
 
-  // Lines 95-130: Export handlers - CSV download functionality
+  // Lines 85-120: Export handlers - Fixed CSV download functionality
   const handleExportCSV = useCallback(async () => {
     if (loading) return;
 
@@ -100,6 +101,7 @@ export default function MonthlyReportModal({
     try {
       console.log(`📥 Exporting CSV for ${selectedYear}/${selectedMonth}`);
 
+      // FIXED: Use correct API endpoint for CSV export
       const response = await fetch(
         `/api/reports/monthly?month=${selectedMonth}&year=${selectedYear}&export=excel`,
         {
@@ -112,7 +114,7 @@ export default function MonthlyReportModal({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP ${response.status}`);
+        throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
       }
 
       // Handle file download
@@ -136,24 +138,24 @@ export default function MonthlyReportModal({
     }
   }, [selectedMonth, selectedYear, token, showSuccess, showError, loading]);
 
-  // Lines 135-145: Modal close handler with state cleanup
+  // Lines 125-135: Modal close handler with state cleanup
   const handleClose = useCallback(() => {
     setReportData(null);
     setLoading(false);
     onClose();
   }, [onClose]);
 
-  // Lines 150-155: Clear data when modal closes
+  // Lines 140-145: Clear data when modal closes
   useEffect(() => {
     if (!isOpen) {
       setReportData(null);
     }
   }, [isOpen]);
 
-  // Lines 160-165: Don't render if modal is closed
+  // Lines 150-155: Don't render if modal is closed
   if (!isOpen) return null;
 
-  // Lines 170-480: Enhanced dark theme modal - Professional business interface
+  // Lines 160-350: Enhanced dark theme modal - Professional business interface
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-gray-800 rounded-lg border border-gray-700 shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
@@ -242,7 +244,7 @@ export default function MonthlyReportModal({
               <div className="bg-gray-900 rounded-lg p-4 border border-gray-600">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-white">
-                    {reportData.reportMetadata.monthName} {reportData.reportMetadata.year} Summary
+                    {reportData.reportMetadata?.monthName || 'Report'} {reportData.reportMetadata?.year || selectedYear} Summary
                   </h3>
                   <button
                     onClick={handleExportCSV}
@@ -260,100 +262,106 @@ export default function MonthlyReportModal({
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-gray-800 rounded-lg p-3">
-                    <div className="text-2xl font-bold text-green-400">{reportData.summary.studentsWhoPaid}</div>
+                    <div className="text-2xl font-bold text-green-400">{reportData.summary?.studentsWhoPaid || 0}</div>
                     <div className="text-sm text-gray-400">Students Paid</div>
                   </div>
                   <div className="bg-gray-800 rounded-lg p-3">
-                    <div className="text-2xl font-bold text-blue-400">₱{reportData.summary.totalRevenue.toLocaleString()}</div>
+                    <div className="text-2xl font-bold text-blue-400">₱{(reportData.summary?.totalRevenue || 0).toLocaleString()}</div>
                     <div className="text-sm text-gray-400">Total Revenue</div>
                   </div>
                   <div className="bg-gray-800 rounded-lg p-3">
-                    <div className="text-2xl font-bold text-yellow-400">{reportData.summary.totalPayments}</div>
+                    <div className="text-2xl font-bold text-yellow-400">{reportData.summary?.totalPayments || 0}</div>
                     <div className="text-sm text-gray-400">Total Payments</div>
                   </div>
                   <div className="bg-gray-800 rounded-lg p-3">
-                    <div className="text-2xl font-bold text-purple-400">₱{reportData.summary.averagePayment.toLocaleString()}</div>
+                    <div className="text-2xl font-bold text-purple-400">₱{(reportData.summary?.averagePayment || 0).toLocaleString()}</div>
                     <div className="text-sm text-gray-400">Avg Payment</div>
                   </div>
                 </div>
               </div>
 
               {/* Pricing Breakdown */}
-              <div className="bg-gray-900 rounded-lg p-4 border border-gray-600">
-                <h3 className="text-lg font-medium text-white mb-4">Pricing Tier Breakdown</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-gray-800 rounded-lg p-3">
-                    <div className="text-lg font-semibold text-orange-400">Founding (₱1,200)</div>
-                    <div className="text-sm text-gray-400">{reportData.pricingBreakdown.founding.count} students</div>
-                    <div className="text-lg font-bold text-white">₱{reportData.pricingBreakdown.founding.revenue.toLocaleString()}</div>
-                  </div>
-                  <div className="bg-gray-800 rounded-lg p-3">
-                    <div className="text-lg font-semibold text-yellow-400">Early (₱1,300)</div>
-                    <div className="text-sm text-gray-400">{reportData.pricingBreakdown.early.count} students</div>
-                    <div className="text-lg font-bold text-white">₱{reportData.pricingBreakdown.early.revenue.toLocaleString()}</div>
-                  </div>
-                  <div className="bg-gray-800 rounded-lg p-3">
-                    <div className="text-lg font-semibold text-green-400">Standard (₱1,400)</div>
-                    <div className="text-sm text-gray-400">{reportData.pricingBreakdown.standard.count} students</div>
-                    <div className="text-lg font-bold text-white">₱{reportData.pricingBreakdown.standard.revenue.toLocaleString()}</div>
+              {reportData.pricingBreakdown && (
+                <div className="bg-gray-900 rounded-lg p-4 border border-gray-600">
+                  <h3 className="text-lg font-medium text-white mb-4">Pricing Tier Breakdown</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <div className="text-lg font-semibold text-orange-400">Founding (₱1,200)</div>
+                      <div className="text-sm text-gray-400">{reportData.pricingBreakdown.founding?.count || 0} students</div>
+                      <div className="text-lg font-bold text-white">₱{(reportData.pricingBreakdown.founding?.revenue || 0).toLocaleString()}</div>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <div className="text-lg font-semibold text-yellow-400">Early (₱1,300)</div>
+                      <div className="text-sm text-gray-400">{reportData.pricingBreakdown.early?.count || 0} students</div>
+                      <div className="text-lg font-bold text-white">₱{(reportData.pricingBreakdown.early?.revenue || 0).toLocaleString()}</div>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <div className="text-lg font-semibold text-green-400">Standard (₱1,400)</div>
+                      <div className="text-sm text-gray-400">{reportData.pricingBreakdown.standard?.count || 0} students</div>
+                      <div className="text-lg font-bold text-white">₱{(reportData.pricingBreakdown.standard?.revenue || 0).toLocaleString()}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Payment Methods */}
-              <div className="bg-gray-900 rounded-lg p-4 border border-gray-600">
-                <h3 className="text-lg font-medium text-white mb-4">Payment Methods</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(reportData.paymentMethods).map(([method, count]) => (
-                    <div key={method} className="bg-gray-800 rounded-lg p-3 text-center">
-                      <div className="text-lg font-bold text-blue-400">{count}</div>
-                      <div className="text-sm text-gray-400">{method}</div>
-                    </div>
-                  ))}
+              {reportData.paymentMethods && Object.keys(reportData.paymentMethods).length > 0 && (
+                <div className="bg-gray-900 rounded-lg p-4 border border-gray-600">
+                  <h3 className="text-lg font-medium text-white mb-4">Payment Methods</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Object.entries(reportData.paymentMethods).map(([method, count]) => (
+                      <div key={method} className="bg-gray-800 rounded-lg p-3 text-center">
+                        <div className="text-lg font-bold text-blue-400">{count}</div>
+                        <div className="text-sm text-gray-400">{method}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Recent Payments Table */}
-              <div className="bg-gray-900 rounded-lg p-4 border border-gray-600">
-                <h3 className="text-lg font-medium text-white mb-4">Payment Details</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left text-gray-300">
-                    <thead className="text-xs text-gray-400 uppercase bg-gray-800">
-                      <tr>
-                        <th className="px-4 py-3">Student</th>
-                        <th className="px-4 py-3">Amount</th>
-                        <th className="px-4 py-3">Method</th>
-                        <th className="px-4 py-3">Date</th>
-                        <th className="px-4 py-3">Tier</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-gray-800 divide-y divide-gray-700">
-                      {reportData.payments.slice(0, 10).map((payment) => (
-                        <tr key={payment.id} className="hover:bg-gray-700">
-                          <td className="px-4 py-3 font-medium text-white">{payment.studentName}</td>
-                          <td className="px-4 py-3">₱{payment.amount.toLocaleString()}</td>
-                          <td className="px-4 py-3">{payment.method}</td>
-                          <td className="px-4 py-3">{new Date(payment.paidAt).toLocaleDateString()}</td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              payment.studentTier === 'Legacy' 
-                                ? 'bg-orange-900 text-orange-300' 
-                                : 'bg-green-900 text-green-300'
-                            }`}>
-                              {payment.studentTier}
-                            </span>
-                          </td>
+              {reportData.payments && reportData.payments.length > 0 && (
+                <div className="bg-gray-900 rounded-lg p-4 border border-gray-600">
+                  <h3 className="text-lg font-medium text-white mb-4">Payment Details</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left text-gray-300">
+                      <thead className="text-xs text-gray-400 uppercase bg-gray-800">
+                        <tr>
+                          <th className="px-4 py-3">Student</th>
+                          <th className="px-4 py-3">Amount</th>
+                          <th className="px-4 py-3">Method</th>
+                          <th className="px-4 py-3">Date</th>
+                          <th className="px-4 py-3">Tier</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {reportData.payments.length > 10 && (
-                  <div className="mt-3 text-sm text-gray-400 text-center">
-                    Showing first 10 payments of {reportData.payments.length} total. Export CSV for complete data.
+                      </thead>
+                      <tbody className="bg-gray-800 divide-y divide-gray-700">
+                        {reportData.payments.slice(0, 10).map((payment, index) => (
+                          <tr key={payment.id || index} className="hover:bg-gray-700">
+                            <td className="px-4 py-3 font-medium text-white">{payment.studentName || 'Unknown'}</td>
+                            <td className="px-4 py-3">₱{(payment.amount || 0).toLocaleString()}</td>
+                            <td className="px-4 py-3">{payment.method || 'CASH'}</td>
+                            <td className="px-4 py-3">{payment.paidAt ? new Date(payment.paidAt).toLocaleDateString() : 'N/A'}</td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                payment.studentTier === 'Legacy' 
+                                  ? 'bg-orange-900 text-orange-300' 
+                                  : 'bg-green-900 text-green-300'
+                              }`}>
+                                {payment.studentTier || 'Standard'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-              </div>
+                  {reportData.payments.length > 10 && (
+                    <div className="mt-3 text-sm text-gray-400 text-center">
+                      Showing first 10 payments of {reportData.payments.length} total. Export CSV for complete data.
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Missed Payments Alert */}
               {reportData.missedPayments && reportData.missedPayments.length > 0 && (
@@ -362,22 +370,34 @@ export default function MonthlyReportModal({
                     Active Students Who Did Not Pay ({reportData.missedPayments.length})
                   </h3>
                   <div className="space-y-2">
-                    {reportData.missedPayments.map((student) => (
-                      <div key={student.id} className="flex justify-between items-center bg-red-800 rounded-lg p-3">
+                    {reportData.missedPayments.map((student, index) => (
+                      <div key={student.id || index} className="flex justify-between items-center bg-red-800 rounded-lg p-3">
                         <div>
                           <div className="font-medium text-red-200">{student.name}</div>
                           <div className="text-sm text-red-400">
-                            Expected: ₱{student.expectedAmount.toLocaleString()}
+                            Expected: ₱{(student.expectedAmount || 0).toLocaleString()}
                           </div>
                         </div>
                         <div className="text-sm text-red-400">
-                          Membership until: {new Date(student.membershipEndDate).toLocaleDateString()}
+                          Membership until: {student.membershipEndDate ? new Date(student.membershipEndDate).toLocaleDateString() : 'Unknown'}
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* No data message */}
+          {!loading && !reportData && (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <svg className="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <p className="text-gray-400">Select a month and year, then click "Generate Report" to view payment data.</p>
             </div>
           )}
         </div>

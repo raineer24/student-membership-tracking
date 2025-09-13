@@ -1,4 +1,4 @@
-// prisma/schema.prisma - COMPLETE SCHEMA WITH WEEKEND EVENTS
+// File: prisma/schema.prisma - Enhanced schema with training session tracking
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,7 +8,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// EXISTING MODELS (preserved exactly)
+// Lines 10-35: Enhanced User model (preserved exactly)
 model User {
   id              Int             @id @default(autoincrement())
   name            String
@@ -20,10 +20,11 @@ model User {
   studentId       Int?
   student         Student?
   
-  // NEW: Weekend events relationship
+  // Weekend events relationship
   weekendEvents   WeekendEvent[]
 }
 
+// Lines 40-70: Enhanced Student model with training fields
 model Student {
   id              Int             @id @default(autoincrement())
   name            String
@@ -31,9 +32,15 @@ model Student {
   phone           String?
   userId          Int             @unique
   
-  // NEW: Add these fields with safe defaults
+  // Enhanced fields with safe defaults
   monthlyRate     Float           @default(1400)
   isLegacyStudent Boolean         @default(false)
+  
+  // NEW: Training-related fields for enhanced tracking
+  age             Int?
+  parentName      String?
+  parentPhone     String?
+  program         String          @default("Kids")
   
   // EXISTING relationships (preserved)
   memberships     Membership[]
@@ -41,13 +48,18 @@ model Student {
   reminders       Reminder[]
   user            User            @relation(fields: [userId], references: [id])
   
-  // NEW: Add indexes for performance
+  // NEW: Training sessions relationship
+  trainingSessions TrainingSession[]
+  
+  // Enhanced indexes for performance
   @@index([monthlyRate])
   @@index([isLegacyStudent])
   @@index([phone])
   @@index([email])
+  @@index([program])
 }
 
+// Lines 75-100: Membership model (preserved exactly)
 model Membership {
   id        Int             @id @default(autoincrement())
   startDate DateTime
@@ -64,6 +76,7 @@ model Membership {
   @@index([isActive])
 }
 
+// Lines 105-130: Payment model (preserved exactly)
 model Payment {
   id          Int             @id @default(autoincrement())
   amount      Float
@@ -83,6 +96,7 @@ model Payment {
   @@index([method])
 }
 
+// Lines 135-160: Reminder model (preserved exactly)
 model Reminder {
   id          Int      @id @default(autoincrement())
   studentId   Int
@@ -103,7 +117,31 @@ model Reminder {
   @@index([cost])
 }
 
-// NEW MODEL: WeekendEvent
+// Lines 165-200: NEW TrainingSession model for 30+ day tracking
+model TrainingSession {
+  id              Int       @id @default(autoincrement())
+  studentId       Int
+  date            DateTime  @default(now()) @db.Date
+  sessionType     String    @default("Weekend") // 'Weekend' or 'MWF-Weekday'
+  dayOfWeek       String    // 'Saturday', 'Sunday', 'Monday', 'Wednesday', 'Friday'
+  timeSlot        String    @default("10:00am-11:30am")
+  duration        Int       @default(90) // 90 minutes weekend, 60 MWF
+  attendance      String    @default("Present") // 'Present', 'Absent', 'Late'
+  notes           String?   // Optional session notes
+  createdAt       DateTime  @default(now())
+  
+  // Relationship to student
+  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  // Performance indexes for analytics queries
+  @@index([studentId, date])
+  @@index([sessionType, date])
+  @@index([dayOfWeek])
+  @@index([attendance])
+  @@index([createdAt])
+}
+
+// Lines 205-235: WeekendEvent model (preserved exactly)
 model WeekendEvent {
   id              Int       @id @default(autoincrement())
   eventType       EventType @default(GENERAL)
@@ -130,7 +168,7 @@ model WeekendEvent {
   @@index([createdAt])
 }
 
-// EXISTING ENUMS (preserved)
+// Lines 240-260: EXISTING ENUMS (preserved exactly)
 enum MembershipType {
   MONTHLY
   YEARLY
@@ -153,7 +191,7 @@ enum PaymentStatus {
   CANCELLED
 }
 
-// NEW ENUMS for Weekend Events
+// Lines 265-280: Weekend Events enums (preserved exactly)
 enum EventType {
   NO_CLASSES
   GENERAL
