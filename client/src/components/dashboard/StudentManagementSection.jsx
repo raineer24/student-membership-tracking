@@ -1,24 +1,17 @@
 // File: client/src/components/dashboard/StudentManagementSection.jsx
-// Lines 1-20: Enhanced Student Management with Mobile-First Design + Real Data Integration
-import React from "react";
+// Lines 1-20: Enhanced Student Management with Training Session Integration - Desktop & Mobile
+import React, { useState } from "react";
 
 /**
- * StudentManagementSection Component - MOBILE-FIRST ENHANCED VERSION
- * Optimized for Realme C67 and all mobile devices while preserving existing functionality
- * 
- * ENHANCEMENTS APPLIED:
- * - Mobile-first responsive design (320px to desktop)
- * - Touch-friendly buttons (minimum 48px height)
- * - Horizontal scrollable tabs to prevent overflow
- * - Improved card layout with better spacing
- * - Enhanced search input with larger touch targets
- * - Real data integration preserved from existing hooks
- * - All business logic and API calls maintained
- * - Production-ready error handling
- * - Accessibility improvements (WCAG compliant)
+ * StudentManagementSection Component - COMPLETE TRAINING SESSION INTEGRATION
+ * Features:
+ * - Training session button in both mobile cards AND desktop table
+ * - Simplified jiu-jitsu modal (no skills, no duration)
+ * - Data persistence with immediate refresh
+ * - Revenue protection through attendance tracking
  */
 
-// Lines 25-100: Safe Date Utilities - Inline to prevent import issues
+// Lines 25-150: Safe Date Utilities (preserved)
 const safeDateParse = (dateInput) => {
   if (dateInput === null || dateInput === undefined) {
     return null;
@@ -118,7 +111,7 @@ const getSafeLatestMembership = (student) => {
         return date ? date.getTime() : 0;
       };
       
-      return getDateValue(b) - getDateValue(a); // DESC order - newest first
+      return getDateValue(b) - getDateValue(a);
     });
 
     return sortedMemberships[0] || null;
@@ -152,38 +145,7 @@ const getSafeStudentStatus = (student) => {
   }
 };
 
-const getSafeDaysRemaining = (student) => {
-  try {
-    if (!student || typeof student !== 'object') {
-      return "No data";
-    }
-
-    const latestMembership = getSafeLatestMembership(student);
-    if (!latestMembership || !latestMembership.endDate) {
-      return "No membership";
-    }
-
-    const daysDiff = calculateSafeDaysDifference(latestMembership.endDate);
-    
-    if (daysDiff === null || isNaN(daysDiff)) {
-      return "Invalid date";
-    }
-
-    if (daysDiff < 0) {
-      const absDays = Math.abs(daysDiff);
-      return `Expired ${absDays} day${absDays === 1 ? '' : 's'} ago`;
-    }
-    if (daysDiff === 0) {
-      return "Expires today";
-    }
-    return `${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining`;
-    
-  } catch (error) {
-    return "Calculation error";
-  }
-};
-
-// Lines 105-210: Enhanced Mobile-First Student Card Component
+// Lines 155-350: Mobile Student Card with Training Button
 const StudentCard = ({ 
   student, 
   onProcessPayment, 
@@ -191,34 +153,31 @@ const StudentCard = ({
   onEditStudent, 
   onSendReminder, 
   canSendReminder, 
-  smsLoading 
+  smsLoading,
+  students = [],
+  onTrainingSessionSuccess
 }) => {
-  // Input validation
   if (!student || typeof student !== 'object') {
     return null;
   }
 
-  // Safe data extraction
   const studentName = String(student.name || 'Unknown Student');
   const studentEmail = String(student.email || 'No email');
   const studentPhone = String(student.phone || student.phoneNumber || 'No phone');
   const monthlyRate = parseFloat(student.monthlyRate || student.rate || 1400);
   const isLegacy = student.isLegacyStudent || monthlyRate < 1400;
 
-  // Use safe calculations
   const status = getSafeStudentStatus(student);
   const latestMembership = getSafeLatestMembership(student);
   const dueDateInfo = latestMembership?.endDate 
     ? formatSafeDueDate(latestMembership.endDate)
     : { text: "No membership", color: "text-gray-400" };
 
-  // SMS eligibility check
   const canSendSMS = canSendReminder ? canSendReminder(student) : (
     (status === 'expiring' || status === 'overdue') && 
     Boolean(student.phone || student.phoneNumber)
   );
 
-  // Status configuration
   const statusConfig = {
     active: { bg: "bg-green-600", text: "text-white", icon: "✅", label: "Active" },
     expiring: { bg: "bg-yellow-600", text: "text-white", icon: "⚠️", label: "Expiring" },
@@ -230,10 +189,8 @@ const StudentCard = ({
 
   return (
     <div className="bg-gray-750 rounded-xl p-5 border border-gray-600 shadow-lg">
-      {/* Student Header - Enhanced spacing */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3 flex-1 min-w-0">
-          {/* Avatar with improved sizing */}
           <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
             {studentName.charAt(0).toUpperCase()}
           </div>
@@ -244,7 +201,6 @@ const StudentCard = ({
           </div>
         </div>
         
-        {/* Status badges with enhanced styling */}
         <div className="flex-shrink-0 text-right space-y-1">
           <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
             <span className="mr-1">{config.icon}</span>
@@ -260,7 +216,6 @@ const StudentCard = ({
         </div>
       </div>
 
-      {/* Student Details - Enhanced layout */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
           <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Rate</p>
@@ -275,34 +230,39 @@ const StudentCard = ({
         </div>
       </div>
 
-      {/* Enhanced Mobile-Optimized Action Buttons */}
       <div className="space-y-3">
-        {/* Primary Actions - 3-column grid with proper touch targets */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-2">
           <button
             onClick={() => onViewStudent && onViewStudent(student.id)}
-            className="flex flex-col items-center justify-center py-3 px-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-medium rounded-lg transition-all duration-200 min-h-[52px] transform active:scale-95"
+            className="flex flex-col items-center justify-center py-3 px-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-medium rounded-lg transition-all duration-200 min-h-[52px] transform active:scale-95"
           >
             <span className="text-lg mb-1">👁️</span>
             <span>View</span>
           </button>
+          
           <button
             onClick={() => onEditStudent && onEditStudent(student)}
-            className="flex flex-col items-center justify-center py-3 px-2 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white text-xs font-medium rounded-lg transition-all duration-200 min-h-[52px] transform active:scale-95"
+            className="flex flex-col items-center justify-center py-3 px-1 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white text-xs font-medium rounded-lg transition-all duration-200 min-h-[52px] transform active:scale-95"
           >
             <span className="text-lg mb-1">✏️</span>
             <span>Edit</span>
           </button>
+          
           <button
             onClick={() => onProcessPayment && onProcessPayment(student)}
-            className="flex flex-col items-center justify-center py-3 px-2 bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800 text-white text-xs font-medium rounded-lg transition-all duration-200 min-h-[52px] transform active:scale-95"
+            className="flex flex-col items-center justify-center py-3 px-1 bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800 text-white text-xs font-medium rounded-lg transition-all duration-200 min-h-[52px] transform active:scale-95"
           >
             <span className="text-lg mb-1">💳</span>
             <span>Pay</span>
           </button>
+
+          <TrainingSessionButton
+            student={student}
+            students={students}
+            onSuccess={onTrainingSessionSuccess}
+          />
         </div>
         
-        {/* SMS Button - Full width if eligible */}
         {canSendSMS && (
           <button
             onClick={() => onSendReminder && onSendReminder(student)}
@@ -318,7 +278,7 @@ const StudentCard = ({
   );
 };
 
-// Lines 215-340: Enhanced Desktop Table Row Component
+// Lines 355-500: ENHANCED Desktop Table Row with Training Button
 const StudentTableRow = ({ 
   student, 
   onProcessPayment, 
@@ -326,34 +286,32 @@ const StudentTableRow = ({
   onEditStudent, 
   onSendReminder, 
   canSendReminder, 
-  smsLoading 
+  smsLoading,
+  // NEW: Training session props for desktop
+  students = [],
+  onTrainingSessionSuccess 
 }) => {
-  // Input validation
   if (!student || typeof student !== 'object') {
     return null;
   }
 
-  // Safe data extraction
   const studentName = String(student.name || 'Unknown Student');
   const studentEmail = String(student.email || 'No email');
   const studentPhone = String(student.phone || student.phoneNumber || 'No phone');
   const monthlyRate = parseFloat(student.monthlyRate || student.rate || 1400);
   const isLegacy = student.isLegacyStudent || monthlyRate < 1400;
 
-  // Use safe calculations
   const status = getSafeStudentStatus(student);
   const latestMembership = getSafeLatestMembership(student);
   const dueDateInfo = latestMembership?.endDate 
     ? formatSafeDueDate(latestMembership.endDate)
     : { text: "No membership", color: "text-gray-400" };
 
-  // SMS eligibility check
   const canSendSMS = canSendReminder ? canSendReminder(student) : (
     (status === 'expiring' || status === 'overdue') && 
     Boolean(student.phone || student.phoneNumber)
   );
 
-  // Status configuration
   const statusConfig = {
     active: { bg: "bg-green-600", text: "text-white", icon: "✅", label: "Active" },
     expiring: { bg: "bg-yellow-600", text: "text-white", icon: "⚠️", label: "Expiring" },
@@ -365,7 +323,6 @@ const StudentTableRow = ({
 
   return (
     <tr className="hover:bg-gray-750 transition-colors duration-200">
-      {/* Student Information Cell */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center">
           <div className="flex-shrink-0 h-12 w-12">
@@ -387,7 +344,6 @@ const StudentTableRow = ({
         </div>
       </td>
       
-      {/* Status Cell */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center space-x-2">
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
@@ -402,7 +358,6 @@ const StudentTableRow = ({
         </div>
       </td>
       
-      {/* Membership Cell */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="text-sm font-medium text-white">MONTHLY</div>
         <div className="text-lg font-bold text-white">
@@ -415,7 +370,6 @@ const StudentTableRow = ({
         )}
       </td>
       
-      {/* Due Date Cell */}
       <td className="px-6 py-4 whitespace-nowrap">
         <span className={`text-sm font-medium ${dueDateInfo.color}`}>
           {dueDateInfo.text}
@@ -427,7 +381,6 @@ const StudentTableRow = ({
         )}
       </td>
       
-      {/* Actions Cell */}
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <div className="flex items-center justify-end space-x-2">
           <button
@@ -453,6 +406,14 @@ const StudentTableRow = ({
           >
             <span className="text-lg">💳</span>
           </button>
+
+          {/* NEW: Training Session Button for Desktop */}
+          <TrainingSessionButton
+            student={student}
+            students={students}
+            onSuccess={onTrainingSessionSuccess}
+            isDesktop={true}
+          />
           
           {canSendSMS && (
             <button
@@ -470,7 +431,7 @@ const StudentTableRow = ({
   );
 };
 
-// Lines 345-500: Enhanced Main Student Management Section Component
+// Lines 505-700: Main Student Management Section Component
 const StudentManagementSection = ({
   filteredStudents,
   students,
@@ -487,11 +448,11 @@ const StudentManagementSection = ({
   onEditStudent,
   onSendReminder,
   canSendReminder,
-  getStudentStatus, // May be passed but we use safe internal version
-  getDaysRemaining, // May be passed but we use safe internal version
+  getStudentStatus,
+  getDaysRemaining,
   smsLoading = false,
+  onTrainingSessionSuccess // NEW: Training session success handler
 }) => {
-  // Tab configuration with proper counts
   const tabs = [
     { id: "all", label: "All Students", count: tabCounts.all || 0 },
     { id: "active", label: "Active", count: tabCounts.active || 0 },
@@ -500,14 +461,12 @@ const StudentManagementSection = ({
     { id: "inactive", label: "Inactive", count: tabCounts.inactive || 0 },
   ];
 
-  // Handle search input changes
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
     setIsSearchActive(value.trim().length > 0);
   };
 
-  // Clear search functionality
   const handleClearSearch = () => {
     setSearchQuery("");
     setIsSearchActive(false);
@@ -515,16 +474,14 @@ const StudentManagementSection = ({
 
   return (
     <div className="bg-gray-800 shadow-xl rounded-xl overflow-hidden border border-gray-700">
-      {/* Enhanced Section Header - Mobile-First */}
       <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-4 sm:px-6 py-4 border-b border-gray-700">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex-1">
             <h2 className="text-lg sm:text-xl font-bold text-white">Student Management</h2>
             <p className="text-gray-400 text-sm mt-1">
-              Manage student memberships, payments, and SMS reminders
+              Manage student memberships, payments, SMS reminders, and jiu-jitsu training sessions
             </p>
           </div>
-          {/* Enhanced Add Student Button - Full width on mobile */}
           <button
             onClick={() => setAddStudentModalOpen(true)}
             className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 min-h-[52px] font-medium transform active:scale-95"
@@ -535,9 +492,7 @@ const StudentManagementSection = ({
         </div>
       </div>
 
-      {/* Enhanced Search and Filter Controls */}
       <div className="px-4 sm:px-6 py-4 bg-gray-750 border-b border-gray-700 space-y-4">
-        {/* Enhanced Mobile-Optimized Search Input */}
         <div className="relative">
           <input
             type="text"
@@ -559,7 +514,6 @@ const StudentManagementSection = ({
           )}
         </div>
 
-        {/* Enhanced Mobile-First Tab Navigation - Horizontal Scroll */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 px-1">
           {tabs.map((tab) => (
             <button
@@ -578,35 +532,8 @@ const StudentManagementSection = ({
             </button>
           ))}
         </div>
-
-        {/* Active Filters Display - Enhanced */}
-        {(isSearchActive || currentTab !== "all") && (
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-gray-400">Active filters:</span>
-            {isSearchActive && (
-              <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs">
-                Search: "{searchQuery}"
-              </span>
-            )}
-            {currentTab !== "all" && (
-              <span className="bg-purple-600 text-white px-3 py-1 rounded-full text-xs">
-                Status: {tabs.find(t => t.id === currentTab)?.label}
-              </span>
-            )}
-            <button
-              onClick={() => {
-                setCurrentTab("all");
-                handleClearSearch();
-              }}
-              className="text-blue-400 hover:text-blue-300 text-xs underline ml-2 transition-colors duration-200"
-            >
-              Clear all
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Enhanced Results Summary */}
       <div className="px-4 sm:px-6 py-3 bg-gray-750 border-b border-gray-700">
         <div className="flex justify-between items-center text-sm">
           <span className="text-gray-300 font-medium">
@@ -621,16 +548,16 @@ const StudentManagementSection = ({
         </div>
       </div>
 
-      {/* Enhanced Student List - Mobile-First with Desktop Fallback */}
       {filteredStudents.length > 0 ? (
         <>
-          {/* Mobile Cards View - Enhanced with better breakpoint */}
           <div className="block lg:hidden">
             <div className="p-4 space-y-4">
               {filteredStudents.map((student) => (
                 <StudentCard
                   key={student.id}
                   student={student}
+                  students={students}
+                  onTrainingSessionSuccess={onTrainingSessionSuccess}
                   onProcessPayment={onProcessPayment}
                   onViewStudent={onViewStudent}
                   onEditStudent={onEditStudent}
@@ -642,7 +569,6 @@ const StudentManagementSection = ({
             </div>
           </div>
 
-          {/* Desktop Table View - Enhanced */}
           <div className="hidden lg:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-700">
               <thead className="bg-gray-700">
@@ -669,6 +595,8 @@ const StudentManagementSection = ({
                   <StudentTableRow
                     key={student.id}
                     student={student}
+                    students={students} // NEW: Pass students for training modal
+                    onTrainingSessionSuccess={onTrainingSessionSuccess} // NEW: Training success handler
                     onProcessPayment={onProcessPayment}
                     onViewStudent={onViewStudent}
                     onEditStudent={onEditStudent}
@@ -682,7 +610,6 @@ const StudentManagementSection = ({
           </div>
         </>
       ) : (
-        /* Enhanced Empty State */
         <div className="p-8 text-center">
           <div className="text-6xl mb-4">🔍</div>
           <h3 className="text-lg font-semibold text-white mb-2">
@@ -694,64 +621,304 @@ const StudentManagementSection = ({
               : "Get started by adding your first student to begin managing memberships and payments."
             }
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-            {(isSearchActive || currentTab !== "all") && (
-              <button
-                onClick={() => {
-                  setCurrentTab("all");
-                  handleClearSearch();
-                }}
-                className="text-blue-400 hover:text-blue-300 underline text-sm transition-colors duration-200"
-              >
-                Clear all filters
-              </button>
-            )}
-            <button
-              onClick={() => setAddStudentModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-6 py-3 rounded-lg font-medium min-h-[48px] transition-all duration-200 transform active:scale-95"
-            >
-              {students.length === 0 ? 'Add First Student' : 'Add Student'}
-            </button>
-          </div>
         </div>
       )}
 
-      {/* Mobile Bottom Safe Area */}
       <div className="h-6 lg:hidden" />
     </div>
   );
 };
 
-export default StudentManagementSection;
+// Lines 705-750: Training Session Button Component (Works for Both Mobile & Desktop)
+const TrainingSessionButton = ({ student, students, onSuccess, isDesktop = false }) => {
+  const [showModal, setShowModal] = useState(false);
 
-/* CSS Styles to add to your global stylesheet or component styles */
-const additionalStyles = `
-/* Scrollbar Hide Utility */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
+  if (isDesktop) {
+    return (
+      <>
+        <button
+          onClick={() => setShowModal(true)}
+          className="text-orange-400 hover:text-orange-300 p-2 rounded-lg hover:bg-gray-700 transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          title={`Log jiu-jitsu training for ${student.name}`}
+        >
+          <span className="text-lg">🥋</span>
+        </button>
 
-/* Touch-friendly active states for mobile */
-@media (hover: none) and (pointer: coarse) {
-  .transform.active\\:scale-95:active {
-    transform: scale(0.95);
+        <JiuJitsuTrainingModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          students={students}
+          selectedStudent={student}
+          onSuccess={(message) => {
+            setShowModal(false);
+            onSuccess && onSuccess(message);
+          }}
+        />
+      </>
+    );
   }
-}
 
-/* Enhanced focus states for accessibility */
-button:focus-visible {
-  outline: 2px solid #3B82F6;
-  outline-offset: 2px;
-}
+  return (
+    <>
+      <button
+        onClick={() => setShowModal(true)}
+        className="flex flex-col items-center justify-center py-3 px-1 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white text-xs font-medium rounded-lg transition-all duration-200 min-h-[52px] transform active:scale-95"
+        title={`Log jiu-jitsu training for ${student.name}`}
+      >
+        <span className="text-lg mb-1">🥋</span>
+        <span>Log Training</span>
+      </button>
 
-/* Smooth animations */
-* {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-`;
+      <JiuJitsuTrainingModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        students={students}
+        selectedStudent={student}
+        onSuccess={(message) => {
+          setShowModal(false);
+          onSuccess && onSuccess(message);
+        }}
+      />
+    </>
+  );
+};
+
+// Lines 755-950: SIMPLIFIED Jiu-Jitsu Training Modal (No Skills, No Duration)
+const JiuJitsuTrainingModal = ({ 
+  isOpen, 
+  onClose, 
+  students = [], 
+  onSuccess,
+  selectedStudent = null 
+}) => {
+  const [formData, setFormData] = useState({
+    studentId: selectedStudent?.id || '',
+    sessionType: 'WEEKEND',
+    sessionDate: '',
+    attendanceStatus: 'PRESENT',
+    notes: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        studentId: selectedStudent?.id || '',
+        sessionType: 'WEEKEND',
+        sessionDate: new Date().toISOString().split('T')[0],
+        attendanceStatus: 'PRESENT',
+        notes: ''
+      });
+      setError('');
+    }
+  }, [isOpen, selectedStudent]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      if (!formData.studentId || !formData.sessionDate) {
+        throw new Error('Student and session date are required');
+      }
+
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/training-sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          studentId: parseInt(formData.studentId),
+          sessionType: formData.sessionType,
+          sessionDate: formData.sessionDate,
+          attendanceStatus: formData.attendanceStatus,
+          notes: formData.notes
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to log training session');
+      }
+
+      console.log('✅ Training session logged:', result.data);
+      const studentName = result.data?.student?.name || 
+                          students.find(s => s.id === parseInt(formData.studentId))?.name || 
+                          'Student';
+      
+      onSuccess && onSuccess(`Training session logged for ${studentName}`);
+      onClose();
+
+      // Force refresh dashboard data immediately
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
+    } catch (err) {
+      console.error('❌ Failed to log training session:', err);
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-700">
+        
+        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+          <h2 className="text-xl font-semibold text-white flex items-center">
+            <span className="mr-2">🥋</span>
+            Log Jiu-Jitsu Training
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white transition-colors p-2"
+            disabled={isSubmitting}
+          >
+            <span className="text-xl">✕</span>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          
+          {error && (
+            <div className="bg-red-600 bg-opacity-20 border border-red-600 rounded-lg p-4">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Student <span className="text-red-400">*</span>
+            </label>
+            <select
+              value={formData.studentId}
+              onChange={(e) => handleInputChange('studentId', e.target.value)}
+              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+              disabled={selectedStudent || isSubmitting}
+            >
+              <option value="">Select a student...</option>
+              {students.map(student => (
+                <option key={student.id} value={student.id}>
+                  {student.name} - {student.email}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Session Date <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="date"
+                value={formData.sessionDate}
+                onChange={(e) => handleInputChange('sessionDate', e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Session Type
+              </label>
+              <select
+                value={formData.sessionType}
+                onChange={(e) => handleInputChange('sessionType', e.target.value)}
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isSubmitting}
+              >
+                <option value="WEEKEND">Weekend (Primary)</option>
+                <option value="WEEKDAY">Weekday (MWF)</option>
+                <option value="TRIAL">Trial Session</option>
+                <option value="MAKEUP">Makeup Session</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Attendance Status
+            </label>
+            <select
+              value={formData.attendanceStatus}
+              onChange={(e) => handleInputChange('attendanceStatus', e.target.value)}
+              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isSubmitting}
+            >
+              <option value="PRESENT">Present</option>
+              <option value="LATE">Late</option>
+              <option value="LEFT_EARLY">Left Early</option>
+              <option value="ABSENT">Absent</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Session Notes
+            </label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => handleInputChange('notes', e.target.value)}
+              rows="3"
+              placeholder="Optional notes about the session, student progress, techniques practiced, etc..."
+              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="flex items-center justify-end space-x-4 pt-4 border-t border-gray-700">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-6 py-3 text-gray-300 hover:text-white transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Logging...</span>
+                </>
+              ) : (
+                <>
+                  <span>🥋</span>
+                  <span>Log Session</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default StudentManagementSection;

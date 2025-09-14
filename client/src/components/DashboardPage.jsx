@@ -1,5 +1,5 @@
 // File: client/src/components/DashboardPage.jsx
-// Lines 1-25: Enhanced imports with Phase 1 & Phase 2 components
+// Lines 1-25: Enhanced imports with Phase 1 & Phase 2 components + Training Sessions
 import React, { useState, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../hooks/useToast";
@@ -33,7 +33,7 @@ import SMSHistoryModal from "./modals/SMSHistoryModal";
 import WeekendEventModal from "./modals/WeekendEventModal";
 import MonthlyReportModal from "./modals/MonthlyReportModal";
 
-// Lines 35-165: Enhanced Main Dashboard Component - Phase 2 Integration
+// Lines 35-165: Enhanced Main Dashboard Component - Phase 2 Integration + Training Sessions
 export default function DashboardPage() {
   const { user, token } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -116,6 +116,13 @@ export default function DashboardPage() {
     setCurrentView("dashboard");
     setSelectedStudent(null);
   }, []);
+
+  // NEW: Training session success handler
+  const handleTrainingSessionSuccess = useCallback((message) => {
+    showSuccess(message);
+    // Optionally refetch data to update training status
+    refetch();
+  }, [showSuccess, refetch]);
 
   // Enhanced SMS reminder handler with comprehensive error handling (PRESERVED)
   const handleSendReminder = useCallback(async (student) => {
@@ -334,7 +341,7 @@ export default function DashboardPage() {
             pricingBreakdown={revenueData}
           />
 
-          {/* Student Management Section - PRESERVED with enhanced container */}
+          {/* ENHANCED: Student Management Section with Training Session Integration */}
           <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden shadow-lg">
             <StudentManagementSection
               filteredStudents={filteredStudents}
@@ -355,6 +362,7 @@ export default function DashboardPage() {
               getStudentStatus={getStudentStatus}
               getDaysRemaining={getDaysRemaining}
               smsLoading={smsLoading}
+              onTrainingSessionSuccess={handleTrainingSessionSuccess}
             />
           </div>
         </div>

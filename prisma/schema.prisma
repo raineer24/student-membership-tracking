@@ -1,4 +1,4 @@
-// prisma/schema.prisma - COMPLETE SCHEMA WITH WEEKEND EVENTS
+// File: prisma/schema.prisma - COMPLETE SCHEMA WITH TRAINING SESSIONS
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,38 +10,42 @@ datasource db {
 
 // EXISTING MODELS (preserved exactly)
 model User {
-  id              Int             @id @default(autoincrement())
+  id              Int               @id @default(autoincrement())
   name            String
-  email           String          @unique
+  email           String            @unique
   password        String
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  role            String          @default("student")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  role            String            @default("student")
   studentId       Int?
   student         Student?
   
-  // NEW: Weekend events relationship
-  weekendEvents   WeekendEvent[]
+  // NEW: Training session relationship
+  trainingSessions TrainingSession[]
+  weekendEvents    WeekendEvent[]
 }
 
 model Student {
-  id              Int             @id @default(autoincrement())
+  id              Int               @id @default(autoincrement())
   name            String
-  email           String          @unique
+  email           String            @unique
   phone           String?
-  userId          Int             @unique
+  userId          Int               @unique
   
-  // NEW: Add these fields with safe defaults
-  monthlyRate     Float           @default(1400)
-  isLegacyStudent Boolean         @default(false)
+  // Enhanced fields with safe defaults
+  monthlyRate     Float             @default(1400)
+  isLegacyStudent Boolean           @default(false)
   
   // EXISTING relationships (preserved)
   memberships     Membership[]
   payments        Payment[]
   reminders       Reminder[]
-  user            User            @relation(fields: [userId], references: [id])
+  user            User              @relation(fields: [userId], references: [id])
   
-  // NEW: Add indexes for performance
+  // NEW: Training session relationship for attendance tracking
+  trainingSessions TrainingSession[]
+  
+  // Enhanced indexes for performance
   @@index([monthlyRate])
   @@index([isLegacyStudent])
   @@index([phone])
@@ -103,7 +107,7 @@ model Reminder {
   @@index([cost])
 }
 
-// NEW MODEL: WeekendEvent
+// EXISTING MODEL: WeekendEvent (preserved)
 model WeekendEvent {
   id              Int       @id @default(autoincrement())
   eventType       EventType @default(GENERAL)
@@ -130,6 +134,41 @@ model WeekendEvent {
   @@index([createdAt])
 }
 
+// NEW MODEL: TrainingSession - Core Feature for Attendance Tracking
+model TrainingSession {
+  id               Int                @id @default(autoincrement())
+  
+  // Student and session relationships
+  studentId        Int
+  student          Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  creatorId        Int
+  creator          User               @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  // Session details aligned with martial arts program
+  sessionType      SessionType        @default(WEEKEND)
+  sessionDate      DateTime
+  duration         Int                @default(90)        // Minutes (90-minute sessions)
+  
+  // Martial arts specific fields
+  attendanceStatus AttendanceStatus   @default(PRESENT)
+  skillsWorkedOn   String[]           @default([])        // Array of skills practiced
+  notes            String?                                 // Instructor notes
+  
+  // Audit fields
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  
+  // Performance indexes for 30-day queries
+  @@index([studentId])
+  @@index([sessionDate])
+  @@index([sessionType])
+  @@index([attendanceStatus])
+  @@index([creatorId])
+  @@index([studentId, sessionDate])      // Composite for student attendance queries
+  @@index([sessionDate, sessionType])    // Composite for weekend/weekday analysis
+}
+
 // EXISTING ENUMS (preserved)
 enum MembershipType {
   MONTHLY
@@ -153,7 +192,7 @@ enum PaymentStatus {
   CANCELLED
 }
 
-// NEW ENUMS for Weekend Events
+// EXISTING ENUMS for Weekend Events
 enum EventType {
   NO_CLASSES
   GENERAL
@@ -166,4 +205,19 @@ enum Priority {
   NORMAL
   HIGH
   URGENT
+}
+
+// NEW ENUMS for Training Sessions
+enum SessionType {
+  WEEKEND        // Primary schedule: Saturday-Sunday 10:00am-11:30am
+  WEEKDAY        // Secondary schedule: Monday, Wednesday, Friday
+  TRIAL          // Trial sessions for new students
+  MAKEUP         // Makeup sessions for missed classes
+}
+
+enum AttendanceStatus {
+  PRESENT        // Student attended and participated
+  ABSENT         // Student did not attend
+  LATE           // Student arrived late but participated
+  LEFT_EARLY     // Student left before session ended
 }
