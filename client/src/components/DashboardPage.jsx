@@ -1,412 +1,623 @@
 // File: client/src/components/DashboardPage.jsx
-// Lines 1-25: Enhanced imports with Phase 1 & Phase 2 components + Training Sessions
-import React, { useState, useCallback, useMemo } from "react";
+// FIXED: Edit modal timing issue - modal opens immediately when called from profile view
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../hooks/useToast";
-
-// Custom Hooks - Real API data management
 import useStudentManagement from "../hooks/useStudentManagement";
-import { useDashboardData } from "../hooks/useDashboardData";
-
-// PHASE 1: Utility Functions - Extracted zero-risk pure functions
-import { 
-  calculateRevenueData,
-  calculateStudentStatus,
-  calculateDaysRemaining,
-  canSendReminder
-} from "../utils/studentCalculations";
-
-// PHASE 2: Extracted Components - UI separation of concerns
-import DashboardHeader from "./dashboard/DashboardHeader";
-import DashboardStatistics from "./dashboard/DashboardStatistics";
-import { LoadingView, ErrorView, ProfileView, EditView } from "./dashboard/DashboardViews";
-
-// Existing Components - Preserved all functionality
 import StudentManagementSection from "./dashboard/StudentManagementSection";
-import AnnouncementBanner from "./dashboard/AnnouncementBanner";
+import StudentProfileView from "./StudentProfileView";
+import StudentEditForm from "./StudentEditForm";
 
-// Modal Components - Preserved all functionality
-import PaymentModal from "./PaymentModal";
+// Modal imports
 import AddStudentModal from "./AddStudentModal";
+import PaymentModal from "./PaymentModal";
 import SMSCreditsModal from "./modals/SMSCreditsModal";
 import SMSHistoryModal from "./modals/SMSHistoryModal";
 import WeekendEventModal from "./modals/WeekendEventModal";
 import MonthlyReportModal from "./modals/MonthlyReportModal";
+import TrainingSessionModal from "./training/TrainingSessionModal";
 
-// Lines 35-165: Enhanced Main Dashboard Component - Phase 2 Integration + Training Sessions
-export default function DashboardPage() {
-  const { user, token } = useAuth();
+const validateStudentData = (data) => {
+  if (!data) return [];
+  
+  let studentsArray = [];
+  
+  if (data.success && Array.isArray(data.students)) {
+    studentsArray = data.students;
+  } else if (data.success && Array.isArray(data.data)) {
+    studentsArray = data.data;
+  } else if (Array.isArray(data)) {
+    studentsArray = data;
+  } else if (data.data && Array.isArray(data.data.students)) {
+    studentsArray = data.data.students;
+  } else if (data.data && Array.isArray(data.data)) {
+    studentsArray = data.data;
+  }
+  
+  return studentsArray.filter(student => 
+    student && 
+    typeof student === 'object' && 
+    student.id && 
+    student.name &&
+    typeof student.name === 'string'
+  );
+};
+
+const DashboardPage = () => {
+  const { token, user, logout } = useAuth();
   const { showSuccess, showError } = useToast();
 
-  // State management - Comprehensive modal and view state (PRESERVED)
-  const [currentView, setCurrentView] = useState("dashboard");
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  // State management
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Modal states
   const [addStudentModalOpen, setAddStudentModalOpen] = useState(false);
-  const [smsCreditsModalOpen, setSmsCreditsModalOpen] = useState(false);
-  const [smsHistoryModalOpen, setSmsHistoryModalOpen] = useState(false);
-  const [weekendEventModalOpen, setWeekendEventModalOpen] = useState(false);
+  const [editStudentModalOpen, setEditStudentModalOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentStudent, setPaymentStudent] = useState(null);
+  const [viewingStudent, setViewingStudent] = useState(null);
   const [monthlyReportModalOpen, setMonthlyReportModalOpen] = useState(false);
-  const [announcements, setAnnouncements] = useState([]);
+  const [weekendEventModalOpen, setWeekendEventModalOpen] = useState(false);
+  const [creditsModalOpen, setCreditsModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [smsLoading, setSmsLoading] = useState(false);
+  const [trainingModalOpen, setTrainingModalOpen] = useState(false);
+  const [trainingStudent, setTrainingStudent] = useState(null);
 
-  // API data hooks - Enhanced error handling (PRESERVED)
-  const { 
-    dashboardData, 
-    students, 
-    setStudents, 
-    loading, 
-    error, 
-    refetch 
-  } = useDashboardData(token);
-
-  // Enhanced student management hook - All student operations (PRESERVED)
   const {
-    filteredStudents,
-    tabCounts,
-    pricingBreakdown,
     currentTab,
     searchQuery,
     isSearchActive,
+    filteredStudents,
+    tabCounts,
+    pricingBreakdown,
+    getStudentStatus,
+    getDaysRemaining,
+    canSendReminder,
     setCurrentTab,
     setSearchQuery,
     setIsSearchActive,
-    clearSearch,
-    getStudentStatus,
-    getDaysRemaining,
-    canSendReminder: hookCanSendReminder
+    clearSearch
   } = useStudentManagement(students);
 
-  // PHASE 1: Revenue calculation using imported utility function
-  const revenueData = useMemo(() => {
-    return calculateRevenueData(students);
-  }, [students]);
+  const fetchStudents = useCallback(async () => {
+    if (!token) return;
 
-  // Modal handlers - All preserved functionality
-  const handleOpenMonthlyReportModal = useCallback(() => {
-    setMonthlyReportModalOpen(true);
-  }, []);
+    try {
+      setLoading(true);
+      setError(null);
 
-  const handleCloseMonthlyReportModal = useCallback(() => {
-    setMonthlyReportModalOpen(false);
-  }, []);
+      const response = await fetch("/api/students", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-  // Event handlers - Comprehensive student operations (PRESERVED)
-  const handleProcessPayment = useCallback((student) => {
-    setSelectedStudent(student);
-    setPaymentModalOpen(true);
-  }, []);
+      if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-  const handleViewStudent = useCallback((studentId) => {
-    const student = students.find(s => s.id === studentId);
-    if (student) {
-      setSelectedStudent(student);
-      setCurrentView("profile");
-    } else {
-      showError("Student not found");
+      const rawData = await response.json();
+      const validatedStudents = validateStudentData(rawData);
+      
+      console.log(`✅ Loaded ${validatedStudents.length} students`);
+      setStudents(validatedStudents);
+      
+    } catch (error) {
+      console.error('❌ Error fetching students:', error);
+      setError(error.message);
+      setStudents([]);
+      showError(`Failed to load students: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
-  }, [students, showError]);
+  }, [token, logout, showError]);
 
+  useEffect(() => {
+    fetchStudents();
+  }, [fetchStudents]);
+
+  const dashboardMetrics = useMemo(() => ({
+    totalStudents: students.length,
+    activeStudents: tabCounts?.active || 0,
+    expiringStudents: tabCounts?.expiring || 0,
+    overdueStudents: tabCounts?.overdue || 0,
+    inactiveStudents: tabCounts?.inactive || 0,
+    monthlyRevenue: pricingBreakdown?.totalMonthly || 0
+  }), [students.length, tabCounts, pricingBreakdown]);
+
+  // FIXED: Edit handler with immediate state management
   const handleEditStudent = useCallback((student) => {
-    setSelectedStudent(student);
-    setCurrentView("edit");
-  }, []);
-
-  const handleBackToDashboard = useCallback(() => {
-    setCurrentView("dashboard");
-    setSelectedStudent(null);
-  }, []);
-
-  // NEW: Training session success handler
-  const handleTrainingSessionSuccess = useCallback((message) => {
-    showSuccess(message);
-    // Optionally refetch data to update training status
-    refetch();
-  }, [showSuccess, refetch]);
-
-  // Enhanced SMS reminder handler with comprehensive error handling (PRESERVED)
-  const handleSendReminder = useCallback(async (student) => {
-    if (smsLoading) {
-      showError("SMS reminder already in progress. Please wait.");
-      return;
-    }
-
-    if (!student || !student.id) {
+    console.log('🔧 handleEditStudent called with:', student?.name);
+    console.log('🔧 Current viewingStudent:', viewingStudent?.name);
+    
+    if (!student || typeof student !== 'object') {
+      console.error("❌ Invalid student data for edit");
       showError("Invalid student data");
       return;
     }
 
-    const phoneNumber = student.phone || student.phoneNumber;
-    if (!phoneNumber) {
-      showError(`${student.name} has no phone number on file`);
+    // CRITICAL FIX: Close profile view first, then open edit modal
+    console.log('🔧 Step 1: Closing profile view');
+    setViewingStudent(null);
+    
+    // Use setTimeout to ensure profile view closes first
+    setTimeout(() => {
+      console.log('🔧 Step 2: Opening edit modal with student:', student.name);
+      setEditingStudent(student);
+      setEditStudentModalOpen(true);
+    }, 50); // Small delay to ensure state update
+    
+  }, [showError, viewingStudent]);
+
+  const handleSaveStudent = useCallback(async (updatedStudentData) => {
+    if (!updatedStudentData || !updatedStudentData.id) {
+      showError("Invalid student data for update");
       return;
     }
-
-    // PHASE 1: Using imported utility function for SMS eligibility check
-    if (!canSendReminder(student)) {
-      const status = calculateStudentStatus(student);
-      showError(`Cannot send reminder to ${student.name}. SMS reminders are only available for expiring and overdue students. Status: ${status}`);
-      return;
-    }
-
-    setSmsLoading(true);
 
     try {
-      const response = await fetch('/api/reminders/send', {
-        method: 'POST',
+      console.log('💾 Saving student:', updatedStudentData.name);
+
+      const response = await fetch(`/api/students/${updatedStudentData.id}`, {
+        method: "PUT",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          studentId: student.id,
-          testMode: false,
+          name: updatedStudentData.name,
+          email: updatedStudentData.email,
+          phone: updatedStudentData.phone,
+          monthlyRate: parseFloat(updatedStudentData.monthlyRate || 1400),
+          isLegacyStudent: Boolean(updatedStudentData.isLegacyStudent)
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || data.message || `HTTP ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || errorData.error || `Server error: ${response.status}`);
       }
 
-      if (data.success) {
-        showSuccess(
-          `SMS reminder sent successfully to ${student.name}! ` +
-          `Cost: ₱${data.data?.cost || '0.60'}`
-        );
-      } else {
-        throw new Error(data.message || 'SMS sending failed');
-      }
-
-    } catch (error) {
-      console.error("SMS reminder error:", error);
+      const result = await response.json();
       
-      if (error.message.includes('429')) {
-        showError(`Rate limit: Cannot send another reminder to ${student.name} yet. Please wait 24 hours.`);
-      } else if (error.message.includes('404')) {
-        showError(`Student ${student.name} not found`);
-      } else if (error.message.includes('400')) {
-        showError(`Invalid phone number for ${student.name}`);
-      } else if (error.message.includes('500')) {
-        showError('SMS service temporarily unavailable. Please try again later.');
-      } else {
-        showError(`Failed to send SMS to ${student.name}: ${error.message}`);
-      }
-    } finally {
-      setSmsLoading(false);
+      console.log('✅ Student updated successfully:', result);
+      showSuccess(`Student ${updatedStudentData.name} updated successfully!`);
+      
+      await fetchStudents();
+      setEditStudentModalOpen(false);
+      setEditingStudent(null);
+      
+      return result;
+    } catch (error) {
+      console.error("❌ Error updating student:", error);
+      showError(`Failed to update student: ${error.message}`);
+      throw error;
     }
-  }, [token, showSuccess, showError, smsLoading]);
+  }, [token, showSuccess, showError, fetchStudents]);
 
-  // Additional comprehensive handlers (PRESERVED)
-  const handleEditSave = useCallback(async (formData) => {
+  const handleAddStudent = async (studentData) => {
     try {
-      const response = await fetch(`/api/students/${formData.id}`, {
-        method: 'PUT',
+      const response = await fetch("/api/students", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(studentData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update student');
+        throw new Error(errorData.error || "Failed to add student");
       }
 
-      showSuccess(`Student ${formData.name} updated successfully!`);
-      refetch();
-      setCurrentView("dashboard");
-      setSelectedStudent(null);
+      const result = await response.json();
+      showSuccess(`Student ${result.name} added successfully!`);
+      await fetchStudents();
+      setAddStudentModalOpen(false);
+      return result;
     } catch (error) {
-      throw new Error(error.message || 'Failed to update student');
+      console.error("Error adding student:", error);
+      showError(`Failed to add student: ${error.message}`);
+      throw error;
     }
-  }, [token, showSuccess, refetch]);
+  };
+
+  const handleProcessPayment = useCallback((student) => {
+    if (!student || typeof student !== 'object') {
+      console.error("❌ Invalid student data for payment");
+      return;
+    }
+    setPaymentStudent(student);
+    setPaymentModalOpen(true);
+  }, []);
+
+  const handleViewStudent = useCallback((studentId) => {
+    if (!studentId) {
+      console.error("❌ No student ID provided");
+      return;
+    }
+    
+    const student = students.find(s => s && s.id === studentId);
+      
+    if (student) {
+      console.log('👁️ Opening profile view for:', student.name);
+      setViewingStudent(student);
+    } else {
+      console.error("❌ Student not found:", studentId);
+      showError("Student not found");
+    }
+  }, [students, showError]);
+
+  // FIXED: Back from profile handler that clears any pending edit state
+  const handleBackFromProfile = useCallback(() => {
+    console.log('⬅️ Back from profile view');
+    setViewingStudent(null);
+    
+    // CRITICAL FIX: Also clear any pending edit modal state
+    if (editStudentModalOpen || editingStudent) {
+      console.log('⬅️ Clearing pending edit modal state');
+      setEditStudentModalOpen(false);
+      setEditingStudent(null);
+    }
+  }, [editStudentModalOpen, editingStudent]);
+
+  const handleLogTraining = useCallback((student) => {
+    console.log('🥋 Opening training modal for:', student?.name);
+    if (!student || typeof student !== 'object') {
+      console.error("❌ Invalid student data for training");
+      showError("Invalid student data");
+      return;
+    }
+    setTrainingStudent(student);
+    setTrainingModalOpen(true);
+  }, [showError]);
+
+  const handleTrainingSuccess = useCallback((message) => {
+    showSuccess(message);
+    fetchStudents();
+    setTrainingModalOpen(false);
+    setTrainingStudent(null);
+  }, [showSuccess, fetchStudents]);
+
+  const handleSendReminder = async (student) => {
+    setSmsLoading(true);
+    try {
+      const response = await fetch("/api/sms/send-reminder", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studentId: student.id,
+          phone: student.phone || student.phoneNumber,
+          name: student.name
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send SMS");
+      }
+
+      showSuccess(`SMS reminder sent to ${student.name}`);
+    } catch (error) {
+      console.error("Error sending SMS:", error);
+      showError(`Failed to send SMS: ${error.message}`);
+    } finally {
+      setSmsLoading(false);
+    }
+  };
+
+  const handleRefreshData = useCallback(async () => {
+    showSuccess("Refreshing dashboard data...");
+    await fetchStudents();
+    showSuccess("Dashboard data refreshed!");
+  }, [fetchStudents, showSuccess]);
+
+  const handleOpenMonthlyReport = useCallback(() => setMonthlyReportModalOpen(true), []);
+  const handleCloseMonthlyReport = useCallback(() => setMonthlyReportModalOpen(false), []);
+  const handleOpenWeekendEvent = useCallback(() => setWeekendEventModalOpen(true), []);
+  const handleCloseWeekendEvent = useCallback(() => setWeekendEventModalOpen(false), []);
+  const handleOpenCredits = useCallback(() => setCreditsModalOpen(true), []);
+  const handleCloseCredits = useCallback(() => setCreditsModalOpen(false), []);
+  const handleOpenHistory = useCallback(() => setHistoryModalOpen(true), []);
+  const handleCloseHistory = useCallback(() => setHistoryModalOpen(false), []);
 
   const handlePaymentSuccess = useCallback((paymentData) => {
     showSuccess(`Payment of ₱${paymentData.amount} processed successfully!`);
-    refetch();
+    fetchStudents();
     setPaymentModalOpen(false);
-    setSelectedStudent(null);
-  }, [showSuccess, refetch]);
+    setPaymentStudent(null);
+  }, [showSuccess, fetchStudents]);
 
-  const handleStudentAdded = useCallback((newStudent) => {
-    showSuccess(`Student ${newStudent.name} added successfully!`);
-    refetch();
-    setAddStudentModalOpen(false);
-  }, [showSuccess, refetch]);
-
-  // Weekend event handlers - Enhanced functionality (PRESERVED)
-  const handleOpenWeekendEventModal = useCallback(() => {
-    setWeekendEventModalOpen(true);
-  }, []);
-
-  const handleEventCreated = useCallback((eventData) => {
-    setAnnouncements(prev => [{
-      id: eventData.id || Date.now(),
-      type: "success",
-      title: eventData.title,
-      message: eventData.message,
-      timestamp: new Date(),
-      dismissible: true
-    }, ...prev]);
-    showSuccess(`Event "${eventData.title}" created successfully!`);
-  }, [showSuccess]);
-
-  const handleDismissAnnouncement = useCallback((announcementId) => {
-    setAnnouncements(prev => prev.filter(a => a.id !== announcementId));
-  }, []);
-
-  const handleEditAnnouncement = useCallback(() => {
-    showSuccess('Edit functionality coming soon');
-  }, [showSuccess]);
-
-  // PHASE 2: Loading state using extracted component
   if (loading) {
-    return <LoadingView />;
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
-  // PHASE 2: Error state using extracted component
   if (error) {
-    return <ErrorView error={error} onRetry={refetch} />;
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-white text-xl mb-4">Dashboard Error</h2>
+          <p className="text-red-400 mb-6">{error}</p>
+          <button
+            onClick={fetchStudents}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
   }
 
-  // PHASE 2: Profile view using extracted component
-  if (currentView === "profile" && selectedStudent) {
+  if (viewingStudent) {
     return (
-      <ProfileView
-        user={user}
-        selectedStudent={selectedStudent}
-        onBack={handleBackToDashboard}
+      <StudentProfileView
+        student={viewingStudent}
+        onBack={handleBackFromProfile}
         onEdit={handleEditStudent}
-        onRefresh={refetch}
-        onOpenCredits={() => setSmsCreditsModalOpen(true)}
-        onOpenHistory={() => setSmsHistoryModalOpen(true)}
-        onOpenWeekendEvent={handleOpenWeekendEventModal}
-        onOpenMonthlyReport={handleOpenMonthlyReportModal}
-        loading={loading}
       />
     );
   }
 
-  // PHASE 2: Edit view using extracted component
-  if (currentView === "edit" && selectedStudent) {
-    return (
-      <EditView
-        user={user}
-        selectedStudent={selectedStudent}
-        onBack={() => setCurrentView("profile")}
-        onSave={handleEditSave}
-        onRefresh={refetch}
-        onOpenCredits={() => setSmsCreditsModalOpen(true)}
-        onOpenHistory={() => setSmsHistoryModalOpen(true)}
-        onOpenWeekendEvent={handleOpenWeekendEventModal}
-        onOpenMonthlyReport={handleOpenMonthlyReportModal}
-        loading={loading}
-      />
-    );
-  }
-
-  // PHASE 2: Main dashboard view using extracted components
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* PHASE 2: Extracted Header Component */}
-      <DashboardHeader 
-        user={user}
-        onRefresh={refetch}
-        onOpenCredits={() => setSmsCreditsModalOpen(true)}
-        onOpenHistory={() => setSmsHistoryModalOpen(true)}
-        onOpenWeekendEvent={handleOpenWeekendEventModal}
-        onOpenMonthlyReport={handleOpenMonthlyReportModal}
-        loading={loading}
-      />
-
-      <main className="px-4 py-6 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto space-y-8">
-          {/* Announcements Banner - PRESERVED */}
-          {announcements.length > 0 && (
-            <AnnouncementBanner 
-              announcements={announcements}
-              onDismiss={handleDismissAnnouncement}
-              onEdit={handleEditAnnouncement}
-            />
-          )}
-
-          {/* PHASE 2: Extracted Statistics Component */}
-          <DashboardStatistics 
-            dashboardData={dashboardData}
-            students={students}
-            tabCounts={tabCounts}
-            pricingBreakdown={revenueData}
-          />
-
-          {/* ENHANCED: Student Management Section with Training Session Integration */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden shadow-lg">
-            <StudentManagementSection
-              filteredStudents={filteredStudents}
-              students={students}
-              tabCounts={tabCounts}
-              currentTab={currentTab}
-              searchQuery={searchQuery}
-              isSearchActive={isSearchActive}
-              setCurrentTab={setCurrentTab}
-              setSearchQuery={setSearchQuery}
-              setIsSearchActive={setIsSearchActive}
-              setAddStudentModalOpen={setAddStudentModalOpen}
-              onProcessPayment={handleProcessPayment}
-              onViewStudent={handleViewStudent}
-              onEditStudent={handleEditStudent}
-              onSendReminder={handleSendReminder}
-              canSendReminder={hookCanSendReminder}
-              getStudentStatus={getStudentStatus}
-              getDaysRemaining={getDaysRemaining}
-              smsLoading={smsLoading}
-              onTrainingSessionSuccess={handleTrainingSessionSuccess}
-            />
+      <header className="bg-gray-800 shadow-xl border-b border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-2xl font-bold text-white">
+                Student Membership Dashboard
+              </h1>
+              <p className="text-gray-400 mt-1">
+                Welcome back, {user?.email || 'Admin'}
+              </p>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={handleOpenMonthlyReport}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <span>📊</span>
+                <span className="hidden sm:inline">Monthly Report</span>
+              </button>
+              
+              <button
+                onClick={handleOpenWeekendEvent}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <span>🥋</span>
+                <span className="hidden sm:inline">Weekend Event</span>
+              </button>
+              
+              <button
+                onClick={handleOpenCredits}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <span>💳</span>
+                <span className="hidden sm:inline">Credits</span>
+              </button>
+              
+              <button
+                onClick={handleOpenHistory}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <span>📱</span>
+                <span className="hidden sm:inline">History</span>
+              </button>
+              
+              <button
+                onClick={handleRefreshData}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <span>🔄</span>
+                <span className="hidden sm:inline">Refresh Data</span>
+              </button>
+              
+              <button
+                onClick={logout}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-white">
+                  {dashboardMetrics.totalStudents}
+                </h3>
+                <p className="text-gray-400 text-sm">Total Students</p>
+              </div>
+              <span className="text-3xl">👥</span>
+            </div>
+          </div>
+
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-green-400">
+                  {dashboardMetrics.activeStudents}
+                </h3>
+                <p className="text-gray-400 text-sm">Active</p>
+              </div>
+              <span className="text-3xl">✅</span>
+            </div>
+          </div>
+
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-yellow-400">
+                  {dashboardMetrics.expiringStudents}
+                </h3>
+                <p className="text-gray-400 text-sm">Expiring Soon</p>
+              </div>
+              <span className="text-3xl">⚠️</span>
+            </div>
+          </div>
+
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-red-400">
+                  {dashboardMetrics.overdueStudents}
+                </h3>
+                <p className="text-gray-400 text-sm">Overdue</p>
+              </div>
+              <span className="text-3xl">🚨</span>
+            </div>
+          </div>
+
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-blue-400">
+                  ₱{dashboardMetrics.monthlyRevenue.toLocaleString()}
+                </h3>
+                <p className="text-gray-400 text-sm">Monthly Revenue</p>
+              </div>
+              <span className="text-3xl">💰</span>
+            </div>
+          </div>
+        </div>
+
+        <StudentManagementSection
+          filteredStudents={filteredStudents}
+          students={students}
+          tabCounts={tabCounts}
+          currentTab={currentTab}
+          searchQuery={searchQuery}
+          isSearchActive={isSearchActive}
+          setCurrentTab={setCurrentTab}
+          setSearchQuery={setSearchQuery}
+          setIsSearchActive={setIsSearchActive}
+          setAddStudentModalOpen={setAddStudentModalOpen}
+          onProcessPayment={handleProcessPayment}
+          onViewStudent={handleViewStudent}
+          onEditStudent={handleEditStudent}
+          onSendReminder={handleSendReminder}
+          onLogTraining={handleLogTraining}
+          canSendReminder={canSendReminder}
+          getStudentStatus={getStudentStatus}
+          getDaysRemaining={getDaysRemaining}
+          smsLoading={smsLoading}
+        />
       </main>
 
-      {/* All Enhanced Modals - PRESERVED functionality */}
+      {/* ALL MODALS */}
+      <AddStudentModal
+        isOpen={addStudentModalOpen}
+        onClose={() => setAddStudentModalOpen(false)}
+        onStudentAdded={handleAddStudent}
+      />
+
+      {/* FIXED: Edit modal renders properly even when transitioning from profile view */}
+      {editStudentModalOpen && editingStudent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-800 rounded-xl border border-gray-600 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <h2 className="text-xl font-semibold text-white">Edit Student Profile</h2>
+              <button
+                onClick={() => {
+                  console.log('✕ Closing edit modal');
+                  setEditStudentModalOpen(false);
+                  setEditingStudent(null);
+                }}
+                className="text-gray-400 hover:text-white text-xl"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-0">
+              <StudentEditForm
+                student={editingStudent}
+                onSave={handleSaveStudent}
+                onBack={() => {
+                  console.log('⬅️ Edit form back button');
+                  setEditStudentModalOpen(false);
+                  setEditingStudent(null);
+                }}
+                isModal={true}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <PaymentModal
         isOpen={paymentModalOpen}
         onClose={() => {
           setPaymentModalOpen(false);
-          setSelectedStudent(null);
+          setPaymentStudent(null);
         }}
-        student={selectedStudent}
+        student={paymentStudent}
         onPaymentSuccess={handlePaymentSuccess}
       />
 
-      <AddStudentModal
-        isOpen={addStudentModalOpen}
-        onClose={() => setAddStudentModalOpen(false)}
-        onStudentAdded={handleStudentAdded}
+      <TrainingSessionModal
+        isOpen={trainingModalOpen}
+        onClose={() => {
+          setTrainingModalOpen(false);
+          setTrainingStudent(null);
+        }}
+        students={students}
+        selectedStudent={trainingStudent}
+        onSuccess={handleTrainingSuccess}
       />
 
       <SMSCreditsModal
-        isOpen={smsCreditsModalOpen}
-        onClose={() => setSmsCreditsModalOpen(false)}
+        isOpen={creditsModalOpen}
+        onClose={handleCloseCredits}
       />
 
       <SMSHistoryModal
-        isOpen={smsHistoryModalOpen}
-        onClose={() => setSmsHistoryModalOpen(false)}
+        isOpen={historyModalOpen}
+        onClose={handleCloseHistory}
       />
 
       <WeekendEventModal
         isOpen={weekendEventModalOpen}
-        onClose={() => setWeekendEventModalOpen(false)}
-        onEventCreated={handleEventCreated}
-        existingEvents={announcements}
+        onClose={handleCloseWeekendEvent}
         students={students}
       />
 
       <MonthlyReportModal
         isOpen={monthlyReportModalOpen}
-        onClose={handleCloseMonthlyReportModal}
+        onClose={handleCloseMonthlyReport}
+        students={students}
       />
     </div>
   );
-}
+};
+
+export default DashboardPage;

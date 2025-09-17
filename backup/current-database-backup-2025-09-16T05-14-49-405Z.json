@@ -1,0 +1,4815 @@
+{
+  "timestamp": "2025-09-16T05:14:50.927Z",
+  "databaseUrl": "REDACTED",
+  "schemaNote": "Backup from current database before TrainingSession migration",
+  "metadata": {
+    "usersCount": 25,
+    "studentsCount": 23,
+    "membershipsCount": 51,
+    "paymentsCount": 51,
+    "remindersCount": 120,
+    "weekendEventsCount": 14,
+    "relationshipsCount": {
+      "studentUser": 23,
+      "studentMembership": 51,
+      "studentPayment": 51
+    }
+  },
+  "rawData": {
+    "users": [
+      {
+        "id": 1,
+        "name": "John Doe",
+        "email": "johndoe15@example.com",
+        "password": "$2b$10$P1amp3nkFcIL2EINQF2vX.ml3dS.4eJMpqswgZvuK0BbxLlFzUA6q",
+        "createdAt": "2025-06-14T15:38:19.619Z",
+        "updatedAt": "2025-06-14T15:38:19.619Z",
+        "role": "ADMIN",
+        "studentId": null
+      },
+      {
+        "id": 2,
+        "name": "Xander Abalos",
+        "email": "xanderabalos315@gmail.com",
+        "password": "$2b$10$7IgZT9GQFium0uLZcgE.l.WsDwqYfnb2C1p9bOv7fesL.X/Yvlhg2",
+        "createdAt": "2025-06-14T15:40:11.822Z",
+        "updatedAt": "2025-06-14T15:40:11.822Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 3,
+        "name": "Gab Apduhan",
+        "email": "gab21@gmail.com",
+        "password": "$2b$10$urfSxiuKImqy3T50cwMzsOpBZB7M1qrWrn8aR.c275UvzJ7ylUTyK",
+        "createdAt": "2025-06-15T12:03:44.620Z",
+        "updatedAt": "2025-06-15T12:03:44.620Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 4,
+        "name": "Roland Puzon",
+        "email": "rolandpuzon1@gmail.com",
+        "password": "$2b$10$Yd6ZZ/1wxcrpLDacWnPleOL3irD3xwqeNJBmKdgXq/HMtz5m09Nu6",
+        "createdAt": "2025-06-15T12:04:58.677Z",
+        "updatedAt": "2025-06-15T12:04:58.677Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 5,
+        "name": "Liam Sumalinog",
+        "email": "liam13232@gmail.com",
+        "password": "$2b$10$/rBmxm9lJw4yNs8jqko5mONhkM49xP7L3sSH12IaGZif1DrMcczJC",
+        "createdAt": "2025-06-16T02:56:32.903Z",
+        "updatedAt": "2025-06-16T02:56:32.903Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 6,
+        "name": "Jesusa Medelin",
+        "email": "jesusamedelin@gmail.com",
+        "password": "$2b$10$1rHml5B92AYDUwXuFMhMCu8OPAeqbxaM47hfoBPqa9dA/n9rQsAS2",
+        "createdAt": "2025-06-21T05:09:42.983Z",
+        "updatedAt": "2025-06-21T05:09:42.983Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 8,
+        "name": "Calvin Bacolod",
+        "email": "calvinbacolod1@gmail.com",
+        "password": "$2b$10$RBFb.Y/Hv4tbf3JjM2LWwudDMlTp5yWz2x26jITJvlUbGOFq.KyK.",
+        "createdAt": "2025-06-24T04:48:17.537Z",
+        "updatedAt": "2025-06-24T04:48:17.537Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 9,
+        "name": "raineer dela rita",
+        "email": "raineer24@gmail.com",
+        "password": "$2b$10$dK/HM/hXyi6YvR2NVmFszO4aP7gmcy98AJC54yu/7sFs1feQi401y",
+        "createdAt": "2025-06-24T16:14:40.673Z",
+        "updatedAt": "2025-06-24T16:14:40.673Z",
+        "role": "ADMIN",
+        "studentId": null
+      },
+      {
+        "id": 10,
+        "name": "Gavin Batican",
+        "email": "gavinbatican@gmail.com",
+        "password": "$2b$10$POv2carkKhPo8IupnI3SVOKECe/hARJsAA3yTlqJGWD4ujR5KEF2a",
+        "createdAt": "2025-07-05T14:15:36.527Z",
+        "updatedAt": "2025-07-05T14:15:36.527Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 11,
+        "name": "Rafael Laborda",
+        "email": "rafaellaborda1@gmail.com",
+        "password": "$2b$10$w1XQoUsG2gFIKN0TsVYUA.THp5HrlrTqnfoj6FuttBEzDtBM0UfQO",
+        "createdAt": "2025-07-05T14:40:47.229Z",
+        "updatedAt": "2025-07-05T14:40:47.229Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 12,
+        "name": "Maria Batican",
+        "email": "maria@test.com",
+        "password": "$2b$10$1GZMZYFtjxzFFItnW3SO0u7bWr6TYhdoXb0oM.DesccqDV9W5Wdly",
+        "createdAt": "2025-07-06T03:49:10.207Z",
+        "updatedAt": "2025-07-06T03:49:10.207Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 13,
+        "name": "Tyla Bower",
+        "email": "tylabower1@gmail.com",
+        "password": "$2b$10$mk699XHExqWHYPydKMjhCuKg5HA6/Wy3E3r/EUGRP6JJ/Pwtjhf1.",
+        "createdAt": "2025-07-08T07:11:30.152Z",
+        "updatedAt": "2025-07-08T07:11:30.152Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 17,
+        "name": "Jesusa Medelin",
+        "email": "jesusamedelin1@gmail.com",
+        "password": "$2b$10$dJ9q/pwkv6s4m2LG7NiOL.l/wG0wVs/epUfi7V42ThamZT/dMsY76",
+        "createdAt": "2025-07-08T08:23:18.243Z",
+        "updatedAt": "2025-07-08T08:23:18.243Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 18,
+        "name": "Liam Canovas",
+        "email": "liamcanovas1@gmail.com",
+        "password": "$2b$10$lcoMvNySg7oduoh8yKLDte2/I/wvh42bxT3v2cUCXjOhEe.qhoxgq",
+        "createdAt": "2025-07-13T15:32:57.229Z",
+        "updatedAt": "2025-07-13T15:32:57.229Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 19,
+        "name": "Josha Ignacio",
+        "email": "joshuaignacio1@gmail.com",
+        "password": "$2b$10$q3rWixZUnXp0Ge6MnhGaue57C7guSBg9fVjsYECoWkUxdQvn0ARui",
+        "createdAt": "2025-07-26T14:54:26.775Z",
+        "updatedAt": "2025-07-26T14:54:26.775Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 21,
+        "name": "AEU CANOVAS",
+        "email": "aeucanovas2@gmail.com",
+        "password": "$2b$10$prDj6X7M3.JF27pAJlugHelpMXYJpK3KYmeZwQBBijxA1jLoes7bq",
+        "createdAt": "2025-07-26T15:01:11.664Z",
+        "updatedAt": "2025-07-26T15:01:11.664Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 16,
+        "name": "Mateo  Belamia",
+        "email": "mateobelamia1@gmail.com",
+        "password": "$2b$10$6F/6pHW9nGzHCys1SonJOeRnuAepBGMpI.wlHj4mQlw6mTnP8XLEe",
+        "createdAt": "2025-07-08T08:17:36.809Z",
+        "updatedAt": "2025-07-31T17:56:26.125Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 24,
+        "name": "Bryce D",
+        "email": "bryce2@gmail.com",
+        "password": "$2b$12$Xrwg76kg3V28kYj7dpKNcONXxpH.o2uHV1/8JB/LEZjEyDYpR3SbK",
+        "createdAt": "2025-08-04T03:22:42.903Z",
+        "updatedAt": "2025-08-04T03:22:42.903Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 23,
+        "name": "Rafa Ignacio",
+        "email": "rafaignacio2@gmail.com",
+        "password": "$2b$12$FNhWJrgWZVsIYEyaiV2CXO4qcDGOmyW.9mMgn.kICcxcOaaJ/6Bpu",
+        "createdAt": "2025-08-04T03:20:35.378Z",
+        "updatedAt": "2025-08-19T13:57:12.266Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 15,
+        "name": "Daniel  Laborda",
+        "email": "daniellaborda@gmail2.com",
+        "password": "$2b$10$Y1B59bk7620BJp7lZfiThOQtPjPQTE1HcYXvnX6Ak0KHA7jrbLOp6",
+        "createdAt": "2025-07-08T08:12:57.069Z",
+        "updatedAt": "2025-08-19T13:57:40.362Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 22,
+        "name": "Xym Canovas",
+        "email": "xymcanova23@gmail.com",
+        "password": "$2b$10$Zxd962MqOb3228wgPdM7/O9Ofo3mMwSHXZeq2IqRhtTpnJVoS.PVy",
+        "createdAt": "2025-07-26T15:15:15.653Z",
+        "updatedAt": "2025-08-19T13:57:55.043Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 14,
+        "name": "Alexis  Bower",
+        "email": "alexisbower5@gmail.com",
+        "password": "$2b$10$y61bTsGzcjWe/kqGaNjXIubz/UL1EF9DNAUViwSZDg5rwepKmy5qO",
+        "createdAt": "2025-07-08T07:46:59.434Z",
+        "updatedAt": "2025-08-19T13:58:33.914Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 7,
+        "name": "Marcus Bacolod",
+        "email": "marcusbacolod1@gmail.com",
+        "password": "$2b$10$q20FJ.YdAD7r7jhLVwbVVeqeZkDDswpn8xBSm83DlO82zWyAuXcnO",
+        "createdAt": "2025-06-24T04:46:23.870Z",
+        "updatedAt": "2025-08-19T13:59:02.401Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 25,
+        "name": "Ayumi Regodon",
+        "email": "ayumiregondon@gmail.con",
+        "password": "$2b$12$qOEod/Y/CjtpJ4YIWJvjt.0D6N4BPd2HHfblgpLO6VUHHJNBNjMoO",
+        "createdAt": "2025-09-13T03:58:01.900Z",
+        "updatedAt": "2025-09-13T03:58:01.900Z",
+        "role": "STUDENT",
+        "studentId": null
+      },
+      {
+        "id": 26,
+        "name": "Janeca Lorraine",
+        "email": "lorrainejaneca@gmail.com",
+        "password": "$2b$12$jLt34e3D5gfQd0wZcoASDO06XtV0TCxkdNdJUKu.pHSIgSaJsQs9e",
+        "createdAt": "2025-09-13T06:18:52.489Z",
+        "updatedAt": "2025-09-13T06:18:52.489Z",
+        "role": "STUDENT",
+        "studentId": null
+      }
+    ],
+    "students": [
+      {
+        "id": 20,
+        "name": "Rafa Ignacio",
+        "email": "rafaignacio2@gmail.com",
+        "phone": "09956254691",
+        "userId": 23,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 13,
+        "name": "Daniel  Laborda",
+        "email": "daniellaborda@gmail2.com",
+        "phone": "09956254691",
+        "userId": 15,
+        "monthlyRate": 1200,
+        "isLegacyStudent": true
+      },
+      {
+        "id": 19,
+        "name": "Xym Canovas",
+        "email": "xymcanova23@gmail.com",
+        "phone": "09956254691",
+        "userId": 22,
+        "monthlyRate": 1200,
+        "isLegacyStudent": true
+      },
+      {
+        "id": 12,
+        "name": "Alexis  Bower",
+        "email": "alexisbower5@gmail.com",
+        "phone": "09956254691",
+        "userId": 14,
+        "monthlyRate": 1000,
+        "isLegacyStudent": true
+      },
+      {
+        "id": 6,
+        "name": "Marcus Bacolod",
+        "email": "marcusbacolod1@gmail.com",
+        "phone": "09956254691",
+        "userId": 7,
+        "monthlyRate": 1200,
+        "isLegacyStudent": true
+      },
+      {
+        "id": 22,
+        "name": "Ayumi Regodon",
+        "email": "ayumiregondon@gmail.con",
+        "phone": "09364826692",
+        "userId": 25,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 23,
+        "name": "Janeca Lorraine",
+        "email": "lorrainejaneca@gmail.com",
+        "phone": "09199914671",
+        "userId": 26,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 1,
+        "name": "Xander Abalos",
+        "email": "xanderabalos315@gmail.com",
+        "phone": "09956254691",
+        "userId": 2,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 7,
+        "name": "Calvin Bacolod",
+        "email": "calvinbacolod1@gmail.com",
+        "phone": "09956254691",
+        "userId": 8,
+        "monthlyRate": 1200,
+        "isLegacyStudent": true
+      },
+      {
+        "id": 9,
+        "name": "Rafael Laborda",
+        "email": "rafaellaborda1@gmail.com",
+        "phone": "09956254691",
+        "userId": 11,
+        "monthlyRate": 1200,
+        "isLegacyStudent": true
+      },
+      {
+        "id": 2,
+        "name": "Gab  Apduhan",
+        "email": "gab21@gmail.com",
+        "phone": "09956254691",
+        "userId": 3,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 11,
+        "name": "Tyla twin Bower",
+        "email": "tylabower1@gmail.com",
+        "phone": "09956254691",
+        "userId": 13,
+        "monthlyRate": 1000,
+        "isLegacyStudent": true
+      },
+      {
+        "id": 4,
+        "name": "Liam  Sumalinog",
+        "email": "liam13232@gmail.com",
+        "phone": "09956254691",
+        "userId": 5,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 16,
+        "name": "Liam Canovas",
+        "email": "liamcanovas1@gmail.com",
+        "phone": "09956254691",
+        "userId": 18,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 3,
+        "name": "Roland  Puzon",
+        "email": "rolandpuzon1@gmail.com",
+        "phone": "09956254691",
+        "userId": 4,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 18,
+        "name": "AEU  CANOVAS",
+        "email": "aeucanovas2@gmail.com",
+        "phone": "09924524341",
+        "userId": 21,
+        "monthlyRate": 1200,
+        "isLegacyStudent": true
+      },
+      {
+        "id": 5,
+        "name": "Jesusa  Medelin",
+        "email": "jesusamedelin@gmail.com",
+        "phone": "09956254691",
+        "userId": 6,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 17,
+        "name": "Josha  Ignacio",
+        "email": "joshuaignacio1@gmail.com",
+        "phone": "09956254691",
+        "userId": 19,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 15,
+        "name": "Jesusa. Medelin",
+        "email": "jesusamedelin1@gmail.com",
+        "phone": "09956254691",
+        "userId": 17,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 8,
+        "name": "Gavin  Batican",
+        "email": "gavinbatican@gmail.com",
+        "phone": "09956254691",
+        "userId": 10,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 10,
+        "name": "Maria Batican",
+        "email": "maria@test.com",
+        "phone": "09956254691",
+        "userId": 12,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 14,
+        "name": "Mateo  Belamia",
+        "email": "mateobelamia1@gmail.com",
+        "phone": "09956254691",
+        "userId": 16,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      },
+      {
+        "id": 21,
+        "name": "Bryce D",
+        "email": "bryce2@gmail.com",
+        "phone": "09923432123",
+        "userId": 24,
+        "monthlyRate": 1400,
+        "isLegacyStudent": false
+      }
+    ],
+    "memberships": [
+      {
+        "id": 1,
+        "startDate": "2025-06-15T08:30:05.965Z",
+        "endDate": "2025-07-15T08:30:05.965Z",
+        "overdue": false,
+        "studentId": 1,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 2,
+        "startDate": "2025-06-15T12:04:05.150Z",
+        "endDate": "2025-07-15T12:04:05.150Z",
+        "overdue": false,
+        "studentId": 2,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 3,
+        "startDate": "2025-06-15T12:05:50.296Z",
+        "endDate": "2025-07-15T12:05:50.296Z",
+        "overdue": false,
+        "studentId": 3,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 4,
+        "startDate": "2025-06-16T02:57:28.526Z",
+        "endDate": "2025-07-16T02:57:28.526Z",
+        "overdue": false,
+        "studentId": 4,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 5,
+        "startDate": "2025-06-21T05:10:05.990Z",
+        "endDate": "2025-07-21T05:10:05.990Z",
+        "overdue": false,
+        "studentId": 5,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 6,
+        "startDate": "2025-06-24T04:46:50.486Z",
+        "endDate": "2025-07-24T04:46:50.486Z",
+        "overdue": false,
+        "studentId": 6,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 7,
+        "startDate": "2025-06-24T04:48:34.015Z",
+        "endDate": "2025-07-24T04:48:34.015Z",
+        "overdue": false,
+        "studentId": 7,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 8,
+        "startDate": "2025-07-05T14:44:49.499Z",
+        "endDate": "2025-08-04T14:44:49.499Z",
+        "overdue": false,
+        "studentId": 9,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 9,
+        "startDate": "2025-07-05T00:00:00.000Z",
+        "endDate": "2025-08-05T00:00:00.000Z",
+        "overdue": false,
+        "studentId": 8,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 10,
+        "startDate": "2025-07-06T03:50:25.420Z",
+        "endDate": "2025-08-05T03:50:25.420Z",
+        "overdue": false,
+        "studentId": 10,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 14,
+        "startDate": "2025-07-06T04:00:00.000Z",
+        "endDate": "2025-08-05T04:00:00.000Z",
+        "overdue": false,
+        "studentId": 14,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 12,
+        "startDate": "2025-07-05T04:00:00.000Z",
+        "endDate": "2025-08-05T12:00:00.000Z",
+        "overdue": false,
+        "studentId": 12,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 13,
+        "startDate": "2025-07-05T04:00:00.000Z",
+        "endDate": "2025-08-05T12:00:00.000Z",
+        "overdue": false,
+        "studentId": 13,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 11,
+        "startDate": "2025-07-05T12:00:00.000Z",
+        "endDate": "2025-08-05T12:00:00.000Z",
+        "overdue": false,
+        "studentId": 11,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 15,
+        "startDate": "2025-07-08T08:52:25.160Z",
+        "endDate": "2025-08-07T08:52:25.160Z",
+        "overdue": false,
+        "studentId": 15,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 16,
+        "startDate": "2025-07-15T12:04:05.150Z",
+        "endDate": "2025-08-14T12:04:05.150Z",
+        "overdue": false,
+        "studentId": 2,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 17,
+        "startDate": "2025-07-13T15:33:16.784Z",
+        "endDate": "2025-08-12T15:33:16.784Z",
+        "overdue": false,
+        "studentId": 16,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 18,
+        "startDate": "2025-07-21T05:10:05.990Z",
+        "endDate": "2025-08-20T05:10:05.990Z",
+        "overdue": false,
+        "studentId": 5,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 19,
+        "startDate": "2025-07-16T05:46:00.128Z",
+        "endDate": "2025-08-15T05:46:00.128Z",
+        "overdue": false,
+        "studentId": 4,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 20,
+        "startDate": "2025-07-17T04:00:00.000Z",
+        "endDate": "2025-08-16T04:00:00.000Z",
+        "overdue": false,
+        "studentId": 1,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 21,
+        "startDate": "2025-07-24T04:46:50.486Z",
+        "endDate": "2025-08-23T04:46:50.486Z",
+        "overdue": false,
+        "studentId": 6,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 22,
+        "startDate": "2025-07-24T04:48:34.015Z",
+        "endDate": "2025-08-23T04:48:34.015Z",
+        "overdue": false,
+        "studentId": 7,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 23,
+        "startDate": "2025-07-23T13:37:29.222Z",
+        "endDate": "2025-08-22T13:37:29.222Z",
+        "overdue": false,
+        "studentId": 3,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 24,
+        "startDate": "2025-08-05T03:50:25.420Z",
+        "endDate": "2025-09-04T03:50:25.420Z",
+        "overdue": false,
+        "studentId": 10,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 25,
+        "startDate": "2025-08-05T00:00:00.000Z",
+        "endDate": "2025-09-04T00:00:00.000Z",
+        "overdue": false,
+        "studentId": 8,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 26,
+        "startDate": "2025-07-26T14:55:52.175Z",
+        "endDate": "2025-08-25T14:55:52.175Z",
+        "overdue": false,
+        "studentId": 17,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 27,
+        "startDate": "2025-07-26T15:13:44.907Z",
+        "endDate": "2025-08-25T15:13:44.907Z",
+        "overdue": false,
+        "studentId": 18,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 28,
+        "startDate": "2025-07-26T04:00:00.000Z",
+        "endDate": "2025-08-25T04:00:00.000Z",
+        "overdue": false,
+        "studentId": 19,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 29,
+        "startDate": "2025-08-03T12:00:00.000Z",
+        "endDate": "2025-09-02T12:00:00.000Z",
+        "overdue": false,
+        "studentId": 20,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 30,
+        "startDate": "2025-08-04T03:22:56.553Z",
+        "endDate": "2025-09-03T03:22:56.553Z",
+        "overdue": false,
+        "studentId": 21,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 31,
+        "startDate": "2025-08-05T12:00:00.000Z",
+        "endDate": "2025-09-04T12:00:00.000Z",
+        "overdue": false,
+        "studentId": 11,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 32,
+        "startDate": "2025-08-05T12:00:00.000Z",
+        "endDate": "2025-09-04T12:00:00.000Z",
+        "overdue": false,
+        "studentId": 12,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 33,
+        "startDate": "2025-08-09T06:27:51.001Z",
+        "endDate": "2025-09-08T06:27:51.001Z",
+        "overdue": false,
+        "studentId": 14,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 34,
+        "startDate": "2025-08-12T13:24:42.171Z",
+        "endDate": "2025-09-11T13:24:42.171Z",
+        "overdue": false,
+        "studentId": 15,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 35,
+        "startDate": "2025-08-16T04:00:00.000Z",
+        "endDate": "2025-09-15T04:00:00.000Z",
+        "overdue": false,
+        "studentId": 1,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 36,
+        "startDate": "2025-08-16T12:26:13.224Z",
+        "endDate": "2025-09-15T12:26:13.224Z",
+        "overdue": false,
+        "studentId": 16,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 37,
+        "startDate": "2025-08-18T03:10:35.391Z",
+        "endDate": "2025-09-17T03:10:35.391Z",
+        "overdue": false,
+        "studentId": 4,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 38,
+        "startDate": "2025-09-04T00:00:00.000Z",
+        "endDate": "2025-10-04T00:00:00.000Z",
+        "overdue": false,
+        "studentId": 8,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 39,
+        "startDate": "2025-09-04T03:50:25.420Z",
+        "endDate": "2025-10-04T03:50:25.420Z",
+        "overdue": false,
+        "studentId": 10,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 40,
+        "startDate": "2025-08-24T12:00:00.000Z",
+        "endDate": "2025-09-23T12:00:00.000Z",
+        "overdue": false,
+        "studentId": 7,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 41,
+        "startDate": "2025-08-24T12:00:00.000Z",
+        "endDate": "2025-09-23T12:00:00.000Z",
+        "overdue": false,
+        "studentId": 6,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 42,
+        "startDate": "2025-08-30T12:52:11.574Z",
+        "endDate": "2025-09-29T12:52:11.574Z",
+        "overdue": false,
+        "studentId": 3,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 43,
+        "startDate": "2025-08-31T07:51:35.281Z",
+        "endDate": "2025-09-30T07:51:35.281Z",
+        "overdue": false,
+        "studentId": 2,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 44,
+        "startDate": "2025-09-07T12:00:00.000Z",
+        "endDate": "2025-10-07T12:00:00.000Z",
+        "overdue": false,
+        "studentId": 21,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 45,
+        "startDate": "2025-09-08T05:36:52.595Z",
+        "endDate": "2025-10-08T05:36:52.595Z",
+        "overdue": false,
+        "studentId": 12,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 46,
+        "startDate": "2025-09-07T12:00:00.000Z",
+        "endDate": "2025-10-07T12:00:00.000Z",
+        "overdue": false,
+        "studentId": 11,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 47,
+        "startDate": "2025-09-12T06:49:03.663Z",
+        "endDate": "2025-10-12T06:49:03.663Z",
+        "overdue": false,
+        "studentId": 15,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 48,
+        "startDate": "2025-09-13T03:56:10.670Z",
+        "endDate": "2025-10-13T03:56:10.670Z",
+        "overdue": false,
+        "studentId": 14,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 49,
+        "startDate": "2025-09-13T03:59:26.899Z",
+        "endDate": "2025-10-13T03:59:26.899Z",
+        "overdue": false,
+        "studentId": 22,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 50,
+        "startDate": "2025-09-13T06:19:10.698Z",
+        "endDate": "2025-10-13T06:19:10.698Z",
+        "overdue": false,
+        "studentId": 23,
+        "isActive": true,
+        "type": "MONTHLY"
+      },
+      {
+        "id": 51,
+        "startDate": "2025-09-15T12:26:13.224Z",
+        "endDate": "2025-10-15T12:26:13.224Z",
+        "overdue": false,
+        "studentId": 16,
+        "isActive": true,
+        "type": "MONTHLY"
+      }
+    ],
+    "payments": [
+      {
+        "id": 1,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-06-15T08:30:05.325Z",
+        "studentId": 1,
+        "createdAt": "2025-06-15T08:30:05.329Z",
+        "updatedAt": "2025-06-15T08:30:05.329Z"
+      },
+      {
+        "id": 2,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-06-15T12:04:04.445Z",
+        "studentId": 2,
+        "createdAt": "2025-06-15T12:04:04.449Z",
+        "updatedAt": "2025-06-15T12:04:04.449Z"
+      },
+      {
+        "id": 3,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-06-15T12:05:49.566Z",
+        "studentId": 3,
+        "createdAt": "2025-06-15T12:05:49.570Z",
+        "updatedAt": "2025-06-15T12:05:49.570Z"
+      },
+      {
+        "id": 4,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-06-16T02:57:26.340Z",
+        "studentId": 4,
+        "createdAt": "2025-06-16T02:57:26.341Z",
+        "updatedAt": "2025-06-16T02:57:26.341Z"
+      },
+      {
+        "id": 5,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-06-21T05:10:03.740Z",
+        "studentId": 5,
+        "createdAt": "2025-06-21T05:10:03.742Z",
+        "updatedAt": "2025-06-21T05:10:03.742Z"
+      },
+      {
+        "id": 6,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-06-24T04:46:48.289Z",
+        "studentId": 6,
+        "createdAt": "2025-06-24T04:46:48.291Z",
+        "updatedAt": "2025-06-24T04:46:48.291Z"
+      },
+      {
+        "id": 7,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-06-24T04:48:32.681Z",
+        "studentId": 7,
+        "createdAt": "2025-06-24T04:48:32.683Z",
+        "updatedAt": "2025-06-24T04:48:32.683Z"
+      },
+      {
+        "id": 8,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-05T14:26:49.549Z",
+        "studentId": 8,
+        "createdAt": "2025-07-05T14:26:51.779Z",
+        "updatedAt": "2025-07-05T14:26:51.779Z"
+      },
+      {
+        "id": 10,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-05T14:44:49.023Z",
+        "studentId": 9,
+        "createdAt": "2025-07-05T14:44:49.026Z",
+        "updatedAt": "2025-07-05T14:44:49.026Z"
+      },
+      {
+        "id": 11,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-06T03:50:23.669Z",
+        "studentId": 10,
+        "createdAt": "2025-07-06T03:50:23.671Z",
+        "updatedAt": "2025-07-06T03:50:23.671Z"
+      },
+      {
+        "id": 12,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-08T07:16:50.058Z",
+        "studentId": 11,
+        "createdAt": "2025-07-08T07:16:50.060Z",
+        "updatedAt": "2025-07-08T07:16:50.060Z"
+      },
+      {
+        "id": 13,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-05T04:00:00.000Z",
+        "studentId": 12,
+        "createdAt": "2025-07-08T07:47:21.866Z",
+        "updatedAt": "2025-07-08T07:47:21.866Z"
+      },
+      {
+        "id": 14,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-05T04:00:00.000Z",
+        "studentId": 13,
+        "createdAt": "2025-07-08T08:13:29.488Z",
+        "updatedAt": "2025-07-08T08:13:29.488Z"
+      },
+      {
+        "id": 15,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-06T04:00:00.000Z",
+        "studentId": 14,
+        "createdAt": "2025-07-08T08:19:05.926Z",
+        "updatedAt": "2025-07-08T08:19:05.926Z"
+      },
+      {
+        "id": 16,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-08T08:52:25.160Z",
+        "studentId": 15,
+        "createdAt": "2025-07-08T08:52:25.167Z",
+        "updatedAt": "2025-07-08T08:52:25.167Z"
+      },
+      {
+        "id": 17,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-12T12:00:00.000Z",
+        "studentId": 2,
+        "createdAt": "2025-07-13T15:29:25.067Z",
+        "updatedAt": "2025-07-13T15:29:25.067Z"
+      },
+      {
+        "id": 18,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-13T15:33:16.784Z",
+        "studentId": 16,
+        "createdAt": "2025-07-13T15:33:16.786Z",
+        "updatedAt": "2025-07-13T15:33:16.786Z"
+      },
+      {
+        "id": 19,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-08T12:00:00.000Z",
+        "studentId": 5,
+        "createdAt": "2025-07-13T15:50:53.660Z",
+        "updatedAt": "2025-07-13T15:50:53.660Z"
+      },
+      {
+        "id": 20,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-16T05:46:00.128Z",
+        "studentId": 4,
+        "createdAt": "2025-07-16T05:46:00.130Z",
+        "updatedAt": "2025-07-16T05:46:00.130Z"
+      },
+      {
+        "id": 21,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-17T04:00:00.000Z",
+        "studentId": 1,
+        "createdAt": "2025-07-19T04:21:19.339Z",
+        "updatedAt": "2025-07-19T04:21:19.339Z"
+      },
+      {
+        "id": 22,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-21T04:00:00.000Z",
+        "studentId": 6,
+        "createdAt": "2025-07-21T17:05:32.422Z",
+        "updatedAt": "2025-07-21T17:05:32.422Z"
+      },
+      {
+        "id": 23,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-20T12:00:00.000Z",
+        "studentId": 7,
+        "createdAt": "2025-07-22T04:27:47.346Z",
+        "updatedAt": "2025-07-22T04:27:47.346Z"
+      },
+      {
+        "id": 24,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-23T13:37:29.222Z",
+        "studentId": 3,
+        "createdAt": "2025-07-23T13:37:29.224Z",
+        "updatedAt": "2025-07-23T13:37:29.224Z"
+      },
+      {
+        "id": 25,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-26T14:36:25.231Z",
+        "studentId": 10,
+        "createdAt": "2025-07-26T14:36:25.233Z",
+        "updatedAt": "2025-07-26T14:36:25.233Z"
+      },
+      {
+        "id": 26,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-26T14:46:27.579Z",
+        "studentId": 8,
+        "createdAt": "2025-07-26T14:46:27.582Z",
+        "updatedAt": "2025-07-26T14:46:27.582Z"
+      },
+      {
+        "id": 27,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-26T14:55:52.175Z",
+        "studentId": 17,
+        "createdAt": "2025-07-26T14:55:52.178Z",
+        "updatedAt": "2025-07-26T14:55:52.178Z"
+      },
+      {
+        "id": 28,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-26T15:13:44.907Z",
+        "studentId": 18,
+        "createdAt": "2025-07-26T15:13:44.910Z",
+        "updatedAt": "2025-07-26T15:13:44.910Z"
+      },
+      {
+        "id": 29,
+        "amount": 1200,
+        "method": "CASH",
+        "description": "MONTHLY membership payment (Early Adopter)",
+        "status": "COMPLETED",
+        "paidAt": "2025-07-26T04:00:00.000Z",
+        "studentId": 19,
+        "createdAt": "2025-07-27T11:52:04.852Z",
+        "updatedAt": "2025-07-27T11:52:04.852Z"
+      },
+      {
+        "id": 30,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-03T12:00:00.000Z",
+        "studentId": 20,
+        "createdAt": "2025-08-04T03:21:06.325Z",
+        "updatedAt": "2025-08-04T03:21:06.325Z"
+      },
+      {
+        "id": 31,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-04T03:22:56.553Z",
+        "studentId": 21,
+        "createdAt": "2025-08-04T03:22:56.555Z",
+        "updatedAt": "2025-08-04T03:22:56.555Z"
+      },
+      {
+        "id": 32,
+        "amount": 1000,
+        "method": "CASH",
+        "description": "MONTHLY membership payment (Founding Member)",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-04T12:00:00.000Z",
+        "studentId": 11,
+        "createdAt": "2025-08-04T21:05:03.810Z",
+        "updatedAt": "2025-08-04T21:05:03.810Z"
+      },
+      {
+        "id": 33,
+        "amount": 1000,
+        "method": "CASH",
+        "description": "MONTHLY membership payment (Founding Member)",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-04T12:00:00.000Z",
+        "studentId": 12,
+        "createdAt": "2025-08-04T21:05:40.359Z",
+        "updatedAt": "2025-08-04T21:05:40.359Z"
+      },
+      {
+        "id": 34,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "Balance 400",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-09T06:27:51.001Z",
+        "studentId": 14,
+        "createdAt": "2025-08-09T06:27:51.003Z",
+        "updatedAt": "2025-08-09T06:27:51.003Z"
+      },
+      {
+        "id": 35,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-12T13:24:42.171Z",
+        "studentId": 15,
+        "createdAt": "2025-08-12T13:24:42.173Z",
+        "updatedAt": "2025-08-12T13:24:42.173Z"
+      },
+      {
+        "id": 36,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-15T04:00:00.000Z",
+        "studentId": 1,
+        "createdAt": "2025-08-16T12:25:42.633Z",
+        "updatedAt": "2025-08-16T12:25:42.633Z"
+      },
+      {
+        "id": 37,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-16T12:26:13.224Z",
+        "studentId": 16,
+        "createdAt": "2025-08-16T12:26:13.229Z",
+        "updatedAt": "2025-08-16T12:26:13.229Z"
+      },
+      {
+        "id": 38,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-18T03:10:35.391Z",
+        "studentId": 4,
+        "createdAt": "2025-08-18T03:10:35.395Z",
+        "updatedAt": "2025-08-18T03:10:35.395Z"
+      },
+      {
+        "id": 39,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-23T12:00:00.000Z",
+        "studentId": 8,
+        "createdAt": "2025-08-24T00:30:06.694Z",
+        "updatedAt": "2025-08-24T00:30:06.694Z"
+      },
+      {
+        "id": 40,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-23T12:00:00.000Z",
+        "studentId": 10,
+        "createdAt": "2025-08-24T01:26:47.324Z",
+        "updatedAt": "2025-08-24T01:26:47.324Z"
+      },
+      {
+        "id": 41,
+        "amount": 1200,
+        "method": "CASH",
+        "description": "MONTHLY membership payment (Early Adopter)",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-24T12:00:00.000Z",
+        "studentId": 7,
+        "createdAt": "2025-08-25T03:32:12.968Z",
+        "updatedAt": "2025-08-25T03:32:12.968Z"
+      },
+      {
+        "id": 42,
+        "amount": 1200,
+        "method": "CASH",
+        "description": "MONTHLY membership payment (Early Adopter)",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-24T12:00:00.000Z",
+        "studentId": 6,
+        "createdAt": "2025-08-25T03:32:37.071Z",
+        "updatedAt": "2025-08-25T03:32:37.071Z"
+      },
+      {
+        "id": 43,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-30T12:52:11.574Z",
+        "studentId": 3,
+        "createdAt": "2025-08-30T12:52:11.576Z",
+        "updatedAt": "2025-08-30T12:52:11.576Z"
+      },
+      {
+        "id": 44,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-08-31T07:51:35.281Z",
+        "studentId": 2,
+        "createdAt": "2025-08-31T07:51:35.283Z",
+        "updatedAt": "2025-08-31T07:51:35.283Z"
+      },
+      {
+        "id": 45,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-09-07T12:00:00.000Z",
+        "studentId": 21,
+        "createdAt": "2025-09-08T05:36:07.523Z",
+        "updatedAt": "2025-09-08T05:36:07.523Z"
+      },
+      {
+        "id": 46,
+        "amount": 1000,
+        "method": "CASH",
+        "description": "MONTHLY membership payment (Founding Member)",
+        "status": "COMPLETED",
+        "paidAt": "2025-09-08T05:36:52.595Z",
+        "studentId": 12,
+        "createdAt": "2025-09-08T05:36:52.597Z",
+        "updatedAt": "2025-09-08T05:36:52.597Z"
+      },
+      {
+        "id": 47,
+        "amount": 1000,
+        "method": "CASH",
+        "description": "MONTHLY membership payment (Founding Member)",
+        "status": "COMPLETED",
+        "paidAt": "2025-09-07T12:00:00.000Z",
+        "studentId": 11,
+        "createdAt": "2025-09-08T05:37:09.967Z",
+        "updatedAt": "2025-09-08T05:37:09.967Z"
+      },
+      {
+        "id": 48,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-09-12T06:49:03.663Z",
+        "studentId": 15,
+        "createdAt": "2025-09-12T06:49:03.665Z",
+        "updatedAt": "2025-09-12T06:49:03.665Z"
+      },
+      {
+        "id": 49,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-09-13T03:56:10.670Z",
+        "studentId": 14,
+        "createdAt": "2025-09-13T03:56:10.672Z",
+        "updatedAt": "2025-09-13T03:56:10.672Z"
+      },
+      {
+        "id": 50,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-09-13T03:59:26.899Z",
+        "studentId": 22,
+        "createdAt": "2025-09-13T03:59:26.900Z",
+        "updatedAt": "2025-09-13T03:59:26.900Z"
+      },
+      {
+        "id": 51,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-09-13T06:19:10.698Z",
+        "studentId": 23,
+        "createdAt": "2025-09-13T06:19:10.701Z",
+        "updatedAt": "2025-09-13T06:19:10.701Z"
+      },
+      {
+        "id": 52,
+        "amount": 1400,
+        "method": "CASH",
+        "description": "MONTHLY membership payment",
+        "status": "COMPLETED",
+        "paidAt": "2025-09-14T09:29:24.228Z",
+        "studentId": 16,
+        "createdAt": "2025-09-14T09:29:24.230Z",
+        "updatedAt": "2025-09-14T09:29:24.230Z"
+      }
+    ],
+    "reminders": [
+      {
+        "id": 1,
+        "studentId": 1,
+        "method": "SMS",
+        "sentAt": "2025-07-10T16:36:25.930Z",
+        "status": "TEST_SENT",
+        "message": "Hi Xander Abalos! Your gym membership expired -4 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639343454341",
+        "cost": 0.06,
+        "response": "Test mode - no actual SMS sent",
+        "retryCount": 0
+      },
+      {
+        "id": 2,
+        "studentId": 1,
+        "method": "SMS",
+        "sentAt": "2025-07-13T15:05:32.863Z",
+        "status": "TEST_SENT",
+        "message": "Week 1 test reminder!",
+        "phoneNumber": "+639343454341",
+        "cost": 0.35,
+        "response": "Test mode - no actual SMS sent via PhilSMS",
+        "retryCount": 0
+      },
+      {
+        "id": 3,
+        "studentId": 2,
+        "method": "SMS",
+        "sentAt": "2025-07-13T15:46:23.104Z",
+        "status": "TEST_SENT",
+        "message": "Let's do jiujitsu!",
+        "phoneNumber": "+639123412744",
+        "cost": 0.35,
+        "response": "Test mode - no actual SMS sent via PhilSMS",
+        "retryCount": 0
+      },
+      {
+        "id": 4,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-15T18:37:18.397Z",
+        "status": "FAILED",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "Failed to send SMS: SMS API error: 403 Forbidden",
+        "retryCount": 0
+      },
+      {
+        "id": 5,
+        "studentId": 1,
+        "method": "SMS",
+        "sentAt": "2025-07-15T19:09:19.213Z",
+        "status": "FAILED",
+        "message": "Hi Xander Abalos! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639343454341",
+        "cost": 0,
+        "response": "Failed to send SMS: SMS API error: 403 Forbidden",
+        "retryCount": 0
+      },
+      {
+        "id": 6,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T06:22:22.927Z",
+        "status": "TEST_SENT",
+        "message": "Hi Roland Puzon! Your gym membership payment is overdue. Please settle your account to continue accessing our services. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Test mode - processed by user 9",
+        "retryCount": 0
+      },
+      {
+        "id": 7,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T06:30:17.619Z",
+        "status": "FAILED",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "All 3 attempts failed. Last error: Unexpected response format from Semaphore: {\"sendername\":[\"The selected sendername is invalid.\"]}",
+        "retryCount": 0
+      },
+      {
+        "id": 8,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T06:31:12.614Z",
+        "status": "FAILED",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "All 3 attempts failed. Last error: Unexpected response format from Semaphore: {\"sendername\":[\"The selected sendername is invalid.\"]}",
+        "retryCount": 0
+      },
+      {
+        "id": 9,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T06:36:50.871Z",
+        "status": "FAILED",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "All 3 attempts failed. Last error: Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "retryCount": 0
+      },
+      {
+        "id": 10,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T06:43:10.141Z",
+        "status": "FAILED",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "retryCount": 0
+      },
+      {
+        "id": 11,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T06:44:10.078Z",
+        "status": "FAILED",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "retryCount": 0
+      },
+      {
+        "id": 12,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T06:54:56.190Z",
+        "status": "FAILED",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "retryCount": 0
+      },
+      {
+        "id": 13,
+        "studentId": 2,
+        "method": "SMS",
+        "sentAt": "2025-07-17T06:57:38.184Z",
+        "status": "TEST_SENT",
+        "message": "Let's do jiujitsu!",
+        "phoneNumber": "+639123412744",
+        "cost": 0,
+        "response": "Test mode - no actual SMS sent",
+        "retryCount": 0
+      },
+      {
+        "id": 14,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T06:59:33.104Z",
+        "status": "TEST_SENT",
+        "message": "Let's do jiujitsu!",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "Test mode - no actual SMS sent",
+        "retryCount": 0
+      },
+      {
+        "id": 15,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T07:02:07.712Z",
+        "status": "FAILED",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "retryCount": 0
+      },
+      {
+        "id": 16,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T07:15:17.655Z",
+        "status": "SENT",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "[{\"message_id\":251357611,\"user_id\":59138,\"user\":\"delaritaraineer81@gmail.com\",\"account_id\":58999,\"account\":\"ogmok bjj\",\"recipient\":\"639956254691\",\"message\":\"Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!\",\"sender_name\":\"Semaphore\",\"network\":\"Globe\",\"status\":\"Pending\",\"type\":\"Single\",\"source\":\"Api\",\"created_at\":\"2025-07-17 15:15:17\",\"updated_at\":\"2025-07-17 15:15:17\"}]",
+        "retryCount": 0
+      },
+      {
+        "id": 17,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T07:20:23.609Z",
+        "status": "TEST_SENT",
+        "message": "Let's do jiujitsu!",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "Test mode - no actual SMS sent",
+        "retryCount": 0
+      },
+      {
+        "id": 18,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T07:24:58.260Z",
+        "status": "TEST_SENT",
+        "message": "Let's do jiujitsu!",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "Test mode - no actual SMS sent",
+        "retryCount": 0
+      },
+      {
+        "id": 19,
+        "studentId": 2,
+        "method": "SMS",
+        "sentAt": "2025-07-17T07:36:38.152Z",
+        "status": "SENT",
+        "message": "Let's do jiujitsu!",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "{\"message_id\":251358688,\"status\":\"Pending\",\"cost\":0.6,\"credits_before\":null,\"credits_after\":null,\"network\":\"Globe\",\"recipient\":\"639956254691\",\"created_at\":\"2025-07-17 15:36:38\"}",
+        "retryCount": 0
+      },
+      {
+        "id": 20,
+        "studentId": 16,
+        "method": "SMS",
+        "sentAt": "2025-07-17T07:45:11.861Z",
+        "status": "SENT",
+        "message": "Hello! This is a real SMS from your gym system.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "{\"message_id\":251359075,\"status\":\"Pending\",\"cost\":0.6,\"credits_before\":null,\"credits_after\":null,\"network\":\"Globe\",\"recipient\":\"639956254691\",\"created_at\":\"2025-07-17 15:45:11\"}",
+        "retryCount": 0
+      },
+      {
+        "id": 21,
+        "studentId": 4,
+        "method": "SMS",
+        "sentAt": "2025-07-17T07:48:46.086Z",
+        "status": "SENT",
+        "message": "Hello! This is a real SMS from your gym system.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "{\"message_id\":251359191,\"status\":\"Pending\",\"cost\":0.6,\"credits_before\":null,\"credits_after\":null,\"network\":\"Globe\",\"recipient\":\"639956254691\",\"created_at\":\"2025-07-17 15:48:46\"}",
+        "retryCount": 0
+      },
+      {
+        "id": 22,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T08:04:47.364Z",
+        "status": "SENT",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "{\"message_id\":251359962,\"status\":\"Pending\",\"cost\":0.6,\"credits_before\":null,\"credits_after\":null,\"network\":\"Globe\",\"recipient\":\"639956254691\",\"created_at\":\"2025-07-17 16:04:47\"}",
+        "retryCount": 0
+      },
+      {
+        "id": 23,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T08:07:27.458Z",
+        "status": "SENT",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639109775603",
+        "cost": 0.6,
+        "response": "{\"message_id\":251360081,\"status\":\"Pending\",\"cost\":0.6,\"credits_before\":null,\"credits_after\":null,\"network\":\"Smart\",\"recipient\":\"639109775603\",\"created_at\":\"2025-07-17 16:07:27\"}",
+        "retryCount": 0
+      },
+      {
+        "id": 24,
+        "studentId": 1,
+        "method": "SMS",
+        "sentAt": "2025-07-17T08:08:47.781Z",
+        "status": "SENT",
+        "message": "Hi Xander Abalos! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639343454341",
+        "cost": 0.6,
+        "response": "{\"message_id\":251360174,\"status\":\"Pending\",\"cost\":0.6,\"credits_before\":null,\"credits_after\":null,\"network\":\"Sun\",\"recipient\":\"639343454341\",\"created_at\":\"2025-07-17 16:08:47\"}",
+        "retryCount": 0
+      },
+      {
+        "id": 25,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T08:09:08.338Z",
+        "status": "SENT",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639109775603",
+        "cost": 0.6,
+        "response": "{\"message_id\":251360194,\"status\":\"Pending\",\"cost\":0.6,\"credits_before\":null,\"credits_after\":null,\"network\":\"Smart\",\"recipient\":\"639109775603\",\"created_at\":\"2025-07-17 16:09:08\"}",
+        "retryCount": 0
+      },
+      {
+        "id": 26,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T08:09:57.178Z",
+        "status": "SENT",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "{\"message_id\":251360221,\"status\":\"Pending\",\"cost\":0.6,\"credits_before\":null,\"credits_after\":null,\"network\":\"Globe\",\"recipient\":\"639956254691\",\"created_at\":\"2025-07-17 16:09:57\"}",
+        "retryCount": 0
+      },
+      {
+        "id": 63,
+        "studentId": 6,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 27,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T08:26:38.603Z",
+        "status": "FAILED",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "All 3 attempts failed. Last error: HTTP 500: [{\"senderName\":\"The senderName supplied is not valid\"}]",
+        "retryCount": 0
+      },
+      {
+        "id": 28,
+        "studentId": 4,
+        "method": "SMS",
+        "sentAt": "2025-07-17T08:27:23.541Z",
+        "status": "FAILED",
+        "message": "Hello! This is a real SMS from your gym system.",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "All 3 attempts failed. Last error: HTTP 500: [{\"senderName\":\"The senderName supplied is not valid\"}]",
+        "retryCount": 0
+      },
+      {
+        "id": 29,
+        "studentId": 4,
+        "method": "SMS",
+        "sentAt": "2025-07-17T08:34:24.110Z",
+        "status": "FAILED",
+        "message": "Hello! This is a real slim shady from your gym system.",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "All 3 attempts failed. Last error: HTTP 500: [{\"senderName\":\"The senderName supplied is not valid\"}]",
+        "retryCount": 0
+      },
+      {
+        "id": 30,
+        "studentId": 4,
+        "method": "SMS",
+        "sentAt": "2025-07-17T08:35:01.995Z",
+        "status": "SENT",
+        "message": "Hello! This is a real slim shady from your gym system.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "{\"message_id\":251361708,\"status\":\"Pending\",\"cost\":0.6,\"credits_before\":null,\"credits_after\":null,\"network\":\"Globe\",\"recipient\":\"639956254691\",\"created_at\":\"2025-07-17 16:35:02\"}",
+        "retryCount": 0
+      },
+      {
+        "id": 31,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-17T08:36:01.496Z",
+        "status": "SENT",
+        "message": "Hi Roland Puzon! Your gym membership expired 1 day(s) ago. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "{\"message_id\":251361739,\"status\":\"Pending\",\"cost\":0.6,\"credits_before\":null,\"credits_after\":null,\"network\":\"Globe\",\"recipient\":\"639956254691\",\"created_at\":\"2025-07-17 16:36:01\"}",
+        "retryCount": 0
+      },
+      {
+        "id": 32,
+        "studentId": 5,
+        "method": "SMS",
+        "sentAt": "2025-07-30T04:13:00.095Z",
+        "status": "FAILED",
+        "message": "Hello! This is a real your gym system.",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "sendSMSViaPhilSMS is not a function",
+        "retryCount": 0
+      },
+      {
+        "id": 33,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-07-30T14:13:17.192Z",
+        "status": "FAILED",
+        "message": "Hello! This is a real your gym system.",
+        "phoneNumber": "+639956254691",
+        "cost": 0,
+        "response": "Failed to send SMS: SMS service not configured. Missing SEMAPHORE_API_KEY environment variable.",
+        "retryCount": 0
+      },
+      {
+        "id": 34,
+        "studentId": 16,
+        "method": "SMS",
+        "sentAt": "2025-07-30T14:20:38.847Z",
+        "status": "SENT",
+        "message": "Hello! This is a real your gym system.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "SMS sent successfully to +639956254691 via globe",
+        "retryCount": 0
+      },
+      {
+        "id": 35,
+        "studentId": 4,
+        "method": "SMS",
+        "sentAt": "2025-07-30T14:25:40.669Z",
+        "status": "SENT",
+        "message": "Hello! This is a real your gym system.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "SMS sent successfully to +639956254691 via globe",
+        "retryCount": 0
+      },
+      {
+        "id": 36,
+        "studentId": 17,
+        "method": "SMS",
+        "sentAt": "2025-07-30T14:36:37.114Z",
+        "status": "SENT",
+        "message": "Hello! This is a real your gym system.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "SMS sent successfully to +639956254691",
+        "retryCount": 0
+      },
+      {
+        "id": 37,
+        "studentId": 2,
+        "method": "SMS",
+        "sentAt": "2025-07-30T14:43:23.900Z",
+        "status": "SENT",
+        "message": "Hello! This is a real your gym system.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "SMS sent successfully to +639956254691",
+        "retryCount": 0
+      },
+      {
+        "id": 38,
+        "studentId": 6,
+        "method": "SMS",
+        "sentAt": "2025-07-30T19:19:55.319Z",
+        "status": "SENT",
+        "message": "Hello! This is a real your gym system.",
+        "phoneNumber": "+639109775603",
+        "cost": 0.6,
+        "response": "SMS sent successfully to +639109775603",
+        "retryCount": 0
+      },
+      {
+        "id": 39,
+        "studentId": 11,
+        "method": "SMS",
+        "sentAt": "2025-07-30T19:22:30.772Z",
+        "status": "SENT",
+        "message": "Hello! This is a real your gym system.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "SMS sent successfully to +639956254691",
+        "retryCount": 0
+      },
+      {
+        "id": 40,
+        "studentId": 14,
+        "method": "SMS",
+        "sentAt": "2025-08-07T17:52:17.495Z",
+        "status": "SENT",
+        "message": "Hi Mateo  Belamia! Your gym membership expired 3 day(s) ago. Please renew soon to continue enjoying our facilities. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "SMS sent successfully to +639956254691",
+        "retryCount": 0
+      },
+      {
+        "id": 41,
+        "studentId": 15,
+        "method": "SMS",
+        "sentAt": "2025-08-09T17:19:49.720Z",
+        "status": "SENT",
+        "message": "Hi Jesusa. Medelin! Your gym membership expired 3 day(s) ago. Please renew soon to continue enjoying our facilities. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "SMS sent successfully to +639956254691",
+        "retryCount": 0
+      },
+      {
+        "id": 42,
+        "studentId": 13,
+        "method": "SMS",
+        "sentAt": "2025-08-09T17:21:07.628Z",
+        "status": "SENT",
+        "message": "Hi Daniel  Laborda! Your membership has been overdue for 5 days. Please renew to continue accessing our facilities. Thank you!",
+        "phoneNumber": "+639109775603",
+        "cost": 0.6,
+        "response": "SMS sent successfully to +639109775603",
+        "retryCount": 0
+      },
+      {
+        "id": 43,
+        "studentId": 4,
+        "method": "SMS",
+        "sentAt": "2025-08-14T14:12:52.359Z",
+        "status": "SENT",
+        "message": "Hi Liam  Sumalinog! Your gym membership expires in 1 days. Please renew soon to avoid service interruption. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "SMS sent successfully to +639956254691",
+        "retryCount": 0
+      },
+      {
+        "id": 44,
+        "studentId": 16,
+        "method": "SMS",
+        "sentAt": "2025-08-14T14:14:36.931Z",
+        "status": "SENT",
+        "message": "Hi Liam Canovas! Your gym membership expired 2 day(s) ago. Please renew soon to continue enjoying our facilities. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "SMS sent successfully to +639956254691",
+        "retryCount": 0
+      },
+      {
+        "id": 45,
+        "studentId": 13,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 46,
+        "studentId": 8,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 47,
+        "studentId": 10,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 48,
+        "studentId": 14,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 49,
+        "studentId": 21,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09923432123",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 50,
+        "studentId": 20,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 51,
+        "studentId": 17,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 52,
+        "studentId": 16,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 54,
+        "studentId": 12,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 53,
+        "studentId": 4,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 55,
+        "studentId": 5,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 56,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 57,
+        "studentId": 2,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 58,
+        "studentId": 9,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 59,
+        "studentId": 1,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 60,
+        "studentId": 7,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 61,
+        "studentId": 19,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 64,
+        "studentId": 18,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09924524341",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 62,
+        "studentId": 15,
+        "method": "SMS",
+        "sentAt": "2025-08-19T14:47:45.589Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 65,
+        "studentId": 20,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.596Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 66,
+        "studentId": 8,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.597Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 67,
+        "studentId": 10,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.597Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 68,
+        "studentId": 14,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.597Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 69,
+        "studentId": 21,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.597Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09923432123",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 70,
+        "studentId": 13,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.596Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 71,
+        "studentId": 18,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.597Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09924524341",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 72,
+        "studentId": 4,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.596Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 73,
+        "studentId": 1,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.596Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 74,
+        "studentId": 12,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.596Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 75,
+        "studentId": 2,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.596Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 76,
+        "studentId": 9,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.596Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 77,
+        "studentId": 16,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.596Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 78,
+        "studentId": 11,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.596Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 79,
+        "studentId": 19,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.596Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 80,
+        "studentId": 15,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.597Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 81,
+        "studentId": 17,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.597Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 83,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.597Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 84,
+        "studentId": 6,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.596Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 82,
+        "studentId": 5,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:18:22.597Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0.35,
+        "response": "Weekend event SMS sent successfully",
+        "retryCount": 0
+      },
+      {
+        "id": 85,
+        "studentId": 6,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.390Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 86,
+        "studentId": 3,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.432Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 87,
+        "studentId": 20,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.432Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 88,
+        "studentId": 14,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.433Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 89,
+        "studentId": 17,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.434Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 90,
+        "studentId": 2,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.396Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 91,
+        "studentId": 10,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.394Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 92,
+        "studentId": 8,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.398Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 94,
+        "studentId": 19,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.412Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 93,
+        "studentId": 18,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.407Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639924524341",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 96,
+        "studentId": 13,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.415Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 95,
+        "studentId": 11,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.419Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 97,
+        "studentId": 7,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.412Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 99,
+        "studentId": 9,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.418Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 98,
+        "studentId": 5,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.420Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 101,
+        "studentId": 15,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.423Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 100,
+        "studentId": 1,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.413Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 103,
+        "studentId": 16,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.429Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 102,
+        "studentId": 4,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.416Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 104,
+        "studentId": 21,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:52.421Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639923432123",
+        "cost": 0.6,
+        "response": "Weekend event SMS sent successfully via Semaphore. MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 105,
+        "studentId": 12,
+        "method": "SMS",
+        "sentAt": "2025-08-19T15:24:57.435Z",
+        "status": "FAILED",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "09956254691",
+        "cost": 0,
+        "response": "Weekend event SMS failed: \nInvalid `prisma.reminder.create()` invocation:\n\n\nCan't reach database server at `aws-0-ap-southeast-1.pooler.supabase.com:5432`\n\nPlease make sure your database server is running at `aws-0-ap-southeast-1.pooler.supabase.com:5432`.",
+        "retryCount": 0
+      },
+      {
+        "id": 106,
+        "studentId": 20,
+        "method": "SMS",
+        "sentAt": "2025-08-20T15:01:46.967Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS (individual) sent successfully via Semaphore. Event ID: 4, MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 107,
+        "studentId": 21,
+        "method": "SMS",
+        "sentAt": "2025-08-20T15:01:46.970Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639923432123",
+        "cost": 0.6,
+        "response": "Weekend event SMS (individual) sent successfully via Semaphore. Event ID: 4, MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 108,
+        "studentId": 19,
+        "method": "SMS",
+        "sentAt": "2025-08-20T15:10:19.645Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS (individual) sent successfully via Semaphore. Event ID: 5, MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 109,
+        "studentId": 18,
+        "method": "SMS",
+        "sentAt": "2025-08-20T15:10:19.656Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639924524341",
+        "cost": 0.6,
+        "response": "Weekend event SMS (individual) sent successfully via Semaphore. Event ID: 5, MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 110,
+        "studentId": 14,
+        "method": "SMS",
+        "sentAt": "2025-08-20T17:18:44.820Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS (individual) sent successfully via Semaphore. Event ID: 6, MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 111,
+        "studentId": 14,
+        "method": "SMS",
+        "sentAt": "2025-08-20T17:24:23.535Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS (individual) sent successfully via Semaphore. Event ID: 7, MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 112,
+        "studentId": 21,
+        "method": "SMS",
+        "sentAt": "2025-08-20T17:29:47.748Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639923432123",
+        "cost": 0.6,
+        "response": "Weekend event SMS (individual) sent successfully via Semaphore. Event ID: 8, MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 113,
+        "studentId": 13,
+        "method": "SMS",
+        "sentAt": "2025-08-20T20:03:11.573Z",
+        "status": "SENT",
+        "message": "Hi Daniel  Laborda! Your membership has been expired for 16 days. Please contact us to discuss renewal options. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "SMS sent successfully to +639956254691",
+        "retryCount": 0
+      },
+      {
+        "id": 114,
+        "studentId": 21,
+        "method": "SMS",
+        "sentAt": "2025-08-20T20:04:05.182Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639923432123",
+        "cost": 0.6,
+        "response": "Weekend event SMS (individual) sent successfully via Semaphore. Event ID: 9, MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 115,
+        "studentId": 20,
+        "method": "SMS",
+        "sentAt": "2025-08-20T20:09:13.077Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS (individual) sent successfully via Semaphore. Event ID: 10, MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 116,
+        "studentId": 20,
+        "method": "SMS",
+        "sentAt": "2025-08-20T20:12:37.918Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS (individual) sent successfully via Semaphore. Event ID: 11, MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 117,
+        "studentId": 17,
+        "method": "SMS",
+        "sentAt": "2025-08-20T20:19:21.579Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS (individual) sent successfully via Semaphore. Event ID: 12, MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 118,
+        "studentId": 17,
+        "method": "SMS",
+        "sentAt": "2025-08-20T20:54:34.822Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "Weekend event SMS (individual) sent successfully via Semaphore. Event ID: 13, MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 119,
+        "studentId": 18,
+        "method": "SMS",
+        "sentAt": "2025-08-20T20:56:05.450Z",
+        "status": "SENT",
+        "message": "No Classes This Weekend - Enjoy your weekend! Classes will resume on Monday.",
+        "phoneNumber": "+639924524341",
+        "cost": 0.6,
+        "response": "Weekend event SMS (individual) sent successfully via Semaphore. Event ID: 14, MessageID: unknown",
+        "retryCount": 0
+      },
+      {
+        "id": 120,
+        "studentId": 20,
+        "method": "SMS",
+        "sentAt": "2025-09-11T14:40:14.541Z",
+        "status": "SENT",
+        "message": "Hi Rafa Ignacio! Your membership expired 10 days ago. Please visit us to renew and restore your access immediately. Thank you!",
+        "phoneNumber": "+639956254691",
+        "cost": 0.6,
+        "response": "SMS sent successfully to +639956254691",
+        "retryCount": 0
+      }
+    ],
+    "weekendEvents": [
+      {
+        "id": 1,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-20T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 21,
+        "estimatedCost": "7.35",
+        "creatorId": 9,
+        "createdAt": "2025-08-19T14:47:44.891Z",
+        "updatedAt": "2025-08-19T14:47:44.891Z"
+      },
+      {
+        "id": 2,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-20T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 21,
+        "estimatedCost": "7.35",
+        "creatorId": 9,
+        "createdAt": "2025-08-19T15:18:22.006Z",
+        "updatedAt": "2025-08-19T15:18:22.006Z"
+      },
+      {
+        "id": 3,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-20T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 21,
+        "estimatedCost": "7.35",
+        "creatorId": 9,
+        "createdAt": "2025-08-19T15:24:51.165Z",
+        "updatedAt": "2025-08-19T15:24:51.165Z"
+      },
+      {
+        "id": 4,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-21T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 2,
+        "estimatedCost": "1.2",
+        "creatorId": 9,
+        "createdAt": "2025-08-20T15:01:45.322Z",
+        "updatedAt": "2025-08-20T15:01:47.826Z"
+      },
+      {
+        "id": 5,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-21T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 2,
+        "estimatedCost": "1.2",
+        "creatorId": 9,
+        "createdAt": "2025-08-20T15:10:17.825Z",
+        "updatedAt": "2025-08-20T15:10:20.501Z"
+      },
+      {
+        "id": 6,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-21T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 1,
+        "estimatedCost": "0.6",
+        "creatorId": 9,
+        "createdAt": "2025-08-20T17:18:43.086Z",
+        "updatedAt": "2025-08-20T17:18:45.040Z"
+      },
+      {
+        "id": 7,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-21T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 1,
+        "estimatedCost": "0.6",
+        "creatorId": 9,
+        "createdAt": "2025-08-20T17:24:21.855Z",
+        "updatedAt": "2025-08-20T17:24:23.722Z"
+      },
+      {
+        "id": 8,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-21T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 1,
+        "estimatedCost": "0.6",
+        "creatorId": 9,
+        "createdAt": "2025-08-20T17:29:46.171Z",
+        "updatedAt": "2025-08-20T17:29:47.955Z"
+      },
+      {
+        "id": 9,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-21T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 1,
+        "estimatedCost": "0.6",
+        "creatorId": 9,
+        "createdAt": "2025-08-20T20:04:03.869Z",
+        "updatedAt": "2025-08-20T20:04:05.301Z"
+      },
+      {
+        "id": 10,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-21T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 1,
+        "estimatedCost": "0.6",
+        "creatorId": 9,
+        "createdAt": "2025-08-20T20:09:11.756Z",
+        "updatedAt": "2025-08-20T20:09:13.194Z"
+      },
+      {
+        "id": 11,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-21T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 1,
+        "estimatedCost": "0.6",
+        "creatorId": 9,
+        "createdAt": "2025-08-20T20:12:36.544Z",
+        "updatedAt": "2025-08-20T20:12:38.060Z"
+      },
+      {
+        "id": 12,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-21T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 1,
+        "estimatedCost": "0.6",
+        "creatorId": 9,
+        "createdAt": "2025-08-20T20:19:20.216Z",
+        "updatedAt": "2025-08-20T20:19:21.777Z"
+      },
+      {
+        "id": 13,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-21T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 1,
+        "estimatedCost": "0.6",
+        "creatorId": 9,
+        "createdAt": "2025-08-20T20:54:33.430Z",
+        "updatedAt": "2025-08-20T20:54:34.974Z"
+      },
+      {
+        "id": 14,
+        "eventType": "NO_CLASSES",
+        "title": "No Classes This Weekend",
+        "message": "Enjoy your weekend! Classes will resume on Monday.",
+        "startDate": "2025-08-23T00:00:00.000Z",
+        "endDate": null,
+        "sendSMS": true,
+        "priority": "NORMAL",
+        "estimatedReach": 1,
+        "estimatedCost": "0.6",
+        "creatorId": 9,
+        "createdAt": "2025-08-20T20:56:04.200Z",
+        "updatedAt": "2025-08-20T20:56:05.565Z"
+      }
+    ]
+  },
+  "relationships": {
+    "studentUser": [
+      {
+        "studentId": 20,
+        "userId": 23,
+        "userData": {
+          "id": 23,
+          "name": "Rafa Ignacio",
+          "email": "rafaignacio2@gmail.com",
+          "password": "$2b$12$FNhWJrgWZVsIYEyaiV2CXO4qcDGOmyW.9mMgn.kICcxcOaaJ/6Bpu",
+          "createdAt": "2025-08-04T03:20:35.378Z",
+          "updatedAt": "2025-08-19T13:57:12.266Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 13,
+        "userId": 15,
+        "userData": {
+          "id": 15,
+          "name": "Daniel  Laborda",
+          "email": "daniellaborda@gmail2.com",
+          "password": "$2b$10$Y1B59bk7620BJp7lZfiThOQtPjPQTE1HcYXvnX6Ak0KHA7jrbLOp6",
+          "createdAt": "2025-07-08T08:12:57.069Z",
+          "updatedAt": "2025-08-19T13:57:40.362Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 19,
+        "userId": 22,
+        "userData": {
+          "id": 22,
+          "name": "Xym Canovas",
+          "email": "xymcanova23@gmail.com",
+          "password": "$2b$10$Zxd962MqOb3228wgPdM7/O9Ofo3mMwSHXZeq2IqRhtTpnJVoS.PVy",
+          "createdAt": "2025-07-26T15:15:15.653Z",
+          "updatedAt": "2025-08-19T13:57:55.043Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 12,
+        "userId": 14,
+        "userData": {
+          "id": 14,
+          "name": "Alexis  Bower",
+          "email": "alexisbower5@gmail.com",
+          "password": "$2b$10$y61bTsGzcjWe/kqGaNjXIubz/UL1EF9DNAUViwSZDg5rwepKmy5qO",
+          "createdAt": "2025-07-08T07:46:59.434Z",
+          "updatedAt": "2025-08-19T13:58:33.914Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 6,
+        "userId": 7,
+        "userData": {
+          "id": 7,
+          "name": "Marcus Bacolod",
+          "email": "marcusbacolod1@gmail.com",
+          "password": "$2b$10$q20FJ.YdAD7r7jhLVwbVVeqeZkDDswpn8xBSm83DlO82zWyAuXcnO",
+          "createdAt": "2025-06-24T04:46:23.870Z",
+          "updatedAt": "2025-08-19T13:59:02.401Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 22,
+        "userId": 25,
+        "userData": {
+          "id": 25,
+          "name": "Ayumi Regodon",
+          "email": "ayumiregondon@gmail.con",
+          "password": "$2b$12$qOEod/Y/CjtpJ4YIWJvjt.0D6N4BPd2HHfblgpLO6VUHHJNBNjMoO",
+          "createdAt": "2025-09-13T03:58:01.900Z",
+          "updatedAt": "2025-09-13T03:58:01.900Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 23,
+        "userId": 26,
+        "userData": {
+          "id": 26,
+          "name": "Janeca Lorraine",
+          "email": "lorrainejaneca@gmail.com",
+          "password": "$2b$12$jLt34e3D5gfQd0wZcoASDO06XtV0TCxkdNdJUKu.pHSIgSaJsQs9e",
+          "createdAt": "2025-09-13T06:18:52.489Z",
+          "updatedAt": "2025-09-13T06:18:52.489Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 1,
+        "userId": 2,
+        "userData": {
+          "id": 2,
+          "name": "Xander Abalos",
+          "email": "xanderabalos315@gmail.com",
+          "password": "$2b$10$7IgZT9GQFium0uLZcgE.l.WsDwqYfnb2C1p9bOv7fesL.X/Yvlhg2",
+          "createdAt": "2025-06-14T15:40:11.822Z",
+          "updatedAt": "2025-06-14T15:40:11.822Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 7,
+        "userId": 8,
+        "userData": {
+          "id": 8,
+          "name": "Calvin Bacolod",
+          "email": "calvinbacolod1@gmail.com",
+          "password": "$2b$10$RBFb.Y/Hv4tbf3JjM2LWwudDMlTp5yWz2x26jITJvlUbGOFq.KyK.",
+          "createdAt": "2025-06-24T04:48:17.537Z",
+          "updatedAt": "2025-06-24T04:48:17.537Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 9,
+        "userId": 11,
+        "userData": {
+          "id": 11,
+          "name": "Rafael Laborda",
+          "email": "rafaellaborda1@gmail.com",
+          "password": "$2b$10$w1XQoUsG2gFIKN0TsVYUA.THp5HrlrTqnfoj6FuttBEzDtBM0UfQO",
+          "createdAt": "2025-07-05T14:40:47.229Z",
+          "updatedAt": "2025-07-05T14:40:47.229Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 2,
+        "userId": 3,
+        "userData": {
+          "id": 3,
+          "name": "Gab Apduhan",
+          "email": "gab21@gmail.com",
+          "password": "$2b$10$urfSxiuKImqy3T50cwMzsOpBZB7M1qrWrn8aR.c275UvzJ7ylUTyK",
+          "createdAt": "2025-06-15T12:03:44.620Z",
+          "updatedAt": "2025-06-15T12:03:44.620Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 11,
+        "userId": 13,
+        "userData": {
+          "id": 13,
+          "name": "Tyla Bower",
+          "email": "tylabower1@gmail.com",
+          "password": "$2b$10$mk699XHExqWHYPydKMjhCuKg5HA6/Wy3E3r/EUGRP6JJ/Pwtjhf1.",
+          "createdAt": "2025-07-08T07:11:30.152Z",
+          "updatedAt": "2025-07-08T07:11:30.152Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 4,
+        "userId": 5,
+        "userData": {
+          "id": 5,
+          "name": "Liam Sumalinog",
+          "email": "liam13232@gmail.com",
+          "password": "$2b$10$/rBmxm9lJw4yNs8jqko5mONhkM49xP7L3sSH12IaGZif1DrMcczJC",
+          "createdAt": "2025-06-16T02:56:32.903Z",
+          "updatedAt": "2025-06-16T02:56:32.903Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 16,
+        "userId": 18,
+        "userData": {
+          "id": 18,
+          "name": "Liam Canovas",
+          "email": "liamcanovas1@gmail.com",
+          "password": "$2b$10$lcoMvNySg7oduoh8yKLDte2/I/wvh42bxT3v2cUCXjOhEe.qhoxgq",
+          "createdAt": "2025-07-13T15:32:57.229Z",
+          "updatedAt": "2025-07-13T15:32:57.229Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 3,
+        "userId": 4,
+        "userData": {
+          "id": 4,
+          "name": "Roland Puzon",
+          "email": "rolandpuzon1@gmail.com",
+          "password": "$2b$10$Yd6ZZ/1wxcrpLDacWnPleOL3irD3xwqeNJBmKdgXq/HMtz5m09Nu6",
+          "createdAt": "2025-06-15T12:04:58.677Z",
+          "updatedAt": "2025-06-15T12:04:58.677Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 18,
+        "userId": 21,
+        "userData": {
+          "id": 21,
+          "name": "AEU CANOVAS",
+          "email": "aeucanovas2@gmail.com",
+          "password": "$2b$10$prDj6X7M3.JF27pAJlugHelpMXYJpK3KYmeZwQBBijxA1jLoes7bq",
+          "createdAt": "2025-07-26T15:01:11.664Z",
+          "updatedAt": "2025-07-26T15:01:11.664Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 5,
+        "userId": 6,
+        "userData": {
+          "id": 6,
+          "name": "Jesusa Medelin",
+          "email": "jesusamedelin@gmail.com",
+          "password": "$2b$10$1rHml5B92AYDUwXuFMhMCu8OPAeqbxaM47hfoBPqa9dA/n9rQsAS2",
+          "createdAt": "2025-06-21T05:09:42.983Z",
+          "updatedAt": "2025-06-21T05:09:42.983Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 17,
+        "userId": 19,
+        "userData": {
+          "id": 19,
+          "name": "Josha Ignacio",
+          "email": "joshuaignacio1@gmail.com",
+          "password": "$2b$10$q3rWixZUnXp0Ge6MnhGaue57C7guSBg9fVjsYECoWkUxdQvn0ARui",
+          "createdAt": "2025-07-26T14:54:26.775Z",
+          "updatedAt": "2025-07-26T14:54:26.775Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 15,
+        "userId": 17,
+        "userData": {
+          "id": 17,
+          "name": "Jesusa Medelin",
+          "email": "jesusamedelin1@gmail.com",
+          "password": "$2b$10$dJ9q/pwkv6s4m2LG7NiOL.l/wG0wVs/epUfi7V42ThamZT/dMsY76",
+          "createdAt": "2025-07-08T08:23:18.243Z",
+          "updatedAt": "2025-07-08T08:23:18.243Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 8,
+        "userId": 10,
+        "userData": {
+          "id": 10,
+          "name": "Gavin Batican",
+          "email": "gavinbatican@gmail.com",
+          "password": "$2b$10$POv2carkKhPo8IupnI3SVOKECe/hARJsAA3yTlqJGWD4ujR5KEF2a",
+          "createdAt": "2025-07-05T14:15:36.527Z",
+          "updatedAt": "2025-07-05T14:15:36.527Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 10,
+        "userId": 12,
+        "userData": {
+          "id": 12,
+          "name": "Maria Batican",
+          "email": "maria@test.com",
+          "password": "$2b$10$1GZMZYFtjxzFFItnW3SO0u7bWr6TYhdoXb0oM.DesccqDV9W5Wdly",
+          "createdAt": "2025-07-06T03:49:10.207Z",
+          "updatedAt": "2025-07-06T03:49:10.207Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 14,
+        "userId": 16,
+        "userData": {
+          "id": 16,
+          "name": "Mateo  Belamia",
+          "email": "mateobelamia1@gmail.com",
+          "password": "$2b$10$6F/6pHW9nGzHCys1SonJOeRnuAepBGMpI.wlHj4mQlw6mTnP8XLEe",
+          "createdAt": "2025-07-08T08:17:36.809Z",
+          "updatedAt": "2025-07-31T17:56:26.125Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      },
+      {
+        "studentId": 21,
+        "userId": 24,
+        "userData": {
+          "id": 24,
+          "name": "Bryce D",
+          "email": "bryce2@gmail.com",
+          "password": "$2b$12$Xrwg76kg3V28kYj7dpKNcONXxpH.o2uHV1/8JB/LEZjEyDYpR3SbK",
+          "createdAt": "2025-08-04T03:22:42.903Z",
+          "updatedAt": "2025-08-04T03:22:42.903Z",
+          "role": "STUDENT",
+          "studentId": null
+        }
+      }
+    ],
+    "studentMembership": [
+      {
+        "membershipId": 1,
+        "studentId": 1,
+        "studentData": {
+          "id": 1,
+          "name": "Xander Abalos",
+          "email": "xanderabalos315@gmail.com",
+          "phone": "09956254691",
+          "userId": 2,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 2,
+        "studentId": 2,
+        "studentData": {
+          "id": 2,
+          "name": "Gab  Apduhan",
+          "email": "gab21@gmail.com",
+          "phone": "09956254691",
+          "userId": 3,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 3,
+        "studentId": 3,
+        "studentData": {
+          "id": 3,
+          "name": "Roland  Puzon",
+          "email": "rolandpuzon1@gmail.com",
+          "phone": "09956254691",
+          "userId": 4,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 4,
+        "studentId": 4,
+        "studentData": {
+          "id": 4,
+          "name": "Liam  Sumalinog",
+          "email": "liam13232@gmail.com",
+          "phone": "09956254691",
+          "userId": 5,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 5,
+        "studentId": 5,
+        "studentData": {
+          "id": 5,
+          "name": "Jesusa  Medelin",
+          "email": "jesusamedelin@gmail.com",
+          "phone": "09956254691",
+          "userId": 6,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 6,
+        "studentId": 6,
+        "studentData": {
+          "id": 6,
+          "name": "Marcus Bacolod",
+          "email": "marcusbacolod1@gmail.com",
+          "phone": "09956254691",
+          "userId": 7,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 7,
+        "studentId": 7,
+        "studentData": {
+          "id": 7,
+          "name": "Calvin Bacolod",
+          "email": "calvinbacolod1@gmail.com",
+          "phone": "09956254691",
+          "userId": 8,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 8,
+        "studentId": 9,
+        "studentData": {
+          "id": 9,
+          "name": "Rafael Laborda",
+          "email": "rafaellaborda1@gmail.com",
+          "phone": "09956254691",
+          "userId": 11,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 9,
+        "studentId": 8,
+        "studentData": {
+          "id": 8,
+          "name": "Gavin  Batican",
+          "email": "gavinbatican@gmail.com",
+          "phone": "09956254691",
+          "userId": 10,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 10,
+        "studentId": 10,
+        "studentData": {
+          "id": 10,
+          "name": "Maria Batican",
+          "email": "maria@test.com",
+          "phone": "09956254691",
+          "userId": 12,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 14,
+        "studentId": 14,
+        "studentData": {
+          "id": 14,
+          "name": "Mateo  Belamia",
+          "email": "mateobelamia1@gmail.com",
+          "phone": "09956254691",
+          "userId": 16,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 12,
+        "studentId": 12,
+        "studentData": {
+          "id": 12,
+          "name": "Alexis  Bower",
+          "email": "alexisbower5@gmail.com",
+          "phone": "09956254691",
+          "userId": 14,
+          "monthlyRate": 1000,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 13,
+        "studentId": 13,
+        "studentData": {
+          "id": 13,
+          "name": "Daniel  Laborda",
+          "email": "daniellaborda@gmail2.com",
+          "phone": "09956254691",
+          "userId": 15,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 11,
+        "studentId": 11,
+        "studentData": {
+          "id": 11,
+          "name": "Tyla twin Bower",
+          "email": "tylabower1@gmail.com",
+          "phone": "09956254691",
+          "userId": 13,
+          "monthlyRate": 1000,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 15,
+        "studentId": 15,
+        "studentData": {
+          "id": 15,
+          "name": "Jesusa. Medelin",
+          "email": "jesusamedelin1@gmail.com",
+          "phone": "09956254691",
+          "userId": 17,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 16,
+        "studentId": 2,
+        "studentData": {
+          "id": 2,
+          "name": "Gab  Apduhan",
+          "email": "gab21@gmail.com",
+          "phone": "09956254691",
+          "userId": 3,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 17,
+        "studentId": 16,
+        "studentData": {
+          "id": 16,
+          "name": "Liam Canovas",
+          "email": "liamcanovas1@gmail.com",
+          "phone": "09956254691",
+          "userId": 18,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 18,
+        "studentId": 5,
+        "studentData": {
+          "id": 5,
+          "name": "Jesusa  Medelin",
+          "email": "jesusamedelin@gmail.com",
+          "phone": "09956254691",
+          "userId": 6,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 19,
+        "studentId": 4,
+        "studentData": {
+          "id": 4,
+          "name": "Liam  Sumalinog",
+          "email": "liam13232@gmail.com",
+          "phone": "09956254691",
+          "userId": 5,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 20,
+        "studentId": 1,
+        "studentData": {
+          "id": 1,
+          "name": "Xander Abalos",
+          "email": "xanderabalos315@gmail.com",
+          "phone": "09956254691",
+          "userId": 2,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 21,
+        "studentId": 6,
+        "studentData": {
+          "id": 6,
+          "name": "Marcus Bacolod",
+          "email": "marcusbacolod1@gmail.com",
+          "phone": "09956254691",
+          "userId": 7,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 22,
+        "studentId": 7,
+        "studentData": {
+          "id": 7,
+          "name": "Calvin Bacolod",
+          "email": "calvinbacolod1@gmail.com",
+          "phone": "09956254691",
+          "userId": 8,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 23,
+        "studentId": 3,
+        "studentData": {
+          "id": 3,
+          "name": "Roland  Puzon",
+          "email": "rolandpuzon1@gmail.com",
+          "phone": "09956254691",
+          "userId": 4,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 24,
+        "studentId": 10,
+        "studentData": {
+          "id": 10,
+          "name": "Maria Batican",
+          "email": "maria@test.com",
+          "phone": "09956254691",
+          "userId": 12,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 25,
+        "studentId": 8,
+        "studentData": {
+          "id": 8,
+          "name": "Gavin  Batican",
+          "email": "gavinbatican@gmail.com",
+          "phone": "09956254691",
+          "userId": 10,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 26,
+        "studentId": 17,
+        "studentData": {
+          "id": 17,
+          "name": "Josha  Ignacio",
+          "email": "joshuaignacio1@gmail.com",
+          "phone": "09956254691",
+          "userId": 19,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 27,
+        "studentId": 18,
+        "studentData": {
+          "id": 18,
+          "name": "AEU  CANOVAS",
+          "email": "aeucanovas2@gmail.com",
+          "phone": "09924524341",
+          "userId": 21,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 28,
+        "studentId": 19,
+        "studentData": {
+          "id": 19,
+          "name": "Xym Canovas",
+          "email": "xymcanova23@gmail.com",
+          "phone": "09956254691",
+          "userId": 22,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 29,
+        "studentId": 20,
+        "studentData": {
+          "id": 20,
+          "name": "Rafa Ignacio",
+          "email": "rafaignacio2@gmail.com",
+          "phone": "09956254691",
+          "userId": 23,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 30,
+        "studentId": 21,
+        "studentData": {
+          "id": 21,
+          "name": "Bryce D",
+          "email": "bryce2@gmail.com",
+          "phone": "09923432123",
+          "userId": 24,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 31,
+        "studentId": 11,
+        "studentData": {
+          "id": 11,
+          "name": "Tyla twin Bower",
+          "email": "tylabower1@gmail.com",
+          "phone": "09956254691",
+          "userId": 13,
+          "monthlyRate": 1000,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 32,
+        "studentId": 12,
+        "studentData": {
+          "id": 12,
+          "name": "Alexis  Bower",
+          "email": "alexisbower5@gmail.com",
+          "phone": "09956254691",
+          "userId": 14,
+          "monthlyRate": 1000,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 33,
+        "studentId": 14,
+        "studentData": {
+          "id": 14,
+          "name": "Mateo  Belamia",
+          "email": "mateobelamia1@gmail.com",
+          "phone": "09956254691",
+          "userId": 16,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 34,
+        "studentId": 15,
+        "studentData": {
+          "id": 15,
+          "name": "Jesusa. Medelin",
+          "email": "jesusamedelin1@gmail.com",
+          "phone": "09956254691",
+          "userId": 17,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 35,
+        "studentId": 1,
+        "studentData": {
+          "id": 1,
+          "name": "Xander Abalos",
+          "email": "xanderabalos315@gmail.com",
+          "phone": "09956254691",
+          "userId": 2,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 36,
+        "studentId": 16,
+        "studentData": {
+          "id": 16,
+          "name": "Liam Canovas",
+          "email": "liamcanovas1@gmail.com",
+          "phone": "09956254691",
+          "userId": 18,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 37,
+        "studentId": 4,
+        "studentData": {
+          "id": 4,
+          "name": "Liam  Sumalinog",
+          "email": "liam13232@gmail.com",
+          "phone": "09956254691",
+          "userId": 5,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 38,
+        "studentId": 8,
+        "studentData": {
+          "id": 8,
+          "name": "Gavin  Batican",
+          "email": "gavinbatican@gmail.com",
+          "phone": "09956254691",
+          "userId": 10,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 39,
+        "studentId": 10,
+        "studentData": {
+          "id": 10,
+          "name": "Maria Batican",
+          "email": "maria@test.com",
+          "phone": "09956254691",
+          "userId": 12,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 40,
+        "studentId": 7,
+        "studentData": {
+          "id": 7,
+          "name": "Calvin Bacolod",
+          "email": "calvinbacolod1@gmail.com",
+          "phone": "09956254691",
+          "userId": 8,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 41,
+        "studentId": 6,
+        "studentData": {
+          "id": 6,
+          "name": "Marcus Bacolod",
+          "email": "marcusbacolod1@gmail.com",
+          "phone": "09956254691",
+          "userId": 7,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 42,
+        "studentId": 3,
+        "studentData": {
+          "id": 3,
+          "name": "Roland  Puzon",
+          "email": "rolandpuzon1@gmail.com",
+          "phone": "09956254691",
+          "userId": 4,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 43,
+        "studentId": 2,
+        "studentData": {
+          "id": 2,
+          "name": "Gab  Apduhan",
+          "email": "gab21@gmail.com",
+          "phone": "09956254691",
+          "userId": 3,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 44,
+        "studentId": 21,
+        "studentData": {
+          "id": 21,
+          "name": "Bryce D",
+          "email": "bryce2@gmail.com",
+          "phone": "09923432123",
+          "userId": 24,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 45,
+        "studentId": 12,
+        "studentData": {
+          "id": 12,
+          "name": "Alexis  Bower",
+          "email": "alexisbower5@gmail.com",
+          "phone": "09956254691",
+          "userId": 14,
+          "monthlyRate": 1000,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 46,
+        "studentId": 11,
+        "studentData": {
+          "id": 11,
+          "name": "Tyla twin Bower",
+          "email": "tylabower1@gmail.com",
+          "phone": "09956254691",
+          "userId": 13,
+          "monthlyRate": 1000,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "membershipId": 47,
+        "studentId": 15,
+        "studentData": {
+          "id": 15,
+          "name": "Jesusa. Medelin",
+          "email": "jesusamedelin1@gmail.com",
+          "phone": "09956254691",
+          "userId": 17,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 48,
+        "studentId": 14,
+        "studentData": {
+          "id": 14,
+          "name": "Mateo  Belamia",
+          "email": "mateobelamia1@gmail.com",
+          "phone": "09956254691",
+          "userId": 16,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 49,
+        "studentId": 22,
+        "studentData": {
+          "id": 22,
+          "name": "Ayumi Regodon",
+          "email": "ayumiregondon@gmail.con",
+          "phone": "09364826692",
+          "userId": 25,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 50,
+        "studentId": 23,
+        "studentData": {
+          "id": 23,
+          "name": "Janeca Lorraine",
+          "email": "lorrainejaneca@gmail.com",
+          "phone": "09199914671",
+          "userId": 26,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "membershipId": 51,
+        "studentId": 16,
+        "studentData": {
+          "id": 16,
+          "name": "Liam Canovas",
+          "email": "liamcanovas1@gmail.com",
+          "phone": "09956254691",
+          "userId": 18,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      }
+    ],
+    "studentPayment": [
+      {
+        "paymentId": 1,
+        "studentId": 1,
+        "studentData": {
+          "id": 1,
+          "name": "Xander Abalos",
+          "email": "xanderabalos315@gmail.com",
+          "phone": "09956254691",
+          "userId": 2,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 2,
+        "studentId": 2,
+        "studentData": {
+          "id": 2,
+          "name": "Gab  Apduhan",
+          "email": "gab21@gmail.com",
+          "phone": "09956254691",
+          "userId": 3,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 3,
+        "studentId": 3,
+        "studentData": {
+          "id": 3,
+          "name": "Roland  Puzon",
+          "email": "rolandpuzon1@gmail.com",
+          "phone": "09956254691",
+          "userId": 4,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 4,
+        "studentId": 4,
+        "studentData": {
+          "id": 4,
+          "name": "Liam  Sumalinog",
+          "email": "liam13232@gmail.com",
+          "phone": "09956254691",
+          "userId": 5,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 5,
+        "studentId": 5,
+        "studentData": {
+          "id": 5,
+          "name": "Jesusa  Medelin",
+          "email": "jesusamedelin@gmail.com",
+          "phone": "09956254691",
+          "userId": 6,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 6,
+        "studentId": 6,
+        "studentData": {
+          "id": 6,
+          "name": "Marcus Bacolod",
+          "email": "marcusbacolod1@gmail.com",
+          "phone": "09956254691",
+          "userId": 7,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 7,
+        "studentId": 7,
+        "studentData": {
+          "id": 7,
+          "name": "Calvin Bacolod",
+          "email": "calvinbacolod1@gmail.com",
+          "phone": "09956254691",
+          "userId": 8,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 8,
+        "studentId": 8,
+        "studentData": {
+          "id": 8,
+          "name": "Gavin  Batican",
+          "email": "gavinbatican@gmail.com",
+          "phone": "09956254691",
+          "userId": 10,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 10,
+        "studentId": 9,
+        "studentData": {
+          "id": 9,
+          "name": "Rafael Laborda",
+          "email": "rafaellaborda1@gmail.com",
+          "phone": "09956254691",
+          "userId": 11,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 11,
+        "studentId": 10,
+        "studentData": {
+          "id": 10,
+          "name": "Maria Batican",
+          "email": "maria@test.com",
+          "phone": "09956254691",
+          "userId": 12,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 12,
+        "studentId": 11,
+        "studentData": {
+          "id": 11,
+          "name": "Tyla twin Bower",
+          "email": "tylabower1@gmail.com",
+          "phone": "09956254691",
+          "userId": 13,
+          "monthlyRate": 1000,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 13,
+        "studentId": 12,
+        "studentData": {
+          "id": 12,
+          "name": "Alexis  Bower",
+          "email": "alexisbower5@gmail.com",
+          "phone": "09956254691",
+          "userId": 14,
+          "monthlyRate": 1000,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 14,
+        "studentId": 13,
+        "studentData": {
+          "id": 13,
+          "name": "Daniel  Laborda",
+          "email": "daniellaborda@gmail2.com",
+          "phone": "09956254691",
+          "userId": 15,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 15,
+        "studentId": 14,
+        "studentData": {
+          "id": 14,
+          "name": "Mateo  Belamia",
+          "email": "mateobelamia1@gmail.com",
+          "phone": "09956254691",
+          "userId": 16,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 16,
+        "studentId": 15,
+        "studentData": {
+          "id": 15,
+          "name": "Jesusa. Medelin",
+          "email": "jesusamedelin1@gmail.com",
+          "phone": "09956254691",
+          "userId": 17,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 17,
+        "studentId": 2,
+        "studentData": {
+          "id": 2,
+          "name": "Gab  Apduhan",
+          "email": "gab21@gmail.com",
+          "phone": "09956254691",
+          "userId": 3,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 18,
+        "studentId": 16,
+        "studentData": {
+          "id": 16,
+          "name": "Liam Canovas",
+          "email": "liamcanovas1@gmail.com",
+          "phone": "09956254691",
+          "userId": 18,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 19,
+        "studentId": 5,
+        "studentData": {
+          "id": 5,
+          "name": "Jesusa  Medelin",
+          "email": "jesusamedelin@gmail.com",
+          "phone": "09956254691",
+          "userId": 6,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 20,
+        "studentId": 4,
+        "studentData": {
+          "id": 4,
+          "name": "Liam  Sumalinog",
+          "email": "liam13232@gmail.com",
+          "phone": "09956254691",
+          "userId": 5,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 21,
+        "studentId": 1,
+        "studentData": {
+          "id": 1,
+          "name": "Xander Abalos",
+          "email": "xanderabalos315@gmail.com",
+          "phone": "09956254691",
+          "userId": 2,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 22,
+        "studentId": 6,
+        "studentData": {
+          "id": 6,
+          "name": "Marcus Bacolod",
+          "email": "marcusbacolod1@gmail.com",
+          "phone": "09956254691",
+          "userId": 7,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 23,
+        "studentId": 7,
+        "studentData": {
+          "id": 7,
+          "name": "Calvin Bacolod",
+          "email": "calvinbacolod1@gmail.com",
+          "phone": "09956254691",
+          "userId": 8,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 24,
+        "studentId": 3,
+        "studentData": {
+          "id": 3,
+          "name": "Roland  Puzon",
+          "email": "rolandpuzon1@gmail.com",
+          "phone": "09956254691",
+          "userId": 4,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 25,
+        "studentId": 10,
+        "studentData": {
+          "id": 10,
+          "name": "Maria Batican",
+          "email": "maria@test.com",
+          "phone": "09956254691",
+          "userId": 12,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 26,
+        "studentId": 8,
+        "studentData": {
+          "id": 8,
+          "name": "Gavin  Batican",
+          "email": "gavinbatican@gmail.com",
+          "phone": "09956254691",
+          "userId": 10,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 27,
+        "studentId": 17,
+        "studentData": {
+          "id": 17,
+          "name": "Josha  Ignacio",
+          "email": "joshuaignacio1@gmail.com",
+          "phone": "09956254691",
+          "userId": 19,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 28,
+        "studentId": 18,
+        "studentData": {
+          "id": 18,
+          "name": "AEU  CANOVAS",
+          "email": "aeucanovas2@gmail.com",
+          "phone": "09924524341",
+          "userId": 21,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 29,
+        "studentId": 19,
+        "studentData": {
+          "id": 19,
+          "name": "Xym Canovas",
+          "email": "xymcanova23@gmail.com",
+          "phone": "09956254691",
+          "userId": 22,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 30,
+        "studentId": 20,
+        "studentData": {
+          "id": 20,
+          "name": "Rafa Ignacio",
+          "email": "rafaignacio2@gmail.com",
+          "phone": "09956254691",
+          "userId": 23,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 31,
+        "studentId": 21,
+        "studentData": {
+          "id": 21,
+          "name": "Bryce D",
+          "email": "bryce2@gmail.com",
+          "phone": "09923432123",
+          "userId": 24,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 32,
+        "studentId": 11,
+        "studentData": {
+          "id": 11,
+          "name": "Tyla twin Bower",
+          "email": "tylabower1@gmail.com",
+          "phone": "09956254691",
+          "userId": 13,
+          "monthlyRate": 1000,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 33,
+        "studentId": 12,
+        "studentData": {
+          "id": 12,
+          "name": "Alexis  Bower",
+          "email": "alexisbower5@gmail.com",
+          "phone": "09956254691",
+          "userId": 14,
+          "monthlyRate": 1000,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 34,
+        "studentId": 14,
+        "studentData": {
+          "id": 14,
+          "name": "Mateo  Belamia",
+          "email": "mateobelamia1@gmail.com",
+          "phone": "09956254691",
+          "userId": 16,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 35,
+        "studentId": 15,
+        "studentData": {
+          "id": 15,
+          "name": "Jesusa. Medelin",
+          "email": "jesusamedelin1@gmail.com",
+          "phone": "09956254691",
+          "userId": 17,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 36,
+        "studentId": 1,
+        "studentData": {
+          "id": 1,
+          "name": "Xander Abalos",
+          "email": "xanderabalos315@gmail.com",
+          "phone": "09956254691",
+          "userId": 2,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 37,
+        "studentId": 16,
+        "studentData": {
+          "id": 16,
+          "name": "Liam Canovas",
+          "email": "liamcanovas1@gmail.com",
+          "phone": "09956254691",
+          "userId": 18,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 38,
+        "studentId": 4,
+        "studentData": {
+          "id": 4,
+          "name": "Liam  Sumalinog",
+          "email": "liam13232@gmail.com",
+          "phone": "09956254691",
+          "userId": 5,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 39,
+        "studentId": 8,
+        "studentData": {
+          "id": 8,
+          "name": "Gavin  Batican",
+          "email": "gavinbatican@gmail.com",
+          "phone": "09956254691",
+          "userId": 10,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 40,
+        "studentId": 10,
+        "studentData": {
+          "id": 10,
+          "name": "Maria Batican",
+          "email": "maria@test.com",
+          "phone": "09956254691",
+          "userId": 12,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 41,
+        "studentId": 7,
+        "studentData": {
+          "id": 7,
+          "name": "Calvin Bacolod",
+          "email": "calvinbacolod1@gmail.com",
+          "phone": "09956254691",
+          "userId": 8,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 42,
+        "studentId": 6,
+        "studentData": {
+          "id": 6,
+          "name": "Marcus Bacolod",
+          "email": "marcusbacolod1@gmail.com",
+          "phone": "09956254691",
+          "userId": 7,
+          "monthlyRate": 1200,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 43,
+        "studentId": 3,
+        "studentData": {
+          "id": 3,
+          "name": "Roland  Puzon",
+          "email": "rolandpuzon1@gmail.com",
+          "phone": "09956254691",
+          "userId": 4,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 44,
+        "studentId": 2,
+        "studentData": {
+          "id": 2,
+          "name": "Gab  Apduhan",
+          "email": "gab21@gmail.com",
+          "phone": "09956254691",
+          "userId": 3,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 45,
+        "studentId": 21,
+        "studentData": {
+          "id": 21,
+          "name": "Bryce D",
+          "email": "bryce2@gmail.com",
+          "phone": "09923432123",
+          "userId": 24,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 46,
+        "studentId": 12,
+        "studentData": {
+          "id": 12,
+          "name": "Alexis  Bower",
+          "email": "alexisbower5@gmail.com",
+          "phone": "09956254691",
+          "userId": 14,
+          "monthlyRate": 1000,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 47,
+        "studentId": 11,
+        "studentData": {
+          "id": 11,
+          "name": "Tyla twin Bower",
+          "email": "tylabower1@gmail.com",
+          "phone": "09956254691",
+          "userId": 13,
+          "monthlyRate": 1000,
+          "isLegacyStudent": true
+        }
+      },
+      {
+        "paymentId": 48,
+        "studentId": 15,
+        "studentData": {
+          "id": 15,
+          "name": "Jesusa. Medelin",
+          "email": "jesusamedelin1@gmail.com",
+          "phone": "09956254691",
+          "userId": 17,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 49,
+        "studentId": 14,
+        "studentData": {
+          "id": 14,
+          "name": "Mateo  Belamia",
+          "email": "mateobelamia1@gmail.com",
+          "phone": "09956254691",
+          "userId": 16,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 50,
+        "studentId": 22,
+        "studentData": {
+          "id": 22,
+          "name": "Ayumi Regodon",
+          "email": "ayumiregondon@gmail.con",
+          "phone": "09364826692",
+          "userId": 25,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 51,
+        "studentId": 23,
+        "studentData": {
+          "id": 23,
+          "name": "Janeca Lorraine",
+          "email": "lorrainejaneca@gmail.com",
+          "phone": "09199914671",
+          "userId": 26,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      },
+      {
+        "paymentId": 52,
+        "studentId": 16,
+        "studentData": {
+          "id": 16,
+          "name": "Liam Canovas",
+          "email": "liamcanovas1@gmail.com",
+          "phone": "09956254691",
+          "userId": 18,
+          "monthlyRate": 1400,
+          "isLegacyStudent": false
+        }
+      }
+    ]
+  }
+}
