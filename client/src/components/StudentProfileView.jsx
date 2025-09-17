@@ -1,13 +1,7 @@
 // File: client/src/components/StudentProfileView.jsx
-// FINAL COMPLETE VERSION - T.filter Error ELIMINATED
+// FIXED: Membership status calculation now matches dashboard logic
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
-
-/**
- * CRITICAL FIX: T.filter error was caused by broken component structure
- * in lines 400+ where membership and training sections were mixed up.
- * This complete version fixes ALL structural issues.
- */
 
 const StudentProfileView = ({ student, onBack, onEdit }) => {
   const { token } = useAuth();
@@ -19,7 +13,6 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
   const [trainingHistory, setTrainingHistory] = useState([]);
   const [trainingLoading, setTrainingLoading] = useState(false);
 
-  // Safe array validation
   const ensureArray = (data) => {
     if (Array.isArray(data)) return data;
     if (data && typeof data === 'object' && Array.isArray(data.sessions)) return data.sessions;
@@ -85,6 +78,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     }
   };
 
+  // FIXED: Lines 85-135 - Membership status calculation now matches dashboard logic
   const membershipStatus = useMemo(() => {
     if (!studentData?.memberships || !Array.isArray(studentData.memberships) || studentData.memberships.length === 0) {
       return {
@@ -97,11 +91,16 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     }
 
     try {
+      // CRITICAL FIX: Use endDate for latest membership selection (matches dashboard logic)
       const latestMembership = studentData.memberships.reduce((latest, current) => {
         if (!current) return latest;
-        const currentDate = new Date(current.createdAt || current.endDate);
-        const latestDate = new Date(latest.createdAt || latest.endDate);
-        return currentDate > latestDate ? current : latest;
+        
+        // FIX: Use endDate only for comparison, not createdAt
+        const currentEndDate = new Date(current.endDate || 0);
+        const latestEndDate = new Date(latest.endDate || 0);
+        
+        // Select membership with latest end date (most current validity period)
+        return currentEndDate > latestEndDate ? current : latest;
       });
 
       if (!latestMembership?.endDate) {
@@ -114,12 +113,25 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
         };
       }
 
+      // FIXED: Date calculation logic now matches dashboard exactly
       const today = new Date();
       const endDate = new Date(latestMembership.endDate);
+      
+      // Normalize dates to midnight for accurate comparison
       today.setHours(0, 0, 0, 0);
       endDate.setHours(0, 0, 0, 0);
+      
       const diffTime = endDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      console.log('📅 Membership Status Debug:', {
+        studentName: studentData.name,
+        endDate: latestMembership.endDate,
+        today: today.toISOString(),
+        endDateProcessed: endDate.toISOString(),
+        diffDays,
+        status: diffDays > 7 ? 'active' : diffDays > 0 ? 'expiring' : diffDays === 0 ? 'expiring' : 'overdue'
+      });
 
       if (diffDays > 7) {
         return {
@@ -155,6 +167,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
         };
       }
     } catch (error) {
+      console.error('❌ Membership status calculation error:', error);
       return {
         status: "inactive",
         message: "Error calculating status",
@@ -165,53 +178,51 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     }
   }, [studentData]);
 
- // CRITICAL LINE 157 FIX in StudentProfileView.jsx
-const trainingStats = useMemo(() => {
-  // FIXED: Don't call ensureArray(trainingHistory) - use trainingHistory directly
-  const sessions = Array.isArray(trainingHistory) ? trainingHistory : [];
-  
-  if (sessions.length === 0) {
+  const trainingStats = useMemo(() => {
+    const sessions = Array.isArray(trainingHistory) ? trainingHistory : [];
+    
+    if (sessions.length === 0) {
+      return {
+        totalSessions: 0,
+        lastTrainingDate: null,
+        lastTrainingText: "Never",
+        attendanceRate: 0,
+        daysSinceLastTraining: null,
+        isInactive: false
+      };
+    }
+
+    const totalSessions = sessions.length;
+    const presentSessions = sessions.filter(t => t && t.attendanceStatus === 'PRESENT').length;
+    const attendanceRate = totalSessions > 0 ? Math.round((presentSessions / totalSessions) * 100) : 0;
+
+    const sortedSessions = [...sessions].sort((a, b) => {
+      if (!a?.sessionDate || !b?.sessionDate) return 0;
+      return new Date(b.sessionDate) - new Date(a.sessionDate);
+    });
+    
+    const lastSession = sortedSessions[0];
+    const lastTrainingDate = lastSession ? new Date(lastSession.sessionDate) : null;
+    
+    let daysSinceLastTraining = null;
+    let isInactive = false;
+    
+    if (lastTrainingDate && !isNaN(lastTrainingDate.getTime())) {
+      const today = new Date();
+      const diffTime = today.getTime() - lastTrainingDate.getTime();
+      daysSinceLastTraining = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      isInactive = daysSinceLastTraining >= 30;
+    }
+
     return {
-      totalSessions: 0,
-      lastTrainingDate: null,
-      lastTrainingText: "Never",
-      attendanceRate: 0,
-      daysSinceLastTraining: null,
-      isInactive: false
+      totalSessions,
+      lastTrainingDate,
+      lastTrainingText: lastTrainingDate ? lastTrainingDate.toLocaleDateString() : "Never",
+      attendanceRate,
+      daysSinceLastTraining,
+      isInactive
     };
-  }
-
-  const totalSessions = sessions.length;
-  const presentSessions = sessions.filter(t => t && t.attendanceStatus === 'PRESENT').length;
-  const attendanceRate = totalSessions > 0 ? Math.round((presentSessions / totalSessions) * 100) : 0;
-
-  const sortedSessions = [...sessions].sort((a, b) => {
-    if (!a?.sessionDate || !b?.sessionDate) return 0;
-    return new Date(b.sessionDate) - new Date(a.sessionDate);
-  });
-  
-  const lastSession = sortedSessions[0];
-  const lastTrainingDate = lastSession ? new Date(lastSession.sessionDate) : null;
-  
-  let daysSinceLastTraining = null;
-  let isInactive = false;
-  
-  if (lastTrainingDate && !isNaN(lastTrainingDate.getTime())) {
-    const today = new Date();
-    const diffTime = today.getTime() - lastTrainingDate.getTime();
-    daysSinceLastTraining = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    isInactive = daysSinceLastTraining >= 30;
-  }
-
-  return {
-    totalSessions,
-    lastTrainingDate,
-    lastTrainingText: lastTrainingDate ? lastTrainingDate.toLocaleDateString() : "Never",
-    attendanceRate,
-    daysSinceLastTraining,
-    isInactive
-  };
-}, [trainingHistory]); // Keep this dependency
+  }, [trainingHistory]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -266,6 +277,34 @@ const trainingStats = useMemo(() => {
         {displayStatus}
       </span>
     );
+  };
+
+  // FIXED: Edit button handler that properly calls onEdit
+  const handleEditClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('📝 Edit Profile button clicked for:', studentData?.name);
+    console.log('📝 onEdit function available:', typeof onEdit === 'function');
+    console.log('📝 studentData available:', !!studentData);
+    
+    if (!onEdit) {
+      console.error('❌ onEdit prop is missing');
+      return;
+    }
+    
+    if (typeof onEdit !== 'function') {
+      console.error('❌ onEdit prop is not a function, got:', typeof onEdit);
+      return;
+    }
+    
+    if (!studentData) {
+      console.error('❌ studentData is not available');
+      return;
+    }
+    
+    console.log('📝 Calling onEdit with student data...');
+    onEdit(studentData);
   };
 
   if (loading) {
@@ -328,9 +367,12 @@ const trainingStats = useMemo(() => {
                 )}
               </div>
             </div>
+            
+            {/* FIXED: Edit Profile button with enhanced event handling */}
             <button
-              onClick={() => onEdit(studentData)}
-              className="w-full sm:w-auto bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-medium"
+              type="button"
+              onClick={handleEditClick}
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-6 py-3 rounded-lg transition-all duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900"
             >
               Edit Profile
             </button>
@@ -394,11 +436,12 @@ const trainingStats = useMemo(() => {
                 <div className="p-6">
                   {studentData.memberships && Array.isArray(studentData.memberships) && studentData.memberships.length > 0 ? (
                     (() => {
+                      // FIXED: Use same endDate-based selection logic as status calculation
                       const latestMembership = studentData.memberships.reduce((latest, current) => {
                         if (!current) return latest;
-                        const currentDate = new Date(current.createdAt || current.endDate);
-                        const latestDate = new Date(latest.createdAt || latest.endDate);
-                        return currentDate > latestDate ? current : latest;
+                        const currentEndDate = new Date(current.endDate || 0);
+                        const latestEndDate = new Date(latest.endDate || 0);
+                        return currentEndDate > latestEndDate ? current : latest;
                       });
                       
                       return (
@@ -462,7 +505,6 @@ const trainingStats = useMemo(() => {
                   </div>
                 </div>
 
-                {/* Training Statistics */}
                 <div className="p-6 border-b border-gray-600">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center">
@@ -503,7 +545,6 @@ const trainingStats = useMemo(() => {
                   )}
                 </div>
 
-                {/* Training Sessions List */}
                 {!trainingLoading && Array.isArray(trainingHistory) && trainingHistory.length > 0 ? (
                   <>
                     <div className="block lg:hidden divide-y divide-gray-600">
@@ -529,9 +570,6 @@ const trainingStats = useMemo(() => {
                                 <div className="mb-2">
                                   {getTrainingStatusBadge(session.attendanceStatus || 'PRESENT')}
                                 </div>
-                                <p className="text-xs text-gray-400">
-                                  {session.duration || 90} min
-                                </p>
                               </div>
                             </div>
                           </div>
@@ -546,7 +584,6 @@ const trainingStats = useMemo(() => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Date</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Type</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Duration</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Notes</th>
                           </tr>
                         </thead>
@@ -563,9 +600,6 @@ const trainingStats = useMemo(() => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   {getTrainingStatusBadge(session.attendanceStatus || 'PRESENT')}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                  {session.duration || 90} min
                                 </td>
                                 <td className="px-6 py-4 text-sm text-white max-w-xs">
                                   <div className="truncate" title={session.notes}>
@@ -622,7 +656,6 @@ const trainingStats = useMemo(() => {
 
                 {!paymentLoading && Array.isArray(paymentHistory) && paymentHistory.length > 0 ? (
                   <>
-                    {/* Mobile Card View */}
                     <div className="block lg:hidden divide-y divide-gray-600">
                       {paymentHistory.map((payment, index) => {
                         if (!payment || typeof payment !== 'object') return null;
@@ -654,7 +687,6 @@ const trainingStats = useMemo(() => {
                       })}
                     </div>
 
-                    {/* Desktop Table View */}
                     <div className="hidden lg:block overflow-x-auto">
                       <table className="min-w-full divide-y divide-gray-600">
                         <thead className="bg-gray-700">
@@ -706,7 +738,6 @@ const trainingStats = useMemo(() => {
         </div>
       </div>
 
-      {/* Mobile Bottom Safe Area */}
       <div className="h-6 lg:hidden" />
     </div>
   );
