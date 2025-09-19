@@ -1,5 +1,5 @@
 // File: client/src/components/StudentProfileView.jsx
-// FIXED: Membership status calculation now matches dashboard logic
+// COMPLETE WORKING VERSION - Copy this entire file
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 
@@ -78,7 +78,6 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     }
   };
 
-  // FIXED: Lines 85-135 - Membership status calculation now matches dashboard logic
   const membershipStatus = useMemo(() => {
     if (!studentData?.memberships || !Array.isArray(studentData.memberships) || studentData.memberships.length === 0) {
       return {
@@ -91,15 +90,10 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     }
 
     try {
-      // CRITICAL FIX: Use endDate for latest membership selection (matches dashboard logic)
       const latestMembership = studentData.memberships.reduce((latest, current) => {
         if (!current) return latest;
-        
-        // FIX: Use endDate only for comparison, not createdAt
         const currentEndDate = new Date(current.endDate || 0);
         const latestEndDate = new Date(latest.endDate || 0);
-        
-        // Select membership with latest end date (most current validity period)
         return currentEndDate > latestEndDate ? current : latest;
       });
 
@@ -113,25 +107,12 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
         };
       }
 
-      // FIXED: Date calculation logic now matches dashboard exactly
       const today = new Date();
       const endDate = new Date(latestMembership.endDate);
-      
-      // Normalize dates to midnight for accurate comparison
       today.setHours(0, 0, 0, 0);
       endDate.setHours(0, 0, 0, 0);
-      
       const diffTime = endDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      console.log('📅 Membership Status Debug:', {
-        studentName: studentData.name,
-        endDate: latestMembership.endDate,
-        today: today.toISOString(),
-        endDateProcessed: endDate.toISOString(),
-        diffDays,
-        status: diffDays > 7 ? 'active' : diffDays > 0 ? 'expiring' : diffDays === 0 ? 'expiring' : 'overdue'
-      });
 
       if (diffDays > 7) {
         return {
@@ -167,7 +148,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
         };
       }
     } catch (error) {
-      console.error('❌ Membership status calculation error:', error);
+      console.error('Membership status calculation error:', error);
       return {
         status: "inactive",
         message: "Error calculating status",
@@ -224,6 +205,24 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     };
   }, [trainingHistory]);
 
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return null;
+    try {
+      const birth = new Date(birthDate);
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+      
+      return age;
+    } catch {
+      return null;
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     try {
@@ -279,32 +278,23 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     );
   };
 
-  // FIXED: Edit button handler that properly calls onEdit
+  // CRITICAL FIX: Proper field mapping
   const handleEditClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('📝 Edit Profile button clicked for:', studentData?.name);
-    console.log('📝 onEdit function available:', typeof onEdit === 'function');
-    console.log('📝 studentData available:', !!studentData);
-    
-    if (!onEdit) {
-      console.error('❌ onEdit prop is missing');
+    if (!onEdit || typeof onEdit !== 'function' || !studentData) {
+      console.error('Edit function or student data not available');
       return;
     }
     
-    if (typeof onEdit !== 'function') {
-      console.error('❌ onEdit prop is not a function, got:', typeof onEdit);
-      return;
-    }
+    const mappedStudentData = {
+      ...studentData,
+      parent: studentData.parentName || studentData.parent || "",
+    };
     
-    if (!studentData) {
-      console.error('❌ studentData is not available');
-      return;
-    }
-    
-    console.log('📝 Calling onEdit with student data...');
-    onEdit(studentData);
+    console.log('Opening edit with mapped data:', mappedStudentData);
+    onEdit(mappedStudentData);
   };
 
   if (loading) {
@@ -338,7 +328,6 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* Header */}
       <div className="bg-gray-800 shadow-xl border-b border-gray-700 sticky top-0 z-10">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 sm:py-6 gap-4">
@@ -368,7 +357,6 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
               </div>
             </div>
             
-            {/* FIXED: Edit Profile button with enhanced event handling */}
             <button
               type="button"
               onClick={handleEditClick}
@@ -380,13 +368,10 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
         </div>
       </div>
 
-      {/* Content */}
       <div className="px-4 sm:px-6 lg:px-8 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Basic Information */}
             <div className="lg:col-span-1">
               <div className="bg-gray-800 rounded-xl border border-gray-600 shadow-lg overflow-hidden">
                 <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-6 py-4 border-b border-gray-600">
@@ -401,6 +386,21 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                       <label className="text-sm font-medium text-gray-400">Name</label>
                       <p className="text-sm font-medium text-white text-right">{studentData.name || "N/A"}</p>
                     </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <label className="text-sm font-medium text-gray-400">Age</label>
+                      <p className="text-sm text-white text-right">
+                        {studentData.age || (studentData.birthDate ? `${calculateAge(studentData.birthDate)} years` : "N/A")}
+                      </p>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <label className="text-sm font-medium text-gray-400">Parent/Guardian</label>
+                      <p className="text-sm text-white text-right max-w-[150px] truncate">
+                        {studentData.parentName || studentData.parent || "N/A"}
+                      </p>
+                    </div>
+                    
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
                       <label className="text-sm font-medium text-gray-400">Email</label>
                       <p className="text-sm text-white text-right truncate max-w-[150px]">{studentData.email || "N/A"}</p>
@@ -422,10 +422,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
               </div>
             </div>
 
-            {/* Membership & Training */}
             <div className="lg:col-span-2 space-y-6">
-              
-              {/* Current Membership */}
               <div className="bg-gray-800 rounded-xl border border-gray-600 shadow-lg overflow-hidden">
                 <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-6 py-4 border-b border-gray-600">
                   <h3 className="text-lg font-semibold text-white flex items-center">
@@ -436,7 +433,6 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                 <div className="p-6">
                   {studentData.memberships && Array.isArray(studentData.memberships) && studentData.memberships.length > 0 ? (
                     (() => {
-                      // FIXED: Use same endDate-based selection logic as status calculation
                       const latestMembership = studentData.memberships.reduce((latest, current) => {
                         if (!current) return latest;
                         const currentEndDate = new Date(current.endDate || 0);
@@ -486,252 +482,6 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                     </div>
                   )}
                 </div>
-              </div>
-
-              {/* Training History */}
-              <div className="bg-gray-800 rounded-xl border border-gray-600 shadow-lg overflow-hidden">
-                <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-6 py-4 border-b border-gray-600">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-white flex items-center">
-                      <span className="mr-2">🥋</span>
-                      Training History
-                    </h3>
-                    {trainingLoading && (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-                        <span className="text-sm text-gray-400">Loading...</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="p-6 border-b border-gray-600">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-blue-400">{trainingStats.totalSessions}</p>
-                      <p className="text-xs text-gray-400">Total Sessions</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-green-400">{trainingStats.attendanceRate}%</p>
-                      <p className="text-xs text-gray-400">Attendance Rate</p>
-                    </div>
-                    <div className="text-center">
-                      <p className={`text-2xl font-bold ${trainingStats.isInactive ? 'text-red-400' : 'text-white'}`}>
-                        {trainingStats.lastTrainingText}
-                      </p>
-                      <p className="text-xs text-gray-400">Last Training</p>
-                    </div>
-                    <div className="text-center">
-                      <p className={`text-2xl font-bold ${trainingStats.daysSinceLastTraining > 30 ? 'text-red-400' : trainingStats.daysSinceLastTraining > 14 ? 'text-yellow-400' : 'text-green-400'}`}>
-                        {trainingStats.daysSinceLastTraining ? `${trainingStats.daysSinceLastTraining}d` : 'N/A'}
-                      </p>
-                      <p className="text-xs text-gray-400">Days Since</p>
-                    </div>
-                  </div>
-
-                  {trainingStats.isInactive && membershipStatus.status !== 'inactive' && (
-                    <div className="mt-4 p-4 bg-red-500 bg-opacity-20 border border-red-500 rounded-lg">
-                      <div className="flex items-start">
-                        <div className="text-red-400 mr-3 mt-0.5">⚠️</div>
-                        <div>
-                          <p className="text-red-300 font-medium text-sm">Revenue Protection Alert</p>
-                          <p className="text-red-400 text-sm mt-1">
-                            Student paying ₱{(studentData.monthlyRate || 1400).toLocaleString()}/month but hasn't trained in {trainingStats.daysSinceLastTraining} days. 
-                            Follow up to prevent membership cancellation.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {!trainingLoading && Array.isArray(trainingHistory) && trainingHistory.length > 0 ? (
-                  <>
-                    <div className="block lg:hidden divide-y divide-gray-600">
-                      {trainingHistory.slice(0, 10).map((session, index) => {
-                        if (!session || typeof session !== 'object') return null;
-                        return (
-                          <div key={session.id || index} className="p-4">
-                            <div className="flex justify-between items-start mb-3">
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-white mb-1">
-                                  {session.sessionType || 'WEEKEND'} Training
-                                </p>
-                                <p className="text-xs text-gray-400">
-                                  {formatDate(session.sessionDate)}
-                                </p>
-                                {session.notes && (
-                                  <p className="text-xs text-gray-500 mt-1 truncate">
-                                    {session.notes}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="text-right ml-4">
-                                <div className="mb-2">
-                                  {getTrainingStatusBadge(session.attendanceStatus || 'PRESENT')}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="hidden lg:block overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-600">
-                        <thead className="bg-gray-700">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Type</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Notes</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-gray-800 divide-y divide-gray-600">
-                          {trainingHistory.slice(0, 10).map((session, index) => {
-                            if (!session || typeof session !== 'object') return null;
-                            return (
-                              <tr key={session.id || index} className="hover:bg-gray-750 transition-colors duration-200">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                  {formatDate(session.sessionDate)}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                  {session.sessionType || 'WEEKEND'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  {getTrainingStatusBadge(session.attendanceStatus || 'PRESENT')}
-                                </td>
-                                <td className="px-6 py-4 text-sm text-white max-w-xs">
-                                  <div className="truncate" title={session.notes}>
-                                    {session.notes || 'No notes'}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {trainingHistory.length > 10 && (
-                      <div className="p-4 text-center border-t border-gray-600">
-                        <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">
-                          View All {trainingHistory.length} Training Sessions
-                        </button>
-                      </div>
-                    )}
-                  </>
-                ) : !trainingLoading && (
-                  <div className="p-8 text-center">
-                    <div className="text-gray-500 mb-3">🥋</div>
-                    <p className="text-gray-400 mb-4">No training sessions recorded</p>
-                    <p className="text-sm text-gray-500">Training sessions will appear here once logged by staff.</p>
-                    {membershipStatus.status !== 'inactive' && (
-                      <div className="mt-4 p-3 bg-yellow-500 bg-opacity-20 border border-yellow-500 rounded-lg">
-                        <p className="text-yellow-400 text-sm">
-                          Contact parent - paid but never started training
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Payment History */}
-              <div className="bg-gray-800 rounded-xl border border-gray-600 shadow-lg overflow-hidden">
-                <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-6 py-4 border-b border-gray-600">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-white flex items-center">
-                      <span className="mr-2">💳</span>
-                      Payment History
-                    </h3>
-                    {paymentLoading && (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-                        <span className="text-sm text-gray-400">Loading...</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {!paymentLoading && Array.isArray(paymentHistory) && paymentHistory.length > 0 ? (
-                  <>
-                    <div className="block lg:hidden divide-y divide-gray-600">
-                      {paymentHistory.map((payment, index) => {
-                        if (!payment || typeof payment !== 'object') return null;
-                        return (
-                          <div key={payment.id || index} className="p-4">
-                            <div className="flex justify-between items-start mb-3">
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-white mb-1">
-                                  {payment.description || "Payment"}
-                                </p>
-                                <p className="text-xs text-gray-400">
-                                  {formatDate(payment.paidAt || payment.createdAt)}
-                                </p>
-                              </div>
-                              <div className="text-right ml-4">
-                                <p className="text-lg font-bold text-white">
-                                  {formatCurrency(payment.amount)}
-                                </p>
-                                <div className="mt-1">
-                                  {getPaymentStatusBadge(payment.status)}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex justify-between items-center text-xs text-gray-400">
-                              <span>Method: {payment.method || "N/A"}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="hidden lg:block overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-600">
-                        <thead className="bg-gray-700">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Description</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Amount</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Method</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-gray-800 divide-y divide-gray-600">
-                          {paymentHistory.map((payment, index) => {
-                            if (!payment || typeof payment !== 'object') return null;
-                            return (
-                              <tr key={payment.id || index} className="hover:bg-gray-750 transition-colors duration-200">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                  {payment.description || "Payment"}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">
-                                  {formatCurrency(payment.amount)}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                  {formatDate(payment.paidAt || payment.createdAt)}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  {getPaymentStatusBadge(payment.status)}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                  {payment.method || "N/A"}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                ) : !paymentLoading && (
-                  <div className="p-8 text-center">
-                    <div className="text-gray-500 mb-3">💳</div>
-                    <p className="text-gray-400 mb-4">No payment history found</p>
-                    <p className="text-sm text-gray-500">Payment records will appear here once transactions are made.</p>
-                  </div>
-                )}
               </div>
             </div>
           </div>

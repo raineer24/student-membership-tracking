@@ -159,51 +159,53 @@ const DashboardPage = () => {
     
   }, [showError, viewingStudent]);
 
-  const handleSaveStudent = useCallback(async (updatedStudentData) => {
-    if (!updatedStudentData || !updatedStudentData.id) {
-      showError("Invalid student data for update");
-      return;
+ const handleSaveStudent = useCallback(async (updatedStudentData) => {
+  if (!updatedStudentData || !updatedStudentData.id) {
+    showError("Invalid student data for update");
+    return;
+  }
+
+  try {
+    console.log('💾 DashboardPage - Received student data:', updatedStudentData);
+
+    const response = await fetch(`/api/students/${updatedStudentData.id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: updatedStudentData.name,
+        email: updatedStudentData.email,
+        phone: updatedStudentData.phone,
+        age: updatedStudentData.age, // CRITICAL: Include age
+        parent: updatedStudentData.parent, // CRITICAL: Include parent
+        monthlyRate: parseFloat(updatedStudentData.monthlyRate || 1400),
+        isLegacyStudent: Boolean(updatedStudentData.isLegacyStudent)
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || `Server error: ${response.status}`);
     }
 
-    try {
-      console.log('💾 Saving student:', updatedStudentData.name);
-
-      const response = await fetch(`/api/students/${updatedStudentData.id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: updatedStudentData.name,
-          email: updatedStudentData.email,
-          phone: updatedStudentData.phone,
-          monthlyRate: parseFloat(updatedStudentData.monthlyRate || 1400),
-          isLegacyStudent: Boolean(updatedStudentData.isLegacyStudent)
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || `Server error: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      console.log('✅ Student updated successfully:', result);
-      showSuccess(`Student ${updatedStudentData.name} updated successfully!`);
-      
-      await fetchStudents();
-      setEditStudentModalOpen(false);
-      setEditingStudent(null);
-      
-      return result;
-    } catch (error) {
-      console.error("❌ Error updating student:", error);
-      showError(`Failed to update student: ${error.message}`);
-      throw error;
-    }
-  }, [token, showSuccess, showError, fetchStudents]);
+    const result = await response.json();
+    
+    console.log('✅ Student updated successfully:', result);
+    showSuccess(`Student ${updatedStudentData.name} updated successfully!`);
+    
+    await fetchStudents();
+    setEditStudentModalOpen(false);
+    setEditingStudent(null);
+    
+    return result;
+  } catch (error) {
+    console.error("❌ Error updating student:", error);
+    showError(`Failed to update student: ${error.message}`);
+    throw error;
+  }
+}, [token, showSuccess, showError, fetchStudents]);
 
   const handleAddStudent = async (studentData) => {
     try {

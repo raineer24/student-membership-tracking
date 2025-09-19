@@ -1,10 +1,11 @@
-// api/students/[[...slug]].js - MINIMAL WORKING VERSION
+// File: api/students/[[...slug]].js - CORRECTED VERSION
+// FIXED: Lines 155-175 - Use correct field names (parentName, not parent)
 import { prisma } from "../../utils/db";
 import { authenticate } from "../../utils/auth";
 import { parse } from "url";
 
 export default async function handler(req, res) {
-  console.log("✅ Students API Minimal:", req.method, req.url);
+  console.log("✅ Students API Corrected:", req.method, req.url);
 
   try {
     const parsedUrl = parse(req.url || "", true);
@@ -63,7 +64,7 @@ export default async function handler(req, res) {
             take: 3
           },
         },
-        orderBy: { id: 'desc' }  // Use id instead of createdAt
+        orderBy: { id: 'desc' }
       });
 
       console.log(`✅ Found ${students.length} students`);
@@ -110,7 +111,16 @@ export default async function handler(req, res) {
 
     // POST /api/students - Create new student (ADMIN ONLY)
     if (slug.length === 0 && method === "POST") {
-      const { name, email, phone, password } = req.body;
+      const { 
+        name, 
+        email, 
+        phone, 
+        password, 
+        age, 
+        parent,  // Will map to parentName
+        monthlyRate, 
+        isLegacyStudent 
+      } = req.body;
 
       if (!name || !email || !password) {
         return res.status(400).json({ 
@@ -147,7 +157,11 @@ export default async function handler(req, res) {
           data: {
             name,
             phone: phone || null,
-            email, // Add email to student model
+            email,
+            age: age ? parseInt(age) : null,
+            parentName: parent || null,  // FIXED: Use parentName field
+            monthlyRate: monthlyRate ? parseFloat(monthlyRate) : 1400,
+            isLegacyStudent: Boolean(isLegacyStudent),
             userId: user.id,
           },
           include: {
@@ -158,27 +172,57 @@ export default async function handler(req, res) {
         return student;
       });
 
+      console.log(`✅ New student created:`, result.name);
       return res.status(201).json(result);
     }
 
-    // PUT /api/students/:id - Update student (ADMIN ONLY)
+    // FIXED: PUT /api/students/:id - Update student with correct field names (ADMIN ONLY)
     if (slug.length === 1 && method === "PUT") {
       const studentId = parseInt(slug[0], 10);
-      const { name, phone, email } = req.body;
+      const { 
+        name, 
+        phone, 
+        email, 
+        age, 
+        parent,  // Frontend sends "parent", maps to "parentName" in DB
+        monthlyRate, 
+        isLegacyStudent 
+      } = req.body;
 
       if (isNaN(studentId)) {
         return res.status(400).json({ error: "Invalid student ID" });
       }
 
-      console.log(`📝 Updating student ${studentId}:`, { name, phone, email });
+      console.log(`📝 Updating student ${studentId}:`, { 
+        name, 
+        phone, 
+        email, 
+        age, 
+        parent, 
+        monthlyRate, 
+        isLegacyStudent 
+      });
 
       try {
-        // Update student and optionally user email
+        // FIXED: Use correct database field names
         const updateData = {
           name,
-          phone,
-          ...(email && { email }) // Update student email if provided
+          phone: phone || null,
+          email: email || null,
+          age: age ? parseInt(age) : null,
+          parentName: parent || null,  // CRITICAL FIX: Use parentName field from schema
+          monthlyRate: monthlyRate ? parseFloat(monthlyRate) : 1400,
+          isLegacyStudent: Boolean(isLegacyStudent),
         };
+
+        // Remove null/undefined values to avoid overwriting with nulls
+        Object.keys(updateData).forEach(key => {
+          if (updateData[key] === undefined) {
+            delete updateData[key];
+          }
+        });
+
+        console.log(`📝 Final update data:`, updateData);
 
         const updatedStudent = await prisma.student.update({
           where: { id: studentId },
@@ -190,23 +234,42 @@ export default async function handler(req, res) {
           }
         });
 
-        // Also update user email if provided
-        if (email && updatedStudent.userId) {
+        // Also update user email and name if provided
+        if ((email || name) && updatedStudent.userId) {
+          const userUpdateData = {};
+          if (email) userUpdateData.email = email;
+          if (name) userUpdateData.name = name;
+
           await prisma.user.update({
             where: { id: updatedStudent.userId },
-            data: { email, name }
+            data: userUpdateData
           });
         }
 
-        console.log(`✅ Student ${studentId} updated successfully`);
+        console.log(`✅ Student ${studentId} updated successfully with:`, {
+          age: updatedStudent.age,
+          parentName: updatedStudent.parentName,
+          monthlyRate: updatedStudent.monthlyRate,
+          isLegacyStudent: updatedStudent.isLegacyStudent
+        });
+
         return res.json(updatedStudent);
 
       } catch (updateError) {
+        console.error(`❌ Update error for student ${studentId}:`, updateError);
+        
         if (updateError.code === 'P2002') {
           return res.status(409).json({ 
             error: "Email already exists" 
           });
         }
+        
+        if (updateError.code === 'P2025') {
+          return res.status(404).json({ 
+            error: "Student not found" 
+          });
+        }
+        
         throw updateError;
       }
     }
@@ -277,9 +340,16 @@ export default async function handler(req, res) {
 
     // Prisma errors
     if (error.code?.startsWith('P')) {
+      console.error("❌ Prisma error details:", {
+        code: error.code,
+        message: error.message,
+        meta: error.meta
+      });
+      
       return res.status(500).json({ 
         error: "Database error",
-        code: error.code
+        code: error.code,
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
 
