@@ -1,5 +1,5 @@
 // File: client/src/components/StudentProfileView.jsx
-// COMPLETE WORKING VERSION - Copy this entire file
+// Lines 380-420: Fixed training session notes display to show actual database values
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 
@@ -278,7 +278,6 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     );
   };
 
-  // CRITICAL FIX: Proper field mapping
   const handleEditClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -293,7 +292,6 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
       parent: studentData.parentName || studentData.parent || "",
     };
     
-    console.log('Opening edit with mapped data:', mappedStudentData);
     onEdit(mappedStudentData);
   };
 
@@ -485,10 +483,148 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
               </div>
             </div>
           </div>
+
+          <div className="bg-gray-800 rounded-xl border border-gray-600 shadow-lg">
+            <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-6 py-4 border-b border-gray-600">
+              <h3 className="text-lg font-semibold text-white flex items-center">
+                <span className="mr-2">🥋</span>
+                Training History
+              </h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+                <div className="text-center p-4 bg-gray-750 rounded-lg border border-gray-600">
+                  <div className="text-2xl font-bold text-blue-400 mb-1">
+                    {trainingStats.totalSessions}
+                  </div>
+                  <div className="text-xs text-gray-400 uppercase tracking-wider">Total Sessions</div>
+                </div>
+                <div className="text-center p-4 bg-gray-750 rounded-lg border border-gray-600">
+                  <div className="text-2xl font-bold text-green-400 mb-1">
+                    {trainingStats.attendanceRate}%
+                  </div>
+                  <div className="text-xs text-gray-400 uppercase tracking-wider">Attendance Rate</div>
+                </div>
+                <div className="text-center p-4 bg-gray-750 rounded-lg border border-gray-600">
+                  <div className="text-2xl font-bold text-purple-400 mb-1">
+                    {trainingStats.lastTrainingText}
+                  </div>
+                  <div className="text-xs text-gray-400 uppercase tracking-wider">Last Training</div>
+                </div>
+                <div className="text-center p-4 bg-gray-750 rounded-lg border border-gray-600">
+                  <div className="text-2xl font-bold text-orange-400 mb-1">
+                    {trainingStats.daysSinceLastTraining ? `${trainingStats.daysSinceLastTraining}d` : "N/A"}
+                  </div>
+                  <div className="text-xs text-gray-400 uppercase tracking-wider">Days Since</div>
+                </div>
+              </div>
+
+              {trainingLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-gray-400">Loading training history...</p>
+                </div>
+              ) : trainingHistory.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-600">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Type</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700">
+                      {trainingHistory.slice(0, 10).map((session, index) => (
+                        <tr key={index} className="hover:bg-gray-750 transition-colors">
+                          <td className="py-3 px-4 text-sm text-white">
+                            {formatDate(session.sessionDate)}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-300">
+                            {session.sessionType || "WEEKDAY"}
+                          </td>
+                          <td className="py-3 px-4">
+                            {getTrainingStatusBadge(session.attendanceStatus)}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-400 max-w-xs truncate">
+                            {session.notes && session.notes.trim() !== "" 
+                              ? session.notes 
+                              : <span className="italic text-gray-500 text-xs">no notes recorded</span>
+                            }
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-gray-500 mb-3">📅</div>
+                  <p className="text-gray-400">No training sessions recorded</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-gray-800 rounded-xl border border-gray-600 shadow-lg">
+            <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-6 py-4 border-b border-gray-600">
+              <h3 className="text-lg font-semibold text-white flex items-center">
+                <span className="mr-2">💳</span>
+                Payment History
+              </h3>
+            </div>
+            <div className="p-6">
+              {paymentLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-gray-400">Loading payment history...</p>
+                </div>
+              ) : paymentHistory.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-600">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Description</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Amount</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Method</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700">
+                      {paymentHistory.slice(0, 10).map((payment, index) => (
+                        <tr key={index} className="hover:bg-gray-750 transition-colors">
+                          <td className="py-3 px-4 text-sm text-white">
+                            {payment.description || "MONTHLY membership payment"}
+                          </td>
+                          <td className="py-3 px-4 text-sm font-semibold text-white">
+                            {formatCurrency(payment.amount)}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-300">
+                            {formatDate(payment.createdAt || payment.paymentDate)}
+                          </td>
+                          <td className="py-3 px-4">
+                            {getPaymentStatusBadge(payment.status)}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-400">
+                            {payment.paymentMethod || "CASH"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-gray-500 mb-3">💰</div>
+                  <p className="text-gray-400">No payment records found</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-
-      <div className="h-6 lg:hidden" />
     </div>
   );
 };

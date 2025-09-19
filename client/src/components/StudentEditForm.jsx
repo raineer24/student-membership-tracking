@@ -1,12 +1,11 @@
 // File: client/src/components/StudentEditForm.jsx
-// ENHANCED: Added Age and Parent/Guardian fields for comprehensive student information
-// Lines 15-20: Extended formData state with new fields
-// Lines 120-180: Added Age and Parent input fields with validation
+// Lines 35-45: Updated age validation for kids classes (7-15 years)
+// Lines 160-185: Fixed number input constraints and placeholder text
 import React, { useState, useRef, useCallback } from "react";
 import { useToast } from "../hooks/useToast";
 
 const StudentEditForm = ({ student, onSave, onBack, isSaving }) => {
-  // ENHANCED: Lines 15-20 - Extended formData state with Age and Parent fields
+  // Lines 15-20: Extended formData state with Age and Parent fields
   const [formData, setFormData] = useState({
     id: student.id,
     name: student.name || "",
@@ -32,14 +31,14 @@ const StudentEditForm = ({ student, onSave, onBack, isSaving }) => {
     return phoneRegex.test(cleanPhone);
   };
 
-  // ENHANCED: Lines 35-45 - Age validation function
+  // Lines 35-45: Updated age validation for kids classes focus (7-15 years)
   const validateAge = (age) => {
     if (!age) return true; // Age is optional
     const ageNum = parseInt(age);
-    return ageNum >= 3 && ageNum <= 100; // Reasonable age range for martial arts students
+    return ageNum >= 7 && ageNum <= 15; // Kids martial arts classes focus
   };
 
-  // Enhanced form validation with new fields
+  // Enhanced form validation with updated age range
   const validateForm = () => {
     const newErrors = {};
 
@@ -57,19 +56,18 @@ const StudentEditForm = ({ student, onSave, onBack, isSaving }) => {
       newErrors.phone = "Please enter a valid Philippine phone number";
     }
 
-    // ENHANCED: Age validation
+    // Updated age validation for kids classes
     if (formData.age && !validateAge(formData.age)) {
-      newErrors.age = "Age must be between 3 and 100 years";
+      newErrors.age = "Age must be between 7 and 15 years for kids classes";
     }
 
-    // ENHANCED: Parent name validation for minors
+    // Parent name validation for all students (since focusing on kids)
     if (
       formData.age &&
-      parseInt(formData.age) < 18 &&
+      parseInt(formData.age) <= 15 &&
       !formData.parent?.trim()
     ) {
-      newErrors.parent =
-        "Parent/Guardian name is required for students under 18";
+      newErrors.parent = "Parent/Guardian name is required for kids classes";
     }
 
     if (
@@ -83,46 +81,45 @@ const StudentEditForm = ({ student, onSave, onBack, isSaving }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-const handleSubmit = useCallback(async (e) => {
-  e.preventDefault();
+  const handleSubmit = useCallback(async (e) => {
+    e.preventDefault();
 
-  if (loading || hasSubmitted || isSubmittingRef.current || isSaving) {
-    return;
-  }
+    if (loading || hasSubmitted || isSubmittingRef.current || isSaving) {
+      return;
+    }
 
-  if (!validateForm()) {
-    return;
-  }
+    if (!validateForm()) {
+      return;
+    }
 
-  setLoading(true);
-  setHasSubmitted(true);
-  isSubmittingRef.current = true;
+    setLoading(true);
+    setHasSubmitted(true);
+    isSubmittingRef.current = true;
 
-  try {
-    // CRITICAL FIX: Explicit field extraction
-    const saveData = {
-      id: formData.id,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      age: formData.age && formData.age.toString().trim() !== "" ? parseInt(formData.age) : null,
-      parent: formData.parent && formData.parent.toString().trim() !== "" ? formData.parent.toString().trim() : null,
-      monthlyRate: formData.monthlyRate ? parseFloat(formData.monthlyRate) : 1400,
-      isLegacyStudent: Boolean(formData.isLegacyStudent),
-    };
-    
-    console.log('FIXED - Sending data:', saveData);
-    await onSave(saveData);
-  } catch (error) {
-    console.error('Form submission error:', error);
-    showError(`Failed to update student: ${error.message}`);
-    setErrors({ submit: `Failed to update student: ${error.message}` });
-    setHasSubmitted(false);
-    isSubmittingRef.current = false;
-  } finally {
-    setLoading(false);
-  }
-}, [loading, hasSubmitted, isSaving, formData, onSave, showError, validateForm]);
+    try {
+      // Explicit field extraction for API compatibility
+      const saveData = {
+        id: formData.id,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        age: formData.age && formData.age.toString().trim() !== "" ? parseInt(formData.age) : null,
+        parent: formData.parent && formData.parent.toString().trim() !== "" ? formData.parent.toString().trim() : null,
+        monthlyRate: formData.monthlyRate ? parseFloat(formData.monthlyRate) : 1400,
+        isLegacyStudent: Boolean(formData.isLegacyStudent),
+      };
+      
+      await onSave(saveData);
+    } catch (error) {
+      console.error('Form submission error:', error);
+      showError(`Failed to update student: ${error.message}`);
+      setErrors({ submit: `Failed to update student: ${error.message}` });
+      setHasSubmitted(false);
+      isSubmittingRef.current = false;
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, hasSubmitted, isSaving, formData, onSave, showError, validateForm]);
 
   // Handle field changes
   const handleFieldChange = useCallback(
@@ -132,15 +129,15 @@ const handleSubmit = useCallback(async (e) => {
         setErrors((prev) => ({ ...prev, [field]: "" }));
       }
 
-      // ENHANCED: Clear parent error when age becomes 18 or older
-      if (field === "age" && parseInt(value) >= 18 && errors.parent) {
+      // Clear parent error when valid age entered
+      if (field === "age" && parseInt(value) >= 7 && parseInt(value) <= 15 && errors.parent) {
         setErrors((prev) => ({ ...prev, parent: "" }));
       }
     },
     [errors]
   );
 
-  // FIXED handle cancel/back navigation
+  // Handle cancel/back navigation
   const handleCancel = useCallback(() => {
     if (onBack && typeof onBack === "function") {
       onBack();
@@ -153,10 +150,9 @@ const handleSubmit = useCallback(async (e) => {
     isSubmittingRef.current = false;
   }, [student.id]);
 
-  // Main component render
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      {/* Header with enhanced back button */}
+      {/* Header */}
       <header className="bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-xl border-b border-gray-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
@@ -168,37 +164,23 @@ const handleSubmit = useCallback(async (e) => {
                 disabled={loading || hasSubmitted || isSaving}
                 type="button"
               >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-white">
-                  Edit Student Profile
-                </h1>
+                <h1 className="text-2xl font-bold text-white">Edit Student Profile</h1>
                 <p className="text-gray-400">{student.name}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleCancel}
-                className="px-4 py-2 border border-gray-500 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white transition-colors"
-                disabled={loading || hasSubmitted || isSaving}
-                type="button"
-              >
-                Cancel
-              </button>
-            </div>
+            <button
+              onClick={handleCancel}
+              className="px-4 py-2 border border-gray-500 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white transition-colors"
+              disabled={loading || hasSubmitted || isSaving}
+              type="button"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       </header>
@@ -212,9 +194,7 @@ const handleSubmit = useCallback(async (e) => {
               <div className="flex items-start">
                 <div className="text-red-400 mr-3 mt-0.5">⚠️</div>
                 <div>
-                  <p className="text-red-300 font-medium text-sm">
-                    Error Saving Changes
-                  </p>
+                  <p className="text-red-300 font-medium text-sm">Error Saving Changes</p>
                   <p className="text-red-400 text-sm mt-1">{errors.submit}</p>
                 </div>
               </div>
@@ -226,9 +206,7 @@ const handleSubmit = useCallback(async (e) => {
             <div className="mb-6 p-4 bg-blue-500 bg-opacity-20 border border-blue-500 rounded-lg">
               <div className="flex items-center">
                 <div className="text-blue-400 mr-3">ℹ️</div>
-                <p className="text-blue-300 text-sm">
-                  Changes are being saved...
-                </p>
+                <p className="text-blue-300 text-sm">Changes are being saved...</p>
               </div>
             </div>
           )}
@@ -260,12 +238,12 @@ const handleSubmit = useCallback(async (e) => {
               )}
             </div>
 
-            {/* ENHANCED: Lines 120-180 - Age and Parent fields in a responsive grid */}
+            {/* Lines 160-185: Fixed Age and Parent fields with proper constraints */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Age Field */}
+              {/* Age Field - Fixed for kids classes */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Age
+                  Age <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -276,9 +254,12 @@ const handleSubmit = useCallback(async (e) => {
                       ? "border-red-400 focus:ring-red-500 focus:border-red-500"
                       : "border-gray-600 focus:ring-red-500 focus:border-red-500"
                   }`}
-                  placeholder="Enter age (3-100)"
-                  min="3"
-                  max="100"
+                  placeholder="Enter age (7-15 years)"
+                  min="7"
+                  max="15"
+                  step="1"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   disabled={loading || hasSubmitted || isSaving}
                 />
                 {errors.age && (
@@ -288,17 +269,14 @@ const handleSubmit = useCallback(async (e) => {
                   </p>
                 )}
                 <p className="text-sm text-gray-400 mt-2">
-                  Optional. Helps with class grouping and safety protocols.
+                  Required for kids classes. Helps with class grouping and safety protocols.
                 </p>
               </div>
 
-              {/* Parent/Guardian Field */}
+              {/* Parent/Guardian Field - Required for kids */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Parent/Guardian{" "}
-                  {formData.age && parseInt(formData.age) < 18 && (
-                    <span className="text-red-500">*</span>
-                  )}
+                  Parent/Guardian <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -319,9 +297,7 @@ const handleSubmit = useCallback(async (e) => {
                   </p>
                 )}
                 <p className="text-sm text-gray-400 mt-2">
-                  {formData.age && parseInt(formData.age) < 18
-                    ? "Required for students under 18. Emergency contact and consent authority."
-                    : "Optional. Primary emergency contact for adult students."}
+                  Required for kids classes. Emergency contact and consent authority.
                 </p>
               </div>
             </div>
@@ -388,10 +364,7 @@ const handleSubmit = useCallback(async (e) => {
                 type="number"
                 value={formData.monthlyRate}
                 onChange={(e) =>
-                  handleFieldChange(
-                    "monthlyRate",
-                    parseInt(e.target.value) || 1400
-                  )
+                  handleFieldChange("monthlyRate", parseInt(e.target.value) || 1400)
                 }
                 className={`w-full px-4 py-3 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-colors ${
                   errors.monthlyRate
@@ -411,8 +384,7 @@ const handleSubmit = useCallback(async (e) => {
                 </p>
               )}
               <p className="text-sm text-gray-400 mt-2">
-                Standard rate: ₱1,400/month. Legacy members may have different
-                rates.
+                Standard rate: ₱1,400/month. Legacy members may have different rates.
               </p>
             </div>
 
@@ -422,19 +394,14 @@ const handleSubmit = useCallback(async (e) => {
                 <input
                   type="checkbox"
                   checked={formData.isLegacyStudent}
-                  onChange={(e) =>
-                    handleFieldChange("isLegacyStudent", e.target.checked)
-                  }
+                  onChange={(e) => handleFieldChange("isLegacyStudent", e.target.checked)}
                   className="w-4 h-4 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500 focus:ring-2"
                   disabled={loading || hasSubmitted || isSaving}
                 />
                 <div>
-                  <span className="text-sm font-medium text-gray-300">
-                    Legacy Student
-                  </span>
+                  <span className="text-sm font-medium text-gray-300">Legacy Student</span>
                   <p className="text-xs text-gray-400 mt-1">
-                    Check if this student has grandfathered pricing (founding
-                    members, early adopters, etc.)
+                    Check if this student has grandfathered pricing (founding members, early adopters, etc.)
                   </p>
                 </div>
               </label>
@@ -453,40 +420,11 @@ const handleSubmit = useCallback(async (e) => {
                 }
                 className="flex items-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
                 {loading || hasSubmitted || isSaving ? (
                   <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     Saving Changes...
                   </>
@@ -494,36 +432,20 @@ const handleSubmit = useCallback(async (e) => {
                   "Save Changes"
                 )}
               </button>
-
               <button
                 type="button"
                 onClick={handleCancel}
                 disabled={loading || hasSubmitted || isSaving}
                 className="flex items-center px-6 py-3 border border-gray-500 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white transition-colors disabled:opacity-50"
               >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
                 Cancel
               </button>
             </div>
           </form>
 
-          {/* ENHANCED: Student Information Summary with new fields */}
+          {/* Current Information Summary */}
           <div className="mt-8 pt-6 border-t border-gray-600">
-            <h3 className="text-lg font-semibold text-white mb-4">
-              Current Information
-            </h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Current Information</h3>
             <div className="bg-gray-700 bg-opacity-50 rounded-lg p-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
@@ -531,67 +453,24 @@ const handleSubmit = useCallback(async (e) => {
                   <span className="ml-2 text-white">#{student.id}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-300">
-                    Original Name:
-                  </span>
-                  <span className="ml-2 text-white">
-                    {student.name || "N/A"}
-                  </span>
-                </div>
-
-                {/* ENHANCED: Display original age and parent info */}
-                <div>
-                  <span className="font-medium text-gray-300">
-                    Original Age:
-                  </span>
-                  <span className="ml-2 text-white">
-                    {student.age || "N/A"}
-                  </span>
+                  <span className="font-medium text-gray-300">Original Name:</span>
+                  <span className="ml-2 text-white">{student.name || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-300">
-                    Original Parent:
-                  </span>
-                  <span className="ml-2 text-white">
-                    {student.parent || student.parentName || "N/A"}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="font-medium text-gray-300">
-                    Original Email:
-                  </span>
-                  <span className="ml-2 text-white">
-                    {student.email || "N/A"}
-                  </span>
+                  <span className="font-medium text-gray-300">Original Age:</span>
+                  <span className="ml-2 text-white">{student.age || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-300">
-                    Original Phone:
-                  </span>
-                  <span className="ml-2 text-white">
-                    {student.phone || "N/A"}
-                  </span>
+                  <span className="font-medium text-gray-300">Original Parent:</span>
+                  <span className="ml-2 text-white">{student.parent || student.parentName || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-300">
-                    Original Rate:
-                  </span>
-                  <span className="ml-2 text-white">
-                    ₱{(student.monthlyRate || 1400).toLocaleString()}/month
-                  </span>
+                  <span className="font-medium text-gray-300">Original Email:</span>
+                  <span className="ml-2 text-white">{student.email || "N/A"}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-300">
-                    Legacy Status:
-                  </span>
-                  <span className="ml-2 text-white">
-                    {student.isLegacyStudent ? (
-                      <span className="text-purple-400">🌟 Legacy Student</span>
-                    ) : (
-                      <span className="text-green-400">Standard Member</span>
-                    )}
-                  </span>
+                  <span className="font-medium text-gray-300">Original Phone:</span>
+                  <span className="ml-2 text-white">{student.phone || "N/A"}</span>
                 </div>
               </div>
             </div>
