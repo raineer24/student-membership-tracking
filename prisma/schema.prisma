@@ -32,10 +32,10 @@ model Student {
   phone            String?
   isLegacyStudent  Boolean           @default(false)
   monthlyRate      Float             @default(1400)
-  age              Int?              // PRESERVED
-  parentName       String?           // PRESERVED  
-  parentPhone      String?           // PRESERVED
-  program          String            @default("Kids")  // PRESERVED
+  age              Int?              
+  parentName       String?             
+  parentPhone      String?           
+  program          String            @default("Kids")  
   
   user             User              @relation(fields: [userId], references: [id])
   memberships      Membership[]
