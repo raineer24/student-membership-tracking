@@ -1,6 +1,6 @@
 // File: client/src/components/DashboardPage.jsx
-// Enhanced with imported utilities while preserving ALL existing functionality
-// Clear line guidance: Updated imports and function usage
+// Phase 2: Enhanced with modal and student operations hooks
+// Clear line guidance: Reduced complexity by extracting modal and operation logic
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -19,43 +19,24 @@ import WeekendEventModal from "./modals/WeekendEventModal";
 import MonthlyReportModal from "./modals/MonthlyReportModal";
 import TrainingSessionModal from "./training/TrainingSessionModal";
 
-// Lines 14-15: NEW IMPORTS - Pure utility functions
+// Lines 20-24: PHASE 2 NEW IMPORTS - Extracted hooks
 import { validateStudentData } from "../utils/studentValidation";
 import { calculateDashboardMetrics } from "../utils/dashboardMetrics";
+import useModalManager from "../hooks/useModalManager";
+import useStudentOperations from "../hooks/useStudentOperations";
 
 const DashboardPage = () => {
   const { token, user, logout } = useAuth();
   const { showSuccess, showError } = useToast();
 
-  // Lines 22-36: State management (PRESERVED)
+  // Lines 30-34: Core state (REDUCED - modals moved to hook)
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Modal states
-  const [addStudentModalOpen, setAddStudentModalOpen] = useState(false);
-  const [editStudentModalOpen, setEditStudentModalOpen] = useState(false);
-  const [editingStudent, setEditingStudent] = useState(null);
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [paymentStudent, setPaymentStudent] = useState(null);
   const [viewingStudent, setViewingStudent] = useState(null);
-  const [monthlyReportModalOpen, setMonthlyReportModalOpen] = useState(false);
-  const [weekendEventModalOpen, setWeekendEventModalOpen] = useState(false);
-  const [creditsModalOpen, setCreditsModalOpen] = useState(false);
-  const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [smsLoading, setSmsLoading] = useState(false);
-  const [trainingModalOpen, setTrainingModalOpen] = useState(false);
-  const [trainingStudent, setTrainingStudent] = useState(null);
 
-  // Lines 34-39: Custom hook usage (PRESERVED)
-  const {
-    currentTab, searchQuery, isSearchActive,
-    filteredStudents, tabCounts, pricingBreakdown,
-    getStudentStatus, getDaysRemaining, canSendReminder,
-    setCurrentTab, setSearchQuery, setIsSearchActive, clearSearch
-  } = useStudentManagement(students);
-
-  // Lines 41-65: Enhanced data fetching with validation utility
+  // Lines 36-75: Enhanced data fetching (MOVED UP before hook usage)
   const fetchStudents = useCallback(async () => {
     if (!token) return;
     try {
@@ -79,7 +60,6 @@ const DashboardPage = () => {
       }
 
       const rawData = await response.json();
-      // Lines 61-62: ENHANCED - Use validation utility
       const validatedStudents = validateStudentData(rawData);
       setStudents(validatedStudents);
       
@@ -92,153 +72,48 @@ const DashboardPage = () => {
     }
   }, [token, logout, showError]);
 
-  // Lines 72-74: Effect hook (PRESERVED)
+  // Lines 77-80: PHASE 2 ENHANCEMENT - Use extracted hooks
+  const modalManager = useModalManager();
+  const studentOps = useStudentOperations(token, showSuccess, showError, fetchStudents);
+
+  // Lines 82-87: Custom hook usage (PRESERVED)
+  const {
+    currentTab, searchQuery, isSearchActive,
+    filteredStudents, tabCounts, pricingBreakdown,
+    getStudentStatus, getDaysRemaining, canSendReminder,
+    setCurrentTab, setSearchQuery, setIsSearchActive, clearSearch
+  } = useStudentManagement(students);
+
+  // Lines 89-91: Effect hook (PRESERVED)
   useEffect(() => {
     fetchStudents();
   }, [fetchStudents]);
 
-  // Lines 76-82: ENHANCED - Use metrics calculation utility
+  // Lines 93-97: Dashboard metrics (PRESERVED)
   const dashboardMetrics = useMemo(() => 
     calculateDashboardMetrics(students, tabCounts, pricingBreakdown),
     [students, tabCounts, pricingBreakdown]
   );
 
-  // Lines 84-118: Enhanced handlers (PRESERVED functionality)
+  // Lines 99-112: SIMPLIFIED handlers using extracted operations
   const handleEditStudent = useCallback((student) => {
-    if (!student || typeof student !== 'object') {
-      showError("Invalid student data");
-      return;
-    }
-
-    // Close profile view first, then open edit modal
+    if (!student) return;
     setViewingStudent(null);
-    
-    setTimeout(() => {
-      setEditingStudent(student);
-      setEditStudentModalOpen(true);
-    }, 50);
-  }, [showError]);
+    setTimeout(() => modalManager.openEditStudent(student), 50);
+  }, [modalManager]);
 
-  const handleSaveStudent = useCallback(async (updatedStudentData) => {
-    if (!updatedStudentData || !updatedStudentData.id) {
-      showError("Invalid student data for update");
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/students/${updatedStudentData.id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: updatedStudentData.name,
-          email: updatedStudentData.email,
-          phone: updatedStudentData.phone,
-          age: updatedStudentData.age,
-          parent: updatedStudentData.parent,
-          monthlyRate: parseFloat(updatedStudentData.monthlyRate || 1400),
-          isLegacyStudent: Boolean(updatedStudentData.isLegacyStudent)
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.error || `Server error: ${response.status}`);
-      }
-
-      const result = await response.json();
-      showSuccess(`Student ${updatedStudentData.name} updated successfully!`);
-      
-      await fetchStudents();
-      setEditStudentModalOpen(false);
-      setEditingStudent(null);
-      
-      return result;
-    } catch (error) {
-      showError(`Failed to update student: ${error.message}`);
-      throw error;
-    }
-  }, [token, showSuccess, showError, fetchStudents]);
-
-  const handleAddStudent = async (studentData) => {
-    try {
-      const response = await fetch("/api/students", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(studentData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to add student");
-      }
-
-      const result = await response.json();
-      showSuccess(`Student ${result.name} added successfully!`);
-      await fetchStudents();
-      setAddStudentModalOpen(false);
-      return result;
-    } catch (error) {
-      showError(`Failed to add student: ${error.message}`);
-      throw error;
-    }
-  };
-
-  const handleProcessPayment = useCallback((student) => {
-    if (!student || typeof student !== 'object') {
-      return;
-    }
-    setPaymentStudent(student);
-    setPaymentModalOpen(true);
-  }, []);
-
-  // Lines 119-140: View and navigation handlers (PRESERVED)
   const handleViewStudent = useCallback((studentId) => {
-    if (!studentId) {
-      return;
-    }
-    
-    const student = students.find(s => s && s.id === studentId);
-      
-    if (student) {
-      setViewingStudent(student);
-    } else {
-      showError("Student not found");
-    }
-  }, [students, showError]);
+    const student = studentOps.handleViewStudent(studentId, students);
+    if (student) setViewingStudent(student);
+  }, [studentOps, students]);
 
-  const handleBackFromProfile = useCallback(() => {
-    setViewingStudent(null);
-    
-    if (editStudentModalOpen || editingStudent) {
-      setEditStudentModalOpen(false);
-      setEditingStudent(null);
-    }
-  }, [editStudentModalOpen, editingStudent]);
-
-  // Lines 142-160: Training and SMS handlers (PRESERVED)
   const handleLogTraining = useCallback((student) => {
-    if (!student || typeof student !== 'object') {
-      showError("Invalid student data");
-      return;
-    }
-    setTrainingStudent(student);
-    setTrainingModalOpen(true);
-  }, [showError]);
+    const validStudent = studentOps.handleLogTraining(student);
+    if (validStudent) modalManager.openTraining(validStudent);
+  }, [studentOps, modalManager]);
 
-  const handleTrainingSuccess = useCallback((message) => {
-    showSuccess(message);
-    fetchStudents();
-    setTrainingModalOpen(false);
-    setTrainingStudent(null);
-  }, [showSuccess, fetchStudents]);
-
-  const handleSendReminder = async (student) => {
+  // Lines 114-132: SMS operations (PRESERVED but simplified)
+  const handleSendReminder = useCallback(async (student) => {
     setSmsLoading(true);
     try {
       const response = await fetch("/api/reminders/send", {
@@ -258,61 +133,41 @@ const DashboardPage = () => {
         throw new Error(errorData.error || "Failed to send SMS");
       }
 
-      const result = await response.json();
       showSuccess(`SMS reminder sent to ${student.name}`);
-      return result;
     } catch (error) {
-      console.error("Error sending SMS:", error);
       showError(`Failed to send SMS: ${error.message}`);
     } finally {
       setSmsLoading(false);
     }
-  };
+  }, [token, showSuccess, showError]);
 
-  // Lines 162-185: Modal handlers (MOVED BEFORE RENDER)
+  // Lines 134-152: SIMPLIFIED utility handlers
   const handleRefreshData = useCallback(async () => {
     showSuccess("Refreshing dashboard data...");
     await fetchStudents();
     showSuccess("Dashboard data refreshed!");
   }, [fetchStudents, showSuccess]);
 
-  const handleOpenMonthlyReport = useCallback(() => setMonthlyReportModalOpen(true), []);
-  const handleCloseMonthlyReport = useCallback(() => setMonthlyReportModalOpen(false), []);
-  const handleOpenWeekendEvent = useCallback(() => setWeekendEventModalOpen(true), []);
-  const handleCloseWeekendEvent = useCallback(() => setWeekendEventModalOpen(false), []);
-  const handleOpenCredits = useCallback(() => setCreditsModalOpen(true), []);
-  const handleCloseCredits = useCallback(() => setCreditsModalOpen(false), []);
-  const handleOpenHistory = useCallback(() => setHistoryModalOpen(true), []);
-  const handleCloseHistory = useCallback(() => setHistoryModalOpen(false), []);
+  const handleBackFromProfile = useCallback(() => {
+    setViewingStudent(null);
+    if (modalManager.modals.editStudent) {
+      modalManager.closeEditStudent();
+    }
+  }, [modalManager]);
 
   const handlePaymentSuccess = useCallback((paymentData) => {
     showSuccess(`Payment of ₱${paymentData.amount} processed successfully!`);
     fetchStudents();
-    setPaymentModalOpen(false);
-    setPaymentStudent(null);
-  }, [showSuccess, fetchStudents]);
+    modalManager.closePayment();
+  }, [showSuccess, fetchStudents, modalManager]);
 
-
-
-  // Lines 177-185: Success handlers (PRESERVED)
-  const handleAddStudentSuccess = useCallback(() => {
-    setAddStudentModalOpen(false);
+  const handleTrainingSuccess = useCallback((message) => {
+    showSuccess(message);
     fetchStudents();
-  }, [fetchStudents]);
+    modalManager.closeTraining();
+  }, [showSuccess, fetchStudents, modalManager]);
 
-  const handleEditStudentSuccess = useCallback(() => {
-    setEditStudentModalOpen(false);
-    setEditingStudent(null);
-    fetchStudents();
-  }, [fetchStudents]);
-
-  const handleTrainingSessionSuccess = useCallback(() => {
-    setTrainingModalOpen(false);
-    setTrainingStudent(null);
-    fetchStudents();
-  }, [fetchStudents]);
-
-  // Lines 222-228: Early return for profile view (PRESERVED)
+  // Lines 154-162: Early return for profile view (PRESERVED)
   if (viewingStudent) {
     return (
       <StudentProfileView
@@ -323,7 +178,7 @@ const DashboardPage = () => {
     );
   }
 
-  // Lines 206-300: Main render (PRESERVED with metrics enhancement)
+  // Lines 164-262: Main render (PRESERVED with hook integration)
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Header */}
@@ -339,7 +194,7 @@ const DashboardPage = () => {
             
             <div className="flex items-center space-x-3">
               <button
-                onClick={handleOpenMonthlyReport}
+                onClick={modalManager.openMonthlyReport}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
               >
                 <span>📊</span>
@@ -347,7 +202,7 @@ const DashboardPage = () => {
               </button>
               
               <button
-                onClick={handleOpenWeekendEvent}
+                onClick={modalManager.openWeekendEvent}
                 className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
               >
                 <span>🥋</span>
@@ -355,7 +210,7 @@ const DashboardPage = () => {
               </button>
               
               <button
-                onClick={handleOpenCredits}
+                onClick={modalManager.openCredits}
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
               >
                 <span>💳</span>
@@ -363,7 +218,7 @@ const DashboardPage = () => {
               </button>
               
               <button
-                onClick={handleOpenHistory}
+                onClick={modalManager.openHistory}
                 className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
               >
                 <span>📱</span>
@@ -391,7 +246,7 @@ const DashboardPage = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        {/* Dashboard Metrics - ENHANCED with utility function */}
+        {/* Dashboard Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
             <div className="flex items-center justify-between">
@@ -454,7 +309,7 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* Student Management Section - PRESERVED */}
+        {/* Student Management Section */}
         <StudentManagementSection
           filteredStudents={filteredStudents}
           students={students}
@@ -465,8 +320,8 @@ const DashboardPage = () => {
           setCurrentTab={setCurrentTab}
           setSearchQuery={setSearchQuery}
           setIsSearchActive={setIsSearchActive}
-          setAddStudentModalOpen={setAddStudentModalOpen}
-          onProcessPayment={handleProcessPayment}
+          setAddStudentModalOpen={modalManager.openAddStudent}
+          onProcessPayment={(student) => modalManager.openPayment(student)}
           onViewStudent={handleViewStudent}
           onEditStudent={handleEditStudent}
           onSendReminder={handleSendReminder}
@@ -478,24 +333,20 @@ const DashboardPage = () => {
         />
       </main>
 
-      {/* ALL MODALS - PRESERVED */}
+      {/* MODALS - SIMPLIFIED with hook integration */}
       <AddStudentModal
-        isOpen={addStudentModalOpen}
-        onClose={() => setAddStudentModalOpen(false)}
-        onStudentAdded={handleAddStudent}
+        isOpen={modalManager.modals.addStudent}
+        onClose={modalManager.closeAddStudent}
+        onStudentAdded={studentOps.handleAddStudent}
       />
 
-      {/* FIXED: Edit modal renders properly */}
-      {editStudentModalOpen && editingStudent && (
+      {modalManager.modals.editStudent && modalManager.selectedData.editingStudent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-gray-800 rounded-xl border border-gray-600 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-700">
               <h2 className="text-xl font-semibold text-white">Edit Student Profile</h2>
               <button
-                onClick={() => {
-                  setEditStudentModalOpen(false);
-                  setEditingStudent(null);
-                }}
+                onClick={modalManager.closeEditStudent}
                 className="text-gray-400 hover:text-white text-xl"
               >
                 ✕
@@ -503,12 +354,9 @@ const DashboardPage = () => {
             </div>
             <div className="p-0">
               <StudentEditForm
-                student={editingStudent}
-                onSave={handleSaveStudent}
-                onBack={() => {
-                  setEditStudentModalOpen(false);
-                  setEditingStudent(null);
-                }}
+                student={modalManager.selectedData.editingStudent}
+                onSave={studentOps.handleSaveStudent}
+                onBack={modalManager.closeEditStudent}
                 isModal={true}
               />
             </div>
@@ -517,45 +365,39 @@ const DashboardPage = () => {
       )}
 
       <PaymentModal
-        isOpen={paymentModalOpen}
-        onClose={() => {
-          setPaymentModalOpen(false);
-          setPaymentStudent(null);
-        }}
-        student={paymentStudent}
+        isOpen={modalManager.modals.payment}
+        onClose={modalManager.closePayment}
+        student={modalManager.selectedData.paymentStudent}
         onPaymentSuccess={handlePaymentSuccess}
       />
 
       <TrainingSessionModal
-        isOpen={trainingModalOpen}
-        onClose={() => {
-          setTrainingModalOpen(false);
-          setTrainingStudent(null);
-        }}
+        isOpen={modalManager.modals.training}
+        onClose={modalManager.closeTraining}
         students={students}
-        selectedStudent={trainingStudent}
+        selectedStudent={modalManager.selectedData.trainingStudent}
         onSuccess={handleTrainingSuccess}
       />
 
       <SMSCreditsModal
-        isOpen={creditsModalOpen}
-        onClose={handleCloseCredits}
+        isOpen={modalManager.modals.credits}
+        onClose={modalManager.closeCredits}
       />
 
       <SMSHistoryModal
-        isOpen={historyModalOpen}
-        onClose={handleCloseHistory}
+        isOpen={modalManager.modals.history}
+        onClose={modalManager.closeHistory}
       />
 
       <WeekendEventModal
-        isOpen={weekendEventModalOpen}
-        onClose={handleCloseWeekendEvent}
+        isOpen={modalManager.modals.weekendEvent}
+        onClose={modalManager.closeWeekendEvent}
         students={students}
       />
 
       <MonthlyReportModal
-        isOpen={monthlyReportModalOpen}
-        onClose={handleCloseMonthlyReport}
+        isOpen={modalManager.modals.monthlyReport}
+        onClose={modalManager.closeMonthlyReport}
         students={students}
       />
     </div>
