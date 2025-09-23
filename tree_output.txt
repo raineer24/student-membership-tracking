@@ -24,8 +24,8 @@
 ├── client
 │   ├── dist
 │   │   ├── assets
-│   │   │   ├── index-Cr_Ip3tb.js
-│   │   │   └── index-Di-kFdyu.css
+│   │   │   ├── index-Di-kFdyu.css
+│   │   │   └── index-gX3ROpLN.js
 │   │   └── index.html
 │   ├── public
 │   ├── src
@@ -38,6 +38,7 @@
 │   │   │   │   ├── DashboardHeader.jsx
 │   │   │   │   ├── DashboardStatistics.jsx
 │   │   │   │   ├── DashboardViews.jsx
+│   │   │   │   ├── ModalContainer.jsx
 │   │   │   │   ├── PricingDistribution.jsx
 │   │   │   │   ├── StatisticsCards.jsx
 │   │   │   │   ├── StudentManagementSection.jsx
@@ -76,10 +77,12 @@
 │   │   │   └── AuthContext.jsx
 │   │   ├── hooks
 │   │   │   ├── useDashboardData.js
+│   │   │   ├── useModalManager.js
 │   │   │   ├── useSMSModals.js
 │   │   │   ├── useSMSOperations.js
 │   │   │   ├── useSMSReminders.js
 │   │   │   ├── useStudentManagement.js
+│   │   │   ├── useStudentOperations.js
 │   │   │   └── useToast.jsx
 │   │   ├── pages
 │   │   │   ├── Login.jsx
@@ -96,9 +99,11 @@
 │   │   │   │   └── studentPricingUtils.test.js
 │   │   │   ├── api.js
 │   │   │   ├── auth.js
+│   │   │   ├── dashboardMetrics.js
 │   │   │   ├── dateUtils.js
 │   │   │   ├── studentCalculations.js
-│   │   │   └── studentPricingUtils.js
+│   │   │   ├── studentPricingUtils.js
+│   │   │   └── studentValidation.js
 │   │   ├── App.css
 │   │   ├── App.jsx
 │   │   ├── index.css
@@ -149,4 +154,4 @@
 ├── tree_output.txt
 └── vercel.json
 
-41 directories, 109 files
+41 directories, 114 files

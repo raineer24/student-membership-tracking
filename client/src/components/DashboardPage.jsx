@@ -1,6 +1,5 @@
 // File: client/src/components/DashboardPage.jsx
-// Phase 2: Enhanced with modal and student operations hooks
-// Clear line guidance: Reduced complexity by extracting modal and operation logic
+// FIXED: Now actually USING ModalContainer and StatisticsCards components you created
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -8,18 +7,12 @@ import { useToast } from "../hooks/useToast";
 import useStudentManagement from "../hooks/useStudentManagement";
 import StudentManagementSection from "./dashboard/StudentManagementSection";
 import StudentProfileView from "./StudentProfileView";
-import StudentEditForm from "./StudentEditForm";
 
-// Modal imports
-import AddStudentModal from "./AddStudentModal";
-import PaymentModal from "./PaymentModal";
-import SMSCreditsModal from "./modals/SMSCreditsModal";
-import SMSHistoryModal from "./modals/SMSHistoryModal";
-import WeekendEventModal from "./modals/WeekendEventModal";
-import MonthlyReportModal from "./modals/MonthlyReportModal";
-import TrainingSessionModal from "./training/TrainingSessionModal";
+// PHASE 3: Using YOUR created components
+import StatisticsCards from "./dashboard/StatisticsCards";
+import ModalContainer from "./dashboard/ModalContainer";
 
-// Lines 20-24: PHASE 2 NEW IMPORTS - Extracted hooks
+// PHASE 2 IMPORTS - Extracted hooks
 import { validateStudentData } from "../utils/studentValidation";
 import { calculateDashboardMetrics } from "../utils/dashboardMetrics";
 import useModalManager from "../hooks/useModalManager";
@@ -29,14 +22,14 @@ const DashboardPage = () => {
   const { token, user, logout } = useAuth();
   const { showSuccess, showError } = useToast();
 
-  // Lines 30-34: Core state (REDUCED - modals moved to hook)
+  // Core state (REDUCED - modals moved to hook)
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [viewingStudent, setViewingStudent] = useState(null);
   const [smsLoading, setSmsLoading] = useState(false);
 
-  // Lines 36-75: Enhanced data fetching (MOVED UP before hook usage)
+  // Enhanced data fetching (MOVED UP before hook usage)
   const fetchStudents = useCallback(async () => {
     if (!token) return;
     try {
@@ -72,11 +65,11 @@ const DashboardPage = () => {
     }
   }, [token, logout, showError]);
 
-  // Lines 77-80: PHASE 2 ENHANCEMENT - Use extracted hooks
+  // PHASE 2 ENHANCEMENT - Use extracted hooks
   const modalManager = useModalManager();
   const studentOps = useStudentOperations(token, showSuccess, showError, fetchStudents);
 
-  // Lines 82-87: Custom hook usage (PRESERVED)
+  // Custom hook usage (PRESERVED)
   const {
     currentTab, searchQuery, isSearchActive,
     filteredStudents, tabCounts, pricingBreakdown,
@@ -84,18 +77,18 @@ const DashboardPage = () => {
     setCurrentTab, setSearchQuery, setIsSearchActive, clearSearch
   } = useStudentManagement(students);
 
-  // Lines 89-91: Effect hook (PRESERVED)
+  // Effect hook (PRESERVED)
   useEffect(() => {
     fetchStudents();
   }, [fetchStudents]);
 
-  // Lines 93-97: Dashboard metrics (PRESERVED)
+  // Dashboard metrics (PRESERVED)
   const dashboardMetrics = useMemo(() => 
     calculateDashboardMetrics(students, tabCounts, pricingBreakdown),
     [students, tabCounts, pricingBreakdown]
   );
 
-  // Lines 99-112: SIMPLIFIED handlers using extracted operations
+  // SIMPLIFIED handlers using extracted operations
   const handleEditStudent = useCallback((student) => {
     if (!student) return;
     setViewingStudent(null);
@@ -112,7 +105,7 @@ const DashboardPage = () => {
     if (validStudent) modalManager.openTraining(validStudent);
   }, [studentOps, modalManager]);
 
-  // Lines 114-132: SMS operations (PRESERVED but simplified)
+  // SMS operations (PRESERVED but simplified)
   const handleSendReminder = useCallback(async (student) => {
     setSmsLoading(true);
     try {
@@ -141,7 +134,7 @@ const DashboardPage = () => {
     }
   }, [token, showSuccess, showError]);
 
-  // Lines 134-152: SIMPLIFIED utility handlers
+  // SIMPLIFIED utility handlers
   const handleRefreshData = useCallback(async () => {
     showSuccess("Refreshing dashboard data...");
     await fetchStudents();
@@ -167,7 +160,7 @@ const DashboardPage = () => {
     modalManager.closeTraining();
   }, [showSuccess, fetchStudents, modalManager]);
 
-  // Lines 154-162: Early return for profile view (PRESERVED)
+  // Early return for profile view (PRESERVED)
   if (viewingStudent) {
     return (
       <StudentProfileView
@@ -178,7 +171,7 @@ const DashboardPage = () => {
     );
   }
 
-  // Lines 164-262: Main render (PRESERVED with hook integration)
+  // Main render - NOW USING YOUR COMPONENTS
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Header */}
@@ -246,68 +239,13 @@ const DashboardPage = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        {/* Dashboard Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-white">
-                  {dashboardMetrics.totalStudents}
-                </h3>
-                <p className="text-gray-400 text-sm">Total Students</p>
-              </div>
-              <span className="text-3xl">👥</span>
-            </div>
-          </div>
-
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-green-400">
-                  {dashboardMetrics.activeStudents}
-                </h3>
-                <p className="text-gray-400 text-sm">Active</p>
-              </div>
-              <span className="text-3xl">✅</span>
-            </div>
-          </div>
-
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-yellow-400">
-                  {dashboardMetrics.expiringStudents}
-                </h3>
-                <p className="text-gray-400 text-sm">Expiring Soon</p>
-              </div>
-              <span className="text-3xl">⚠️</span>
-            </div>
-          </div>
-
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-red-400">
-                  {dashboardMetrics.overdueStudents}
-                </h3>
-                <p className="text-gray-400 text-sm">Overdue</p>
-              </div>
-              <span className="text-3xl">🚨</span>
-            </div>
-          </div>
-
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-green-400">
-                  ₱{dashboardMetrics.monthlyRevenue.toLocaleString()}
-                </h3>
-                <p className="text-gray-400 text-sm">Monthly Revenue</p>
-              </div>
-              <span className="text-3xl">💰</span>
-            </div>
-          </div>
-        </div>
+        {/* USING YOUR StatisticsCards component */}
+        <StatisticsCards
+          students={students}
+          dashboardData={{ pricingBreakdown }}
+          tabCounts={tabCounts}
+          pricingBreakdown={pricingBreakdown}
+        />
 
         {/* Student Management Section */}
         <StudentManagementSection
@@ -333,71 +271,17 @@ const DashboardPage = () => {
         />
       </main>
 
-      {/* MODALS - SIMPLIFIED with hook integration */}
-      <AddStudentModal
-        isOpen={modalManager.modals.addStudent}
-        onClose={modalManager.closeAddStudent}
-        onStudentAdded={studentOps.handleAddStudent}
-      />
-
-      {modalManager.modals.editStudent && modalManager.selectedData.editingStudent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-xl border border-gray-600 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
-              <h2 className="text-xl font-semibold text-white">Edit Student Profile</h2>
-              <button
-                onClick={modalManager.closeEditStudent}
-                className="text-gray-400 hover:text-white text-xl"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-0">
-              <StudentEditForm
-                student={modalManager.selectedData.editingStudent}
-                onSave={studentOps.handleSaveStudent}
-                onBack={modalManager.closeEditStudent}
-                isModal={true}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      <PaymentModal
-        isOpen={modalManager.modals.payment}
-        onClose={modalManager.closePayment}
-        student={modalManager.selectedData.paymentStudent}
-        onPaymentSuccess={handlePaymentSuccess}
-      />
-
-      <TrainingSessionModal
-        isOpen={modalManager.modals.training}
-        onClose={modalManager.closeTraining}
-        students={students}
-        selectedStudent={modalManager.selectedData.trainingStudent}
-        onSuccess={handleTrainingSuccess}
-      />
-
-      <SMSCreditsModal
-        isOpen={modalManager.modals.credits}
-        onClose={modalManager.closeCredits}
-      />
-
-      <SMSHistoryModal
-        isOpen={modalManager.modals.history}
-        onClose={modalManager.closeHistory}
-      />
-
-      <WeekendEventModal
-        isOpen={modalManager.modals.weekendEvent}
-        onClose={modalManager.closeWeekendEvent}
-        students={students}
-      />
-
-      <MonthlyReportModal
-        isOpen={modalManager.modals.monthlyReport}
-        onClose={modalManager.closeMonthlyReport}
+      {/* USING YOUR ModalContainer component */}
+      <ModalContainer
+        modals={modalManager.modals}
+        selectedData={modalManager.selectedData}
+        handlers={{
+          ...modalManager,
+          handleAddStudent: studentOps.handleAddStudent,
+          handleSaveStudent: studentOps.handleSaveStudent,
+          onPaymentSuccess: handlePaymentSuccess,
+          onTrainingSuccess: handleTrainingSuccess
+        }}
         students={students}
       />
     </div>
