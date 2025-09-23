@@ -1,0 +1,157 @@
+.
+├── api
+│   ├── auth
+│   │   ├── login.js
+│   │   └── register.js
+│   ├── dashboard
+│   │   └── [[...slug]].js
+│   ├── events
+│   │   └── [[...slug]].js
+│   ├── memberships
+│   │   └── [[...slug]].js
+│   ├── payments
+│   │   └── [[...slug]].js
+│   ├── reminders
+│   │   └── [[...slug]].js
+│   ├── reports
+│   │   └── [[...slug]].js
+│   ├── students
+│   │   └── [[...slug]].js
+│   └── training-sessions
+│       └── [[...slug]].js
+├── backup
+│   └── current-database-backup-2025-09-16T05-14-49-405Z.json
+├── client
+│   ├── dist
+│   │   ├── assets
+│   │   │   ├── index-Di-kFdyu.css
+│   │   │   └── index-gX3ROpLN.js
+│   │   └── index.html
+│   ├── public
+│   ├── src
+│   │   ├── assets
+│   │   │   └── images
+│   │   │       └── ogmok
+│   │   ├── components
+│   │   │   ├── dashboard
+│   │   │   │   ├── AnnouncementBanner.jsx
+│   │   │   │   ├── DashboardHeader.jsx
+│   │   │   │   ├── DashboardStatistics.jsx
+│   │   │   │   ├── DashboardViews.jsx
+│   │   │   │   ├── ModalContainer.jsx
+│   │   │   │   ├── PricingDistribution.jsx
+│   │   │   │   ├── StatisticsCards.jsx
+│   │   │   │   ├── StudentManagementSection.jsx
+│   │   │   │   └── TrainingSessionButton.jsx
+│   │   │   ├── modals
+│   │   │   │   ├── MonthlyReportModal.jsx
+│   │   │   │   ├── SMSCreditsModal.jsx
+│   │   │   │   ├── SMSHistoryModal.jsx
+│   │   │   │   └── WeekendEventModal.jsx
+│   │   │   ├── student
+│   │   │   │   ├── DashboardHeader.jsx
+│   │   │   │   ├── MembershipCard.jsx
+│   │   │   │   ├── PaymentHistory.jsx
+│   │   │   │   ├── PaymentItem.jsx
+│   │   │   │   ├── QuickActions.jsx
+│   │   │   │   ├── StudentStatusBadge.jsx
+│   │   │   │   └── StudentTableRow.jsx
+│   │   │   ├── training
+│   │   │   │   └── TrainingSessionModal.jsx
+│   │   │   ├── AddStudentModal.jsx
+│   │   │   ├── AuthDebugger.jsx
+│   │   │   ├── DashboardPage.jsx
+│   │   │   ├── ErrorMessage.jsx
+│   │   │   ├── Header.jsx
+│   │   │   ├── LoadingSpinner.jsx
+│   │   │   ├── LogoutButton.jsx
+│   │   │   ├── PaymentModal.jsx
+│   │   │   ├── ProtectedRoute.jsx
+│   │   │   ├── SMSActionButton.jsx
+│   │   │   ├── SMSHeaderControls.jsx
+│   │   │   ├── SMSModals.jsx
+│   │   │   ├── SimpleToast.jsx
+│   │   │   ├── StudentEditForm.jsx
+│   │   │   └── StudentProfileView.jsx
+│   │   ├── context
+│   │   │   └── AuthContext.jsx
+│   │   ├── hooks
+│   │   │   ├── useDashboardData.js
+│   │   │   ├── useModalManager.js
+│   │   │   ├── useSMSModals.js
+│   │   │   ├── useSMSOperations.js
+│   │   │   ├── useSMSReminders.js
+│   │   │   ├── useStudentManagement.js
+│   │   │   ├── useStudentOperations.js
+│   │   │   └── useToast.jsx
+│   │   ├── pages
+│   │   │   ├── Login.jsx
+│   │   │   ├── MembershipPage.jsx
+│   │   │   ├── NotFound.jsx
+│   │   │   ├── Register.jsx
+│   │   │   └── StudentDashboard.jsx
+│   │   ├── services
+│   │   │   ├── adminApi.js
+│   │   │   └── studentApi.js
+│   │   ├── utils
+│   │   │   ├── __tests__
+│   │   │   │   ├── dateUtils.test.js
+│   │   │   │   └── studentPricingUtils.test.js
+│   │   │   ├── api.js
+│   │   │   ├── auth.js
+│   │   │   ├── dashboardMetrics.js
+│   │   │   ├── dateUtils.js
+│   │   │   ├── studentCalculations.js
+│   │   │   ├── studentPricingUtils.js
+│   │   │   └── studentValidation.js
+│   │   ├── App.css
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   ├── main.jsx
+│   │   └── setupTests.js
+│   ├── README.md
+│   ├── babel.config.js
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── jest.config.js
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── tailwind.config.js
+│   └── vite.config.js
+├── prisma
+│   ├── migrations
+│   │   ├── 20250513052915_init
+│   │   │   └── migration.sql
+│   │   ├── 20250515070812_update_user_timestamps
+│   │   │   └── migration.sql
+│   │   ├── 20250515094632_fix_user_student_relation
+│   │   │   └── migration.sql
+│   │   ├── 20250515134530_add_is_active_to_membership
+│   │   │   └── migration.sql
+│   │   ├── 20250515142826_remove_paid_at_from_payment
+│   │   │   └── migration.sql
+│   │   ├── 20250520165029_add_membership_type
+│   │   │   └── migration.sql
+│   │   └── migration_lock.toml
+│   └── schema.prisma
+├── scripts
+│   ├── backup-current-db.js
+│   ├── backup-data.js
+│   └── restore-data.js
+├── utils
+│   ├── apiMiddleware.js
+│   ├── auth.js
+│   ├── cors.js
+│   ├── db.js
+│   ├── phoneUtils.js
+│   └── smsService.js
+├── README.md
+├── continue.config.json
+├── package-lock.json
+├── package.json
+├── server.js
+├── tree_output.txt
+└── vercel.json
+
+41 directories, 114 files

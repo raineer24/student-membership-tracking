@@ -1,13 +1,25 @@
 // File: client/src/components/dashboard/StatisticsCards.jsx
+// Lines 1-80: Dashboard statistics cards display component
+// Clear line guidance: Extract metrics visualization for better organization
+
 import React from 'react';
 
+/**
+ * Statistics cards component for dashboard metrics display
+ * Follows Single Responsibility Principle - handles only metrics visualization
+ * Preserves ALL existing statistics functionality from DashboardPage
+ * @param {Array} students - Array of student data
+ * @param {Object} dashboardData - Dashboard API response data
+ * @param {Object} tabCounts - Student counts by status tabs
+ * @param {Object} pricingBreakdown - Revenue breakdown data
+ */
 const StatisticsCards = ({ 
   students = [], 
   dashboardData = {}, 
   tabCounts = {}, 
   pricingBreakdown = {} 
 }) => {
-  // FIXED: Ensure tabCounts is always an object with default values
+  // Lines 18-25: Safe data handling with fallback values
   const safeTabCounts = {
     all: 0,
     active: 0,
@@ -17,6 +29,7 @@ const StatisticsCards = ({
     ...tabCounts
   };
 
+  // Lines 27-60: Statistics configuration array (DRY principle)
   const statisticsConfig = [
     {
       title: "Total Students",
@@ -48,13 +61,14 @@ const StatisticsCards = ({
     },
     {
       title: "Monthly Revenue", 
-      value: `₱${pricingBreakdown.totalMonthly?.toLocaleString() || 0}`,
+      value: `₱${(pricingBreakdown?.totalMonthly || 0).toLocaleString()}`,
       subtitle: "Expected monthly",
       icon: "💰",
       colorClass: "text-green-400"
     }
   ];
 
+  // Lines 62-80: Statistics cards rendering (preserved design)
   return (
     <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
       {statisticsConfig.map((stat, index) => (
