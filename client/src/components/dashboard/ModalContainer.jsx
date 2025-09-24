@@ -15,12 +15,14 @@ import StudentEditForm from "../StudentEditForm";
 // Lines 12-30: Edit Student Modal Component (inline modal wrapper)
 const EditStudentModal = ({ isOpen, student, onClose, onSave }) => {
   if (!isOpen || !student) return null;
-  
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-gray-800 rounded-xl border border-gray-600 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold text-white">Edit Student Profile</h2>
+          <h2 className="text-xl font-semibold text-white">
+            Edit Student Profile
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white text-xl focus:outline-none focus:ring-2 focus:ring-gray-500"
@@ -51,12 +53,7 @@ const EditStudentModal = ({ isOpen, student, onClose, onSave }) => {
  * @param {Object} handlers - Modal action handlers
  * @param {Array} students - Students data for modals that need it
  */
-const ModalContainer = ({ 
-  modals, 
-  selectedData, 
-  handlers, 
-  students 
-}) => {
+const ModalContainer = ({ modals, selectedData, handlers, students }) => {
   return (
     <>
       {/* Lines 55-60: Add Student Modal */}
@@ -71,7 +68,10 @@ const ModalContainer = ({
         isOpen={modals.editStudent}
         student={selectedData.editingStudent}
         onClose={handlers.closeEditStudent}
-        onSave={handlers.handleSaveStudent}
+        onSave={async (studentData) => {
+          await handlers.handleSaveStudent(studentData);
+          handlers.closeEditStudent();
+        }}
       />
 
       {/* Lines 69-75: Payment Modal */}
