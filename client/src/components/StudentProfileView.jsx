@@ -1,11 +1,7 @@
 // File: client/src/components/StudentProfileView.jsx
-// FIXED VERSION - Phase 1 only extraction (utilities only)
-// Lines 1-450: Working refactored version with extracted utilities, complete inline JSX
-
+// Enhanced with Payment Delete functionality
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
-
-// Phase 1: Extracted utilities (working imports)
 import { calculateAge, formatDate, formatCurrency, ensureArray } from "../utils/profileCalculations";
 import { getPaymentStatusBadge, getTrainingStatusBadge } from "../utils/profileHelpers";
 import { calculateMembershipStatus } from "../utils/profileStats";
@@ -19,6 +15,10 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [trainingHistory, setTrainingHistory] = useState([]);
   const [trainingLoading, setTrainingLoading] = useState(false);
+  
+  // NEW: Delete confirmation state
+  const [deletingPaymentId, setDeletingPaymentId] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
     if (student) {
@@ -33,7 +33,6 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     }
   }, [student]);
 
-  // Lines 30-55: Data fetching functions (kept inline for stability)
   const fetchPaymentHistory = async (studentId) => {
     if (!studentId || !token) return;
     setPaymentLoading(true);
@@ -80,12 +79,43 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     }
   };
 
-  // Lines 70-75: Using extracted utility function for membership status
+  // NEW: Delete payment handler
+  const handleDeletePayment = async (paymentId) => {
+    if (deletingPaymentId) return; // Prevent multiple deletes
+    
+    setDeletingPaymentId(paymentId);
+    
+    try {
+      const response = await fetch(`/api/payments/${paymentId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete payment");
+      }
+      
+      // Remove from local state
+      setPaymentHistory(prev => prev.filter(p => p.id !== paymentId));
+      setDeleteConfirm(null);
+      
+      console.log("Payment deleted successfully");
+    } catch (error) {
+      console.error("Delete payment error:", error);
+      alert(`Failed to delete payment: ${error.message}`);
+    } finally {
+      setDeletingPaymentId(null);
+    }
+  };
+
   const membershipStatus = useMemo(() => {
     return calculateMembershipStatus(studentData?.memberships);
   }, [studentData]);
 
-  // Lines 80-120: Training stats calculation (kept inline for now)
   const trainingStats = useMemo(() => {
     const sessions = Array.isArray(trainingHistory) ? trainingHistory : [];
     
@@ -132,7 +162,6 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     };
   }, [trainingHistory]);
 
-  // Lines 125-140: Event handlers (kept inline)
   const handleEditClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -150,7 +179,6 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     onEdit(mappedStudentData);
   };
 
-  // Lines 145-170: Loading and error states (preserved exactly)
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -180,7 +208,6 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
     );
   }
 
-  // Lines 175-450: Complete JSX render with all sections (PRESERVED EXACTLY)
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Header Section */}
@@ -216,7 +243,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
             <button
               type="button"
               onClick={handleEditClick}
-              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-6 py-3 rounded-lg transition-all duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-6 py-3 rounded-lg transition-all duration-200 font-medium"
             >
               Edit Profile
             </button>
@@ -224,12 +251,12 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
         </div>
       </div>
 
-      {/* Main Content - ALL SECTIONS PRESERVED */}
+      {/* Main Content */}
       <div className="px-4 sm:px-6 lg:px-8 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Basic Information Section - Using extracted utilities */}
+            {/* Basic Information Section */}
             <div className="lg:col-span-1">
               <div className="bg-gray-800 rounded-xl border border-gray-600 shadow-lg overflow-hidden">
                 <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-6 py-4 border-b border-gray-600">
@@ -280,7 +307,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
               </div>
             </div>
 
-            {/* Membership Section - Complete inline JSX preserved */}
+            {/* Membership Section */}
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-gray-800 rounded-xl border border-gray-600 shadow-lg overflow-hidden">
                 <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-6 py-4 border-b border-gray-600">
@@ -345,7 +372,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
             </div>
           </div>
 
-          {/* Training History Section - Complete inline JSX preserved */}
+          {/* Training History Section - UNCHANGED */}
           <div className="bg-gray-800 rounded-xl border border-gray-600 shadow-lg">
             <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-6 py-4 border-b border-gray-600">
               <h3 className="text-lg font-semibold text-white flex items-center">
@@ -391,35 +418,27 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-600">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Date</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Type</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Notes</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase">Date</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase">Type</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase">Status</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase">Notes</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-700">
                       {trainingHistory.slice(0, 10).map((session, index) => (
                         <tr key={index} className="hover:bg-gray-750 transition-colors">
-                          <td className="py-3 px-4 text-sm text-white">
-                            {formatDate(session.sessionDate)}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-300">
-                            {session.sessionType || "WEEKDAY"}
-                          </td>
+                          <td className="py-3 px-4 text-sm text-white">{formatDate(session.sessionDate)}</td>
+                          <td className="py-3 px-4 text-sm text-gray-300">{session.sessionType || "WEEKDAY"}</td>
                           <td className="py-3 px-4">
                             <span className={getTrainingStatusBadge(session.attendanceStatus)}>
                               {session.attendanceStatus === 'PRESENT' ? 'Present' :
                                session.attendanceStatus === 'LATE' ? 'Late' :
                                session.attendanceStatus === 'LEFT_EARLY' ? 'Left Early' :
-                               session.attendanceStatus === 'ABSENT' ? 'Absent' :
-                               session.attendanceStatus}
+                               session.attendanceStatus === 'ABSENT' ? 'Absent' : session.attendanceStatus}
                             </span>
                           </td>
                           <td className="py-3 px-4 text-sm text-gray-400 max-w-xs truncate">
-                            {session.notes && session.notes.trim() !== "" 
-                              ? session.notes 
-                              : <span className="italic text-gray-500 text-xs">no notes recorded</span>
-                            }
+                            {session.notes && session.notes.trim() !== "" ? session.notes : <span className="italic text-gray-500 text-xs">no notes</span>}
                           </td>
                         </tr>
                       ))}
@@ -435,7 +454,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
             </div>
           </div>
 
-          {/* Payment History Section - Complete inline JSX preserved */}
+          {/* Payment History Section - ENHANCED WITH DELETE */}
           <div className="bg-gray-800 rounded-xl border border-gray-600 shadow-lg">
             <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-6 py-4 border-b border-gray-600">
               <h3 className="text-lg font-semibold text-white flex items-center">
@@ -454,16 +473,17 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-600">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Description</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Amount</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Date</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Method</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase">Description</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase">Amount</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase">Date</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase">Status</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400 uppercase">Method</th>
+                        <th className="text-center py-3 px-4 text-sm font-semibold text-gray-400 uppercase">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-700">
-                      {paymentHistory.slice(0, 10).map((payment, index) => (
-                        <tr key={index} className="hover:bg-gray-750 transition-colors">
+                      {paymentHistory.slice(0, 10).map((payment) => (
+                        <tr key={payment.id} className="hover:bg-gray-750 transition-colors">
                           <td className="py-3 px-4 text-sm text-white">
                             {payment.description || "MONTHLY membership payment"}
                           </td>
@@ -471,7 +491,7 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                             {formatCurrency(payment.amount)}
                           </td>
                           <td className="py-3 px-4 text-sm text-gray-300">
-                            {formatDate(payment.createdAt || payment.paymentDate)}
+                            {formatDate(payment.createdAt || payment.paidAt || payment.paymentDate)}
                           </td>
                           <td className="py-3 px-4">
                             <span className={getPaymentStatusBadge(payment.status)}>
@@ -479,7 +499,37 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                             </span>
                           </td>
                           <td className="py-3 px-4 text-sm text-gray-400">
-                            {payment.paymentMethod || "CASH"}
+                            {payment.method || payment.paymentMethod || "CASH"}
+                          </td>
+                          <td className="py-3 px-4">
+                            {deleteConfirm === payment.id ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => handleDeletePayment(payment.id)}
+                                  disabled={deletingPaymentId === payment.id}
+                                  className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                                >
+                                  {deletingPaymentId === payment.id ? "..." : "Confirm"}
+                                </button>
+                                <button
+                                  onClick={() => setDeleteConfirm(null)}
+                                  disabled={deletingPaymentId === payment.id}
+                                  className="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setDeleteConfirm(payment.id)}
+                                className="mx-auto block p-2 text-red-400 hover:text-red-300 hover:bg-red-900 hover:bg-opacity-20 rounded transition-colors"
+                                title="Delete payment"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
