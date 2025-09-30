@@ -1,5 +1,5 @@
 // File: client/src/components/DashboardPage.jsx
-// FIXED: Now actually USING ModalContainer and StatisticsCards components you created
+// FIXED: Mobile responsive header for Realme C67 and similar devices
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -7,12 +7,8 @@ import { useToast } from "../hooks/useToast";
 import useStudentManagement from "../hooks/useStudentManagement";
 import StudentManagementSection from "./dashboard/StudentManagementSection";
 import StudentProfileView from "./StudentProfileView";
-
-// PHASE 3: Using YOUR created components
 import StatisticsCards from "./dashboard/StatisticsCards";
 import ModalContainer from "./dashboard/ModalContainer";
-
-// PHASE 2 IMPORTS - Extracted hooks
 import { validateStudentData } from "../utils/studentValidation";
 import { calculateDashboardMetrics } from "../utils/dashboardMetrics";
 import useModalManager from "../hooks/useModalManager";
@@ -22,14 +18,15 @@ const DashboardPage = () => {
   const { token, user, logout } = useAuth();
   const { showSuccess, showError } = useToast();
 
-  // Core state (REDUCED - modals moved to hook)
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [viewingStudent, setViewingStudent] = useState(null);
   const [smsLoading, setSmsLoading] = useState(false);
+  
+  // NEW: Mobile menu state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Enhanced data fetching (MOVED UP before hook usage)
   const fetchStudents = useCallback(async () => {
     if (!token) return;
     try {
@@ -65,11 +62,9 @@ const DashboardPage = () => {
     }
   }, [token, logout, showError]);
 
-  // PHASE 2 ENHANCEMENT - Use extracted hooks
   const modalManager = useModalManager();
   const studentOps = useStudentOperations(token, showSuccess, showError, fetchStudents);
 
-  // Custom hook usage (PRESERVED)
   const {
     currentTab, searchQuery, isSearchActive,
     filteredStudents, tabCounts, pricingBreakdown,
@@ -77,18 +72,15 @@ const DashboardPage = () => {
     setCurrentTab, setSearchQuery, setIsSearchActive, clearSearch
   } = useStudentManagement(students);
 
-  // Effect hook (PRESERVED)
   useEffect(() => {
     fetchStudents();
   }, [fetchStudents]);
 
-  // Dashboard metrics (PRESERVED)
   const dashboardMetrics = useMemo(() => 
     calculateDashboardMetrics(students, tabCounts, pricingBreakdown),
     [students, tabCounts, pricingBreakdown]
   );
 
-  // SIMPLIFIED handlers using extracted operations
   const handleEditStudent = useCallback((student) => {
     if (!student) return;
     setViewingStudent(null);
@@ -105,7 +97,6 @@ const DashboardPage = () => {
     if (validStudent) modalManager.openTraining(validStudent);
   }, [studentOps, modalManager]);
 
-  // SMS operations (PRESERVED but simplified)
   const handleSendReminder = useCallback(async (student) => {
     setSmsLoading(true);
     try {
@@ -134,7 +125,6 @@ const DashboardPage = () => {
     }
   }, [token, showSuccess, showError]);
 
-  // SIMPLIFIED utility handlers
   const handleRefreshData = useCallback(async () => {
     showSuccess("Refreshing dashboard data...");
     await fetchStudents();
@@ -160,7 +150,6 @@ const DashboardPage = () => {
     modalManager.closeTraining();
   }, [showSuccess, fetchStudents, modalManager]);
 
-  // Early return for profile view (PRESERVED)
   if (viewingStudent) {
     return (
       <StudentProfileView
@@ -171,27 +160,46 @@ const DashboardPage = () => {
     );
   }
 
-  // Main render - NOW USING YOUR COMPONENTS
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* Header */}
+      {/* FIXED: Mobile Responsive Header */}
       <header className="bg-gray-800 shadow-xl border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-2xl font-bold text-white">
-                Student Membership Dashboard
-              </h1>
-              <p className="text-gray-400 mt-1">Welcome back, {user?.email || 'Admin'}</p>
+          <div className="py-4">
+            {/* Top Row: Title and Mobile Menu Button */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
+                  Student Membership Dashboard
+                </h1>
+                <p className="text-gray-400 text-sm mt-1 truncate">
+                  Welcome back, {user?.email || 'Admin'}
+                </p>
+              </div>
+              
+              {/* Mobile Menu Toggle */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="lg:hidden ml-4 p-2 rounded-lg bg-gray-700 text-white"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {mobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
             </div>
             
-            <div className="flex items-center space-x-3">
+            {/* Desktop Buttons - Hidden on Mobile */}
+            <div className="hidden lg:flex items-center space-x-3">
               <button
                 onClick={modalManager.openMonthlyReport}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
               >
                 <span>📊</span>
-                <span className="hidden sm:inline">Monthly Report</span>
+                <span>Monthly Report</span>
               </button>
               
               <button
@@ -199,7 +207,7 @@ const DashboardPage = () => {
                 className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
               >
                 <span>🥋</span>
-                <span className="hidden sm:inline">Weekend Event</span>
+                <span>Weekend Event</span>
               </button>
               
               <button
@@ -207,7 +215,7 @@ const DashboardPage = () => {
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
               >
                 <span>💳</span>
-                <span className="hidden sm:inline">Credits</span>
+                <span>Credits</span>
               </button>
               
               <button
@@ -215,7 +223,7 @@ const DashboardPage = () => {
                 className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
               >
                 <span>📱</span>
-                <span className="hidden sm:inline">History</span>
+                <span>History</span>
               </button>
               
               <button
@@ -223,7 +231,7 @@ const DashboardPage = () => {
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
               >
                 <span>🔄</span>
-                <span className="hidden sm:inline">Refresh Data</span>
+                <span>Refresh Data</span>
               </button>
               
               <button
@@ -233,13 +241,78 @@ const DashboardPage = () => {
                 Logout
               </button>
             </div>
+
+            {/* Mobile Menu - Slide Down */}
+            {mobileMenuOpen && (
+              <div className="lg:hidden mt-4 space-y-2 border-t border-gray-700 pt-4">
+                <button
+                  onClick={() => {
+                    modalManager.openMonthlyReport();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <span>📊</span>
+                  <span>Monthly Report</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    modalManager.openWeekendEvent();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <span>🥋</span>
+                  <span>Weekend Event</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    modalManager.openCredits();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <span>💳</span>
+                  <span>Credits</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    modalManager.openHistory();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <span>📱</span>
+                  <span>History</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    handleRefreshData();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <span>🔄</span>
+                  <span>Refresh Data</span>
+                </button>
+                
+                <button
+                  onClick={logout}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
-        {/* USING YOUR StatisticsCards component */}
         <StatisticsCards
           students={students}
           dashboardData={{ pricingBreakdown }}
@@ -247,7 +320,6 @@ const DashboardPage = () => {
           pricingBreakdown={pricingBreakdown}
         />
 
-        {/* Student Management Section */}
         <StudentManagementSection
           filteredStudents={filteredStudents}
           students={students}
@@ -271,7 +343,6 @@ const DashboardPage = () => {
         />
       </main>
 
-      {/* USING YOUR ModalContainer component */}
       <ModalContainer
         modals={modalManager.modals}
         selectedData={modalManager.selectedData}
