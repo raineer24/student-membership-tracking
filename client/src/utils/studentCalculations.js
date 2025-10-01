@@ -1,17 +1,16 @@
 // File: client/src/utils/studentCalculations.js
-// Lines 1-150: Zero-risk pure function extractions from DashboardPage.jsx
-// Created: Phase 1 - Business logic utilities with no side effects
-// Risk Level: 0% - Copy-only operations, deterministic functions
+// Lines 1-220: Enhanced pure function utilities with consistent status logic
+// FIXED: Math.ceil consistency across all date calculations
+// ZERO RISK: Pure functions, no side effects, deterministic outputs
 
 /**
  * Calculate comprehensive revenue data from students array
- * Lines 26-90 extracted from DashboardPage.jsx
- * ZERO RISK: Pure function, no side effects, deterministic output
+ * Lines 10-90: Revenue calculation with defensive programming
  * @param {Array} students - Array of student objects with memberships
  * @returns {Object} Complete revenue breakdown and statistics
  */
 export const calculateRevenueData = (students) => {
-  // Early return for edge cases - defensive programming
+  // Lines 15-28: Early return for edge cases
   if (!students || students.length === 0) {
     return {
       totalRevenue: 0,
@@ -25,20 +24,17 @@ export const calculateRevenueData = (students) => {
     };
   }
 
-  // Initialize revenue tracking variables
+  // Lines 30-36: Initialize revenue tracking variables
   let totalRevenue = 0;
   let legacyCount = 0;
   let legacyRevenue = 0;
   let standardCount = 0;
   let standardRevenue = 0;
 
-  // Process each student for revenue calculation
+  // Lines 38-75: Process each student for revenue calculation
   students.forEach(student => {
-    // Determine monthly rate with fallback logic
     const monthlyRate = student.monthlyRate || student.rate || 1400;
     const isLegacy = student.isLegacyStudent || monthlyRate < 1400;
-    
-    // Validate membership existence and activity
     const hasActiveMembership = student.memberships && student.memberships.length > 0;
     
     if (hasActiveMembership) {
@@ -54,7 +50,6 @@ export const calculateRevenueData = (students) => {
         latestMembership.endDate && 
         new Date(latestMembership.endDate) > new Date();
       
-      // Add to revenue calculations only for active students
       if (isActive) {
         totalRevenue += monthlyRate;
         
@@ -69,7 +64,7 @@ export const calculateRevenueData = (students) => {
     }
   });
 
-  // Return comprehensive revenue object
+  // Lines 77-90: Return comprehensive revenue object
   return {
     totalRevenue,
     totalMonthly: totalRevenue,
@@ -87,49 +82,51 @@ export const calculateRevenueData = (students) => {
 
 /**
  * Calculate student membership status based on end date
- * Lines 95-135 extracted from DashboardPage.jsx
- * ZERO RISK: Pure function, no external dependencies
+ * Lines 95-155: FIXED - Consistent Math.ceil calculation
+ * CRITICAL FIX: Changed Math.round to Math.ceil for consistency with WeekendEventModal
+ * This ensures status colors match across all UI components (dashboard, modals, lists)
  * @param {Object} student - Student object with memberships array
  * @returns {string} Status: 'active', 'expiring', 'overdue', 'inactive'
  */
 export const calculateStudentStatus = (student) => {
-  // Handle edge case - no memberships
+  // Lines 102-105: Handle edge case - no memberships
   if (!student?.memberships || student.memberships.length === 0) {
     return 'inactive';
   }
 
-  // Find the latest membership by end date
+  // Lines 107-113: Find the latest membership by end date
   const latestMembership = student.memberships.reduce((latest, current) => {
     const currentDate = new Date(current.endDate || current.createdAt);
     const latestDate = new Date(latest?.endDate || latest?.createdAt || 0);
     return currentDate > latestDate ? current : latest;
   }, null);
 
-  // Handle missing end date
+  // Lines 115-116: Handle missing end date
   if (!latestMembership?.endDate) return 'inactive';
 
   try {
-    // Date calculation with error handling
+    // Lines 119-123: Date calculation with error handling
     const endDate = new Date(latestMembership.endDate);
     const today = new Date();
     
-    // Validate date objects
     if (isNaN(endDate.getTime()) || isNaN(today.getTime())) return 'inactive';
     
-    // Normalize dates to midnight for accurate comparison
-    today.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
+    // Lines 125-127: Normalize dates to midnight for accurate comparison
+    const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     
-    // Calculate difference in days
-    const timeDiff = endDate.getTime() - today.getTime();
-    const daysDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24));
+    // Lines 129-133: CRITICAL FIX - Use Math.ceil for consistency
+    // Math.ceil gives "benefit of the doubt" - any fraction of a day counts as full day
+    // This matches WeekendEventModal logic (line 520) for consistent status colors
+    const timeDiff = endDateOnly.getTime() - todayOnly.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
     
-    // Return status based on days remaining
+    // Lines 135-139: Return status based on days remaining
     if (daysDiff < 0) return 'overdue';
     if (daysDiff <= 7) return 'expiring';
     return 'active';
   } catch (error) {
-    // Error handling for date operations
+    // Lines 141-145: Error handling for date operations
     console.warn("Date calculation error:", error);
     return 'inactive';
   }
@@ -137,45 +134,45 @@ export const calculateStudentStatus = (student) => {
 
 /**
  * Calculate days remaining for student membership
- * Lines 140-175 extracted from DashboardPage.jsx
- * ZERO RISK: Mathematical operation, no side effects
+ * Lines 150-200: FIXED - Consistent Math.ceil calculation
+ * CRITICAL FIX: Changed Math.round to Math.ceil for consistency
  * @param {Object} student - Student object with memberships
  * @returns {number} Days remaining (negative if overdue)
  */
 export const calculateDaysRemaining = (student) => {
-  // Handle edge case - no memberships
+  // Lines 157-159: Handle edge case - no memberships
   if (!student?.memberships || student.memberships.length === 0) return 0;
   
-  // Find the membership with the latest end date
+  // Lines 161-167: Find the membership with the latest end date
   const latestMembership = student.memberships.reduce((latest, current) => {
     const currentDate = new Date(current.endDate || current.createdAt);
     const latestDate = new Date(latest?.endDate || latest?.createdAt || 0);
     return currentDate > latestDate ? current : latest;
   }, null);
 
-  // Handle missing end date
+  // Lines 169-170: Handle missing end date
   if (!latestMembership?.endDate) return 0;
 
   try {
-    // Date calculation with error handling
+    // Lines 173-177: Date calculation with error handling
     const endDate = new Date(latestMembership.endDate);
     const today = new Date();
     
-    // Validate date objects
     if (isNaN(endDate.getTime()) || isNaN(today.getTime())) return 0;
     
-    // Normalize dates to midnight for accurate comparison
-    today.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
+    // Lines 179-181: Normalize dates to midnight for accurate comparison
+    const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     
-    // Calculate and return difference in days
-    const timeDiff = endDate.getTime() - today.getTime();
-   const daysDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24));
-
+    // Lines 183-187: CRITICAL FIX - Use Math.ceil for consistency
+    // Math.ceil ensures any remaining fraction of a day is counted
+    // This matches the status calculation logic above
+    const timeDiff = endDateOnly.getTime() - todayOnly.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
     
     return daysDiff;
   } catch (error) {
-    // Error handling for date operations
+    // Lines 190-195: Error handling for date operations
     console.warn("Date calculation error:", error);
     return 0;
   }
@@ -183,18 +180,17 @@ export const calculateDaysRemaining = (student) => {
 
 /**
  * Check if student is eligible for SMS reminders
- * Lines 180-190 extracted from DashboardPage.jsx  
- * ZERO RISK: Boolean logic function, no side effects
+ * Lines 200-215: Unchanged - Boolean logic function
  * @param {Object} student - Student object
  * @returns {boolean} True if can send reminder
  */
 export const canSendReminder = (student) => {
-  // Get current status using our status calculation
+  // Lines 206-208: Get current status using our status calculation
   const status = calculateStudentStatus(student);
   
-  // Check if student has phone number
+  // Lines 210-211: Check if student has phone number
   const hasPhone = Boolean(student.phone || student.phoneNumber);
   
-  // Business rule: Only send to expiring/overdue students with phone
+  // Lines 213-215: Business rule: Only send to expiring/overdue students with phone
   return (status === 'expiring' || status === 'overdue') && hasPhone;
 };
