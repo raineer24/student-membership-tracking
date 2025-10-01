@@ -24,8 +24,8 @@
 ├── client
 │   ├── dist
 │   │   ├── assets
-│   │   │   ├── index-Di-kFdyu.css
-│   │   │   └── index-gX3ROpLN.js
+│   │   │   ├── index-BeQHuxx2.js
+│   │   │   └── index-CKOXdSYH.css
 │   │   └── index.html
 │   ├── public
 │   ├── src
@@ -48,14 +48,26 @@
 │   │   │   │   ├── SMSCreditsModal.jsx
 │   │   │   │   ├── SMSHistoryModal.jsx
 │   │   │   │   └── WeekendEventModal.jsx
+│   │   │   ├── payment
+│   │   │   │   ├── PaymentDatePicker.jsx
+│   │   │   │   ├── PricingTierBadge.jsx
+│   │   │   │   ├── QuickSelectButtons.jsx
+│   │   │   │   └── StudentInfoCard.jsx
+│   │   │   ├── profile
+│   │   │   │   └── BasicInformation.jsx
 │   │   │   ├── student
 │   │   │   │   ├── DashboardHeader.jsx
 │   │   │   │   ├── MembershipCard.jsx
 │   │   │   │   ├── PaymentHistory.jsx
 │   │   │   │   ├── PaymentItem.jsx
 │   │   │   │   ├── QuickActions.jsx
+│   │   │   │   ├── SearchControls.jsx
+│   │   │   │   ├── StudentCard.jsx
+│   │   │   │   ├── StudentListContainer.jsx
 │   │   │   │   ├── StudentStatusBadge.jsx
-│   │   │   │   └── StudentTableRow.jsx
+│   │   │   │   ├── StudentStatusDisplay.jsx
+│   │   │   │   ├── StudentTableRow.jsx
+│   │   │   │   └── TabNavigation.jsx
 │   │   │   ├── training
 │   │   │   │   └── TrainingSessionModal.jsx
 │   │   │   ├── AddStudentModal.jsx
@@ -78,11 +90,18 @@
 │   │   ├── hooks
 │   │   │   ├── useDashboardData.js
 │   │   │   ├── useModalManager.js
+│   │   │   ├── usePaymentSubmission.js
+│   │   │   ├── usePaymentValidation.js
+│   │   │   ├── useProfileData.js
+│   │   │   ├── useProfileStats.js
 │   │   │   ├── useSMSModals.js
 │   │   │   ├── useSMSOperations.js
 │   │   │   ├── useSMSReminders.js
+│   │   │   ├── useStudentActions.js
+│   │   │   ├── useStudentData.js
 │   │   │   ├── useStudentManagement.js
 │   │   │   ├── useStudentOperations.js
+│   │   │   ├── useStudentPricing.js
 │   │   │   └── useToast.jsx
 │   │   ├── pages
 │   │   │   ├── Login.jsx
@@ -101,8 +120,14 @@
 │   │   │   ├── auth.js
 │   │   │   ├── dashboardMetrics.js
 │   │   │   ├── dateUtils.js
+│   │   │   ├── paymentDateUtils.js
+│   │   │   ├── profileCalculations.js
+│   │   │   ├── profileHelpers.js
+│   │   │   ├── profileStats.js
 │   │   │   ├── studentCalculations.js
 │   │   │   ├── studentPricingUtils.js
+│   │   │   ├── studentStatusConfig.js
+│   │   │   ├── studentTableUtils.js
 │   │   │   └── studentValidation.js
 │   │   ├── App.css
 │   │   ├── App.jsx
@@ -154,4 +179,4 @@
 ├── tree_output.txt
 └── vercel.json
 
-41 directories, 114 files
+43 directories, 137 files
