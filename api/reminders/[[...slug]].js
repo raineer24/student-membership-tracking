@@ -512,7 +512,6 @@ export default async function handler(req, res) {
           phoneNumber: normalizedPhone,
           cost: reminderStatus === "SENT" ? 0.60 : 0,
           response: responseText,
-          retryCount: 0,
         },
       });
 

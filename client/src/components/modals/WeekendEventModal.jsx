@@ -1,15 +1,16 @@
 // File: client/src/components/modals/WeekendEventModal.jsx
-// Line 1: ENHANCED - Weekend Event Modal with Selective Student Messaging
+// CRITICAL FIX: Import centralized status calculation for 100% consistency
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../hooks/useToast";
+import { calculateStudentStatus } from "../../utils/studentCalculations";
 
 const WeekendEventModal = ({
   isOpen,
   onClose,
   onEventCreated,
   existingEvents = [],
-  students = [], // NEW: Pass students data for recipient calculation
+  students = [],
 }) => {
   const { token } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -20,14 +21,13 @@ const WeekendEventModal = ({
     message: "",
     startDate: "",
     endDate: "",
-    sendSMS: false, // CHANGED: Default to false for deliberate selection
+    sendSMS: false,
     priority: "NORMAL",
-    // NEW: Selective messaging options
     recipientOptions: {
       activeStudents: true,
       expiringStudents: true,
       overdueStudents: true,
-      inactiveStudents: false, // Default: don't send to inactive
+      inactiveStudents: false,
     },
   });
 
@@ -41,42 +41,20 @@ const WeekendEventModal = ({
     totalSelected: 0,
     estimatedCost: 0,
   });
-  // NEW: Individual student selection state
   const [studentSelection, setStudentSelection] = useState({
-    mode: "categories", // "categories" or "individual"
+    mode: "categories",
     selectedStudentIds: new Set(),
-    searchQuery: "", // NEW: Search filter for students
+    searchQuery: "",
   });
   const modalRef = useRef(null);
 
-  // Line 45: Helper function to get student status (matches existing logic)
+  // Line 50: CRITICAL FIX - Use centralized status calculation
+  // This ensures 100% consistency with dashboard, tables, and all other components
   const getStudentStatus = useCallback((student) => {
-    if (!student?.memberships || student.memberships.length === 0) {
-      return "inactive";
-    }
-
-    // Use latest membership
-    const sortedMemberships = [...student.memberships].sort((a, b) => {
-      const dateA = new Date(a.createdAt || a.endDate || a.startDate);
-      const dateB = new Date(b.createdAt || b.endDate || b.startDate);
-      return dateB - dateA;
-    });
-
-    const latestMembership = sortedMemberships[0];
-    if (!latestMembership?.endDate) return "inactive";
-
-    const endDate = new Date(latestMembership.endDate);
-    const today = new Date();
-    const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const diffDays = Math.ceil((endDateOnly - todayOnly) / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return "overdue";
-    if (diffDays <= 7) return "expiring";
-    return "active";
+    return calculateStudentStatus(student);
   }, []);
 
-  // Line 74: Calculate recipient statistics whenever options change
+  // Line 56: Calculate recipient statistics whenever options change
   useEffect(() => {
     if (!Array.isArray(students) || students.length === 0) {
       setRecipientStats({
@@ -94,13 +72,11 @@ const WeekendEventModal = ({
     let estimatedCost = 0;
 
     if (studentSelection.mode === "individual") {
-      // Count individually selected students with phone numbers
       totalSelected = students.filter(student => {
         const hasPhone = Boolean(student.phone || student.phoneNumber);
         return hasPhone && studentSelection.selectedStudentIds.has(student.id);
       }).length;
     } else {
-      // Original category-based calculation
       const stats = students.reduce(
         (acc, student) => {
           const hasPhone = Boolean(student.phone || student.phoneNumber);
@@ -147,7 +123,7 @@ const WeekendEventModal = ({
         message: "Enjoy your weekend! Classes will resume on Monday.",
         startDate: tomorrow.toISOString().split("T")[0],
         endDate: "",
-        sendSMS: false, // Default to false for deliberate selection
+        sendSMS: false,
         priority: "NORMAL",
         recipientOptions: {
           activeStudents: true,
@@ -157,7 +133,6 @@ const WeekendEventModal = ({
         },
       });
 
-      // Reset student selection
       setStudentSelection({
         mode: "categories",
         selectedStudentIds: new Set(),
@@ -187,7 +162,6 @@ const WeekendEventModal = ({
         },
       });
 
-      // Reset student selection
       setStudentSelection({
         mode: "categories",
         selectedStudentIds: new Set(),
@@ -234,7 +208,6 @@ const WeekendEventModal = ({
       }
     }
 
-    // NEW: Validate SMS recipient selection
     if (formData.sendSMS) {
       if (studentSelection.mode === "individual") {
         if (studentSelection.selectedStudentIds.size === 0) {
@@ -259,7 +232,6 @@ const WeekendEventModal = ({
 
     setFormData((prev) => {
       if (name.startsWith("recipient_")) {
-        // Handle recipient option changes
         const optionName = name.replace("recipient_", "");
         return {
           ...prev,
@@ -275,7 +247,6 @@ const WeekendEventModal = ({
         [name]: type === "checkbox" ? checked : value,
       };
 
-      // Auto-populate titles and messages based on event type
       if (name === "eventType") {
         switch (value) {
           case "NO_CLASSES":
@@ -307,17 +278,17 @@ const WeekendEventModal = ({
     }
   }, [errors]);
 
-  // NEW: Handle selection mode change
+  // Line 265: Handle selection mode change
   const handleSelectionModeChange = useCallback((mode) => {
     setStudentSelection(prev => ({
       ...prev,
       mode,
-      selectedStudentIds: new Set(), // Reset selections when switching modes
-      searchQuery: "", // Reset search when switching modes
+      selectedStudentIds: new Set(),
+      searchQuery: "",
     }));
   }, []);
 
-  // NEW: Handle student search
+  // Line 274: Handle student search
   const handleStudentSearch = useCallback((query) => {
     setStudentSelection(prev => ({
       ...prev,
@@ -325,7 +296,7 @@ const WeekendEventModal = ({
     }));
   }, []);
 
-  // NEW: Handle individual student selection
+  // Line 281: Handle individual student selection
   const handleStudentToggle = useCallback((studentId) => {
     setStudentSelection(prev => {
       const newSelected = new Set(prev.selectedStudentIds);
@@ -341,7 +312,7 @@ const WeekendEventModal = ({
     });
   }, []);
 
-  // Line 245: Enhanced submit handler with selective messaging
+  // Line 298: Enhanced submit handler with selective messaging
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
 
@@ -355,9 +326,6 @@ const WeekendEventModal = ({
     setErrors({});
 
     try {
-      console.log('🚀 Creating weekend event with selective messaging...');
-
-      // Prepare API payload with recipient options
       const apiPayload = {
         eventType: formData.eventType,
         title: formData.title,
@@ -366,15 +334,12 @@ const WeekendEventModal = ({
         endDate: formData.endDate || null,
         sendSMS: formData.sendSMS,
         priority: formData.priority.toUpperCase(),
-        // NEW: Include recipient selection options
         recipientOptions: formData.sendSMS ? (
           studentSelection.mode === "individual" 
             ? { selectedStudentIds: Array.from(studentSelection.selectedStudentIds) }
             : formData.recipientOptions
         ) : null,
       };
-
-      console.log('📤 API Payload:', apiPayload);
 
       const response = await fetch("/api/events", {
         method: "POST",
@@ -385,12 +350,8 @@ const WeekendEventModal = ({
         body: JSON.stringify(apiPayload),
       });
 
-      console.log('📡 API Response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ API Error response:', errorText);
-        
         let errorMessage = 'Failed to create event';
         try {
           const errorData = JSON.parse(errorText);
@@ -398,16 +359,12 @@ const WeekendEventModal = ({
         } catch (e) {
           errorMessage = `HTTP ${response.status}: ${response.statusText}`;
         }
-        
         throw new Error(errorMessage);
       }
 
       const responseData = await response.json();
-      console.log('✅ API Success response:', responseData);
-
       const eventData = responseData.data || responseData;
 
-      // Show success message with detailed SMS info
       let successMessage = `Weekend event "${formData.title}" created successfully!`;
       if (formData.sendSMS && recipientStats.totalSelected > 0) {
         successMessage += ` SMS sent to ${recipientStats.totalSelected} students (₱${recipientStats.estimatedCost.toFixed(2)})`;
@@ -418,8 +375,6 @@ const WeekendEventModal = ({
       onClose();
 
     } catch (error) {
-      console.error('❌ Weekend Event Creation Error:', error);
-      
       if (error.message.includes('401')) {
         showError('Authentication failed. Please log in again.');
       } else if (error.message.includes('403')) {
@@ -431,14 +386,13 @@ const WeekendEventModal = ({
       } else {
         showError(`Failed to create event: ${error.message}`);
       }
-      
       setErrors({ submit: error.message });
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, validateForm, token, onEventCreated, onClose, showSuccess, showError, recipientStats]);
+  }, [formData, validateForm, token, onEventCreated, onClose, showSuccess, showError, recipientStats, studentSelection]);
 
-  // Line 325: Character count helper
+  // Line 378: Character count helper
   const getCharacterCount = (text, maxLength) => {
     const count = text.length;
     const percentage = (count / maxLength) * 100;
@@ -450,7 +404,7 @@ const WeekendEventModal = ({
     return { count, colorClass };
   };
 
-  // Line 337: Escape key handler
+  // Line 390: Escape key handler
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && isOpen && !isSubmitting) {
@@ -478,7 +432,6 @@ const WeekendEventModal = ({
         ref={modalRef} 
         className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[95vh] overflow-y-auto"
       >
-        {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
@@ -501,7 +454,6 @@ const WeekendEventModal = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6">
-          {/* Event Type */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Event Type *
@@ -520,7 +472,6 @@ const WeekendEventModal = ({
             </select>
           </div>
 
-          {/* Title */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Title *
@@ -545,7 +496,6 @@ const WeekendEventModal = ({
             )}
           </div>
 
-          {/* Message */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Message *
@@ -573,7 +523,6 @@ const WeekendEventModal = ({
             </p>
           </div>
 
-          {/* Date Range */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -615,7 +564,6 @@ const WeekendEventModal = ({
             </div>
           </div>
 
-          {/* Priority */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Priority Level
@@ -634,10 +582,8 @@ const WeekendEventModal = ({
             </select>
           </div>
 
-          {/* MINIMAL: SMS Options with Dropdown and Individual Selection */}
           <div className="mb-6">
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              {/* SMS Enable Checkbox */}
               <div className="flex items-center space-x-3 mb-4">
                 <input
                   type="checkbox"
@@ -652,10 +598,8 @@ const WeekendEventModal = ({
                 </label>
               </div>
 
-              {/* Conditional: Minimal Recipient Selection */}
               {formData.sendSMS && (
                 <div className="space-y-4 border-l-4 border-blue-300 pl-4">
-                  {/* Selection Mode Dropdown */}
                   <div>
                     <select
                       value={studentSelection.mode}
@@ -668,7 +612,6 @@ const WeekendEventModal = ({
                     </select>
                   </div>
 
-                  {/* Category Selection Mode */}
                   {studentSelection.mode === "categories" && (
                     <div className="flex flex-wrap gap-2">
                       <label className="inline-flex items-center">
@@ -721,10 +664,8 @@ const WeekendEventModal = ({
                     </div>
                   )}
 
-                  {/* Individual Student Selection Mode */}
                   {studentSelection.mode === "individual" && (
                     <div className="bg-white rounded border border-gray-200 max-h-64 overflow-hidden">
-                      {/* Header with Search */}
                       <div className="p-3 border-b border-gray-200 bg-gray-50">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium text-gray-700">Select Students</span>
@@ -732,7 +673,6 @@ const WeekendEventModal = ({
                             {students.filter(student => Boolean(student.phone || student.phoneNumber)).length} with phone
                           </span>
                         </div>
-                        {/* Search Input */}
                         <div className="relative">
                           <input
                             type="text"
@@ -753,7 +693,6 @@ const WeekendEventModal = ({
                         </div>
                       </div>
                       
-                      {/* Student List */}
                       <div className="max-h-48 overflow-y-auto">
                         <div className="p-2 space-y-1">
                           {students
@@ -787,7 +726,6 @@ const WeekendEventModal = ({
                               );
                             })}
                           
-                          {/* No Results Message */}
                           {students.filter(student => {
                             const hasPhone = Boolean(student.phone || student.phoneNumber);
                             const matchesSearch = studentSelection.searchQuery === "" || 
@@ -815,7 +753,6 @@ const WeekendEventModal = ({
                     </div>
                   )}
 
-                  {/* SMS Summary */}
                   <div className="flex justify-between items-center p-3 bg-purple-50 border border-purple-200 rounded">
                     <span className="text-sm font-medium text-purple-900">
                       {recipientStats.totalSelected} recipients selected
@@ -825,12 +762,10 @@ const WeekendEventModal = ({
                     </span>
                   </div>
 
-                  {/* Recipient Selection Error */}
                   {errors.recipients && (
                     <p className="text-sm text-red-600">{errors.recipients}</p>
                   )}
 
-                  {/* Warning for Real SMS */}
                   {recipientStats.totalSelected > 0 && (
                     <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
                       ⚠️ Real SMS will be sent to {recipientStats.totalSelected} phone numbers. Double-check your message!
@@ -841,14 +776,12 @@ const WeekendEventModal = ({
             </div>
           </div>
 
-          {/* Submit Error */}
           {errors.submit && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-800">{errors.submit}</p>
             </div>
           )}
 
-          {/* Form Actions */}
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
             <button
               type="button"
