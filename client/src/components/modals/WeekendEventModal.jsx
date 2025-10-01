@@ -69,7 +69,7 @@ const WeekendEventModal = ({
     const today = new Date();
     const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
     const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const diffDays = Math.ceil((endDateOnly - todayOnly) / (1000 * 60 * 60 * 24));
+   const diffDays = Math.round((endDateOnly - todayOnly) / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) return "overdue";
     if (diffDays <= 7) return "expiring";

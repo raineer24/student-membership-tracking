@@ -22,6 +22,7 @@ model User {
   
   student          Student?
   trainingSessions TrainingSession[]
+  weekendEvents    WeekendEvent[] 
 }
 
 model Student {
@@ -87,8 +88,37 @@ model Reminder {
   phoneNumber String?
   cost        Float?
   response    String?
+  retryCount  Int      @default(0) 
   
   student     Student  @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([status])
+  @@index([sentAt])
+   @@index([phoneNumber])
+  @@index([cost])
+}
+
+model WeekendEvent {
+  id             Int      @id @default(autoincrement())
+  eventType      String   // NO_CLASSES, GENERAL, BANNER, SMS
+  title          String
+  message        String
+  startDate      DateTime
+  endDate        DateTime?
+  sendSMS        Boolean  @default(false)
+  priority       String   @default("NORMAL")
+  creatorId      Int
+  estimatedReach Int      @default(0)
+  estimatedCost  Float    @default(0.00)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  creator        User     @relation(fields: [creatorId], references: [id])
+  
+  @@index([startDate])
+  @@index([createdAt])
+  @@index([creatorId])
 }
 
 // TrainingSession model

@@ -122,7 +122,7 @@ export const calculateStudentStatus = (student) => {
     
     // Calculate difference in days
     const timeDiff = endDate.getTime() - today.getTime();
-    const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+    const daysDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24));
     
     // Return status based on days remaining
     if (daysDiff < 0) return 'overdue';
@@ -170,7 +170,8 @@ export const calculateDaysRemaining = (student) => {
     
     // Calculate and return difference in days
     const timeDiff = endDate.getTime() - today.getTime();
-    const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+   const daysDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24));
+
     
     return daysDiff;
   } catch (error) {
