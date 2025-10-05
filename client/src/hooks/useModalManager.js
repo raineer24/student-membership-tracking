@@ -11,26 +11,27 @@ import { useState, useCallback } from "react";
  * @returns {Object} Modal states and handlers
  */
 const useModalManager = () => {
-  // Lines 12-20: Consolidated modal states (replaces scattered state variables)
+  // Lines 12-21: Consolidated modal states (replaces scattered state variables)
   const [modals, setModals] = useState({
     addStudent: false,
     editStudent: false,
     payment: false,
     training: false,
+    bulkAttendance: false, // ✅ ADDED: Bulk attendance modal state
     monthlyReport: false,
     weekendEvent: false,
     credits: false,
     history: false
   });
   
-  // Lines 22-26: Selected data for modals (replaces individual state variables)
+  // Lines 23-27: Selected data for modals (replaces individual state variables)
   const [selectedData, setSelectedData] = useState({
     editingStudent: null,
     paymentStudent: null,
     trainingStudent: null
   });
 
-  // Lines 28-36: Generic modal handlers (DRY principle implementation)
+  // Lines 29-37: Generic modal handlers (DRY principle implementation)
   const openModal = useCallback((modalName, data = null) => {
     setModals(prev => ({ ...prev, [modalName]: true }));
     if (data) {
@@ -43,7 +44,7 @@ const useModalManager = () => {
     setSelectedData(prev => ({ ...prev, [`${modalName}Student`]: null }));
   }, []);
 
-  // Lines 38-51: Add Student Modal handlers
+  // Lines 39-52: Add Student Modal handlers
   const openAddStudent = useCallback(() => {
     openModal('addStudent');
   }, [openModal]);
@@ -52,7 +53,7 @@ const useModalManager = () => {
     closeModal('addStudent');
   }, [closeModal]);
 
-  // Lines 53-66: Edit Student Modal handlers (preserves existing edit flow)
+  // Lines 54-67: Edit Student Modal handlers (preserves existing edit flow)
   const openEditStudent = useCallback((student) => {
     setSelectedData(prev => ({ ...prev, editingStudent: student }));
     openModal('editStudent');
@@ -63,7 +64,7 @@ const useModalManager = () => {
     closeModal('editStudent');
   }, [closeModal]);
 
-  // Lines 68-81: Payment Modal handlers
+  // Lines 69-82: Payment Modal handlers
   const openPayment = useCallback((student) => {
     setSelectedData(prev => ({ ...prev, paymentStudent: student }));
     openModal('payment');
@@ -74,7 +75,7 @@ const useModalManager = () => {
     closeModal('payment');
   }, [closeModal]);
 
-  // Lines 83-96: Training Modal handlers
+  // Lines 84-97: Training Modal handlers
   const openTraining = useCallback((student) => {
     setSelectedData(prev => ({ ...prev, trainingStudent: student }));
     openModal('training');
@@ -85,7 +86,16 @@ const useModalManager = () => {
     closeModal('training');
   }, [closeModal]);
 
-  // Lines 98-120: Simple utility modal handlers (no data required)
+  // ✅ ADDED: Lines 99-110: Bulk Attendance Modal handlers
+  const openBulkAttendance = useCallback(() => {
+    openModal('bulkAttendance');
+  }, [openModal]);
+  
+  const closeBulkAttendance = useCallback(() => {
+    closeModal('bulkAttendance');
+  }, [closeModal]);
+
+  // Lines 112-134: Simple utility modal handlers (no data required)
   const openMonthlyReport = useCallback(() => {
     openModal('monthlyReport');
   }, [openModal]);
@@ -118,7 +128,7 @@ const useModalManager = () => {
     closeModal('history');
   }, [closeModal]);
 
-  // Lines 122-150: Return comprehensive modal interface
+  // Lines 136-167: Return comprehensive modal interface
   return {
     // Modal states - direct access for conditional rendering
     modals,
@@ -137,6 +147,8 @@ const useModalManager = () => {
     closePayment,
     openTraining,
     closeTraining,
+    openBulkAttendance,    // ✅ ADDED: Bulk attendance opener
+    closeBulkAttendance,   // ✅ ADDED: Bulk attendance closer
     
     // Utility modal handlers
     openMonthlyReport,
