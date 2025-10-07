@@ -1,3 +1,7 @@
+// File: client/src/components/DashboardPage.jsx
+// MINIMAL ENHANCEMENT: Only adds skeleton loading for better perceived performance
+// Preserves ALL existing functionality exactly as-is
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../hooks/useToast";
@@ -10,6 +14,35 @@ import { validateStudentData } from "../utils/studentValidation";
 import { calculateDashboardMetrics } from "../utils/dashboardMetrics";
 import useModalManager from "../hooks/useModalManager";
 import useStudentOperations from "../hooks/useStudentOperations";
+
+// NEW: Skeleton Loading Components for better UX while loading
+const SkeletonCard = () => (
+  <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 animate-pulse">
+    <div className="flex items-center justify-between">
+      <div className="space-y-2 flex-1">
+        <div className="h-8 bg-gray-700 rounded w-16"></div>
+        <div className="h-4 bg-gray-700 rounded w-24"></div>
+      </div>
+      <div className="w-12 h-12 bg-gray-700 rounded-full"></div>
+    </div>
+  </div>
+);
+
+const SkeletonTable = () => (
+  <div className="space-y-4">
+    {[1, 2, 3, 4, 5].map(i => (
+      <div key={i} className="bg-gray-800 rounded-lg p-4 animate-pulse">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gray-700 rounded-full"></div>
+          <div className="flex-1 space-y-2">
+            <div className="h-4 bg-gray-700 rounded w-1/3"></div>
+            <div className="h-3 bg-gray-700 rounded w-1/4"></div>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 const DashboardPage = () => {
   const { token, user, logout } = useAuth();
@@ -145,8 +178,54 @@ const DashboardPage = () => {
     showSuccess(message);
     fetchStudents();
     modalManager.closeTraining();
-    modalManager.closeBulkAttendance(); // ✅ ADDED: Close bulk attendance modal on success
+    modalManager.closeBulkAttendance();
   }, [showSuccess, fetchStudents, modalManager]);
+
+  // NEW: Enhanced loading state with skeleton UI
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900">
+        <header className="bg-gray-800 shadow-xl border-b border-gray-700">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="h-8 bg-gray-700 rounded w-64 mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-700 rounded w-48 animate-pulse"></div>
+          </div>
+        </header>
+
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+          {/* Stats Cards Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {[1, 2, 3, 4, 5].map(i => <SkeletonCard key={i} />)}
+          </div>
+
+          {/* Table Skeleton */}
+          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <div className="h-6 bg-gray-700 rounded w-48 mb-6 animate-pulse"></div>
+            <SkeletonTable />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // NEW: Enhanced error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="bg-gray-800 rounded-lg p-8 border border-gray-700 text-center max-w-md">
+          <div className="text-red-400 text-5xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-white mb-2">Failed to Load Dashboard</h2>
+          <p className="text-gray-400 mb-6">{error}</p>
+          <button
+            onClick={fetchStudents}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+          >
+            🔄 Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (viewingStudent) {
     return (
@@ -208,7 +287,6 @@ const DashboardPage = () => {
                 <span>Weekend Event</span>
               </button>
               
-              {/* ✅ ADDED: Bulk Attendance Button (Desktop) */}
               <button
                 onClick={modalManager.openBulkAttendance}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
@@ -274,7 +352,6 @@ const DashboardPage = () => {
                   <span>Weekend Event</span>
                 </button>
                 
-                {/* ✅ ADDED: Bulk Attendance Button (Mobile) */}
                 <button
                   onClick={() => {
                     modalManager.openBulkAttendance();
