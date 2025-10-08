@@ -1,12 +1,25 @@
-# React + Vite
+## Bulk Attendance Feature Updates
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### Recent Changes (2025-10-07)
 
-Currently, two official plugins are available:
+#### New Features
+- **Search Filter**: Filter students by name, email, or phone in bulk attendance
+- **Duplicate Prevention**: System now prevents logging same student twice on same date
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+#### How It Works
+1. Open Bulk Attendance modal
+2. Use search box to filter students (optional)
+3. Select students and log attendance
+4. If duplicate detected, yellow warning appears with details
 
-## Expanding the ESLint configuration
+#### Fixing Duplicates
+If you see a duplicate warning:
+1. Go to student's profile
+2. View training history
+3. Delete the existing session
+4. Return to bulk attendance and retry
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+#### For Developers
+- API now returns 409 status for duplicates
+- Frontend handles partial success (logs non-duplicates)
+- Duplicate check adds ~50ms per submission

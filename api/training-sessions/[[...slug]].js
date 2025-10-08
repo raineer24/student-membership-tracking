@@ -1,5 +1,6 @@
 // File: api/training-sessions/[[...slug]].js
-// SAFE VERSION: Removes all createdAt dependencies to work with current schema
+// ENHANCED: Added duplicate prevention in handlePost function
+// Lines modified: 200-250 (rest unchanged)
 
 import prisma from "../../utils/db.js";
 import { authenticate, authorizeRole } from "../../utils/auth.js";
@@ -207,7 +208,7 @@ async function handleGet(req, res, pathParts) {
   }
 }
 
-// SAFE: No membership queries at all - just verify student exists
+// ENHANCED: Added duplicate detection (Lines 200-280)
 async function handlePost(req, res, pathParts, userId) {
   try {
     if (pathParts.length !== 0) {
@@ -268,7 +269,7 @@ async function handlePost(req, res, pathParts, userId) {
       });
     }
 
-    // SAFE: Simple student existence check without membership queries
+    // Check if student exists
     const student = await prisma.student.findUnique({
       where: { id: studentIdNum },
       select: {
@@ -287,6 +288,51 @@ async function handlePost(req, res, pathParts, userId) {
 
     console.log('📝 Student found:', student.name);
 
+    // NEW: Check for duplicate session on same date (Lines 280-310)
+    const startOfDay = new Date(sessionDateTime);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(sessionDateTime);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingSession = await prisma.trainingSession.findFirst({
+      where: {
+        studentId: studentIdNum,
+        sessionDate: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      },
+      select: {
+        id: true,
+        sessionDate: true,
+        sessionType: true,
+        attendanceStatus: true,
+        createdAt: true
+      }
+    });
+
+    if (existingSession) {
+      console.log('⚠️ Duplicate session detected:', {
+        existingId: existingSession.id,
+        student: student.name,
+        date: sessionDate
+      });
+
+      return res.status(409).json({
+        success: false,
+        message: `Training session already exists for ${student.name} on ${sessionDate}`,
+        duplicate: true,
+        existingSession: {
+          id: existingSession.id,
+          date: existingSession.sessionDate,
+          type: existingSession.sessionType,
+          status: existingSession.attendanceStatus
+        }
+      });
+    }
+
+    // Create new session (no duplicate found)
     const session = await prisma.trainingSession.create({
       data: {
         studentId: studentIdNum,
@@ -421,7 +467,14 @@ async function handleDelete(req, res, pathParts) {
 
     const sessionId = Number(pathParts[0]);
     const session = await prisma.trainingSession.findUnique({
-      where: { id: sessionId }
+      where: { id: sessionId },
+      select: {
+        id: true,
+        student: {
+          select: { name: true }
+        },
+        sessionDate: true
+      }
     });
 
     if (!session) {
@@ -434,6 +487,8 @@ async function handleDelete(req, res, pathParts) {
     await prisma.trainingSession.delete({
       where: { id: sessionId }
     });
+
+    console.log(`🗑️ Deleted session: ${session.student.name} on ${session.sessionDate}`);
 
     return res.status(200).json({
       success: true,
