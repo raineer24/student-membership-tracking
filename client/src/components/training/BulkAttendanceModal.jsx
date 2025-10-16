@@ -1,6 +1,6 @@
 // File: client/src/components/training/BulkAttendanceModal.jsx
-// COMPLETE ENHANCED VERSION: Search filter + Duplicate prevention
-// Lines 1-680: Full bulk attendance tracker with all features
+// COMPLETE ENHANCED VERSION with all features
+// Lines 1-750: Search filter + Duplicate prevention + Bulk apply + Persistent selection
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
@@ -13,7 +13,7 @@ const BulkAttendanceModal = ({
 }) => {
   const { token } = useAuth();
 
-  // Lines 15-31: Core state management (ENHANCED)
+  // Lines 15-32: Core state management
   const [selectionMode, setSelectionMode] = useState('all');
   const [selectedStudentIds, setSelectedStudentIds] = useState(new Set());
   const [sessionSchedule, setSessionSchedule] = useState('saturday');
@@ -24,10 +24,10 @@ const BulkAttendanceModal = ({
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState(''); // NEW: Search functionality
-  const [duplicateInfo, setDuplicateInfo] = useState(null); // NEW: Duplicate tracking
+  const [searchTerm, setSearchTerm] = useState('');
+  const [duplicateInfo, setDuplicateInfo] = useState(null);
 
-  // Lines 33-59: Initialize form when modal opens
+  // Lines 34-62: Initialize form when modal opens
   useEffect(() => {
     if (isOpen) {
       const today = new Date();
@@ -47,7 +47,11 @@ const BulkAttendanceModal = ({
       setSessionSchedule(defaultSchedule);
       setSessionType(defaultType);
       setSelectionMode('all');
-      setSelectedStudentIds(new Set());
+      
+      // Pre-select all students in "All Students" mode
+      const allIds = Array.isArray(students) ? students.map(s => s.id) : [];
+      setSelectedStudentIds(new Set(allIds));
+      
       setDefaultStatus('PRESENT');
       setIndividualStatuses({});
       setNotes('');
@@ -56,9 +60,9 @@ const BulkAttendanceModal = ({
       setSearchTerm('');
       setDuplicateInfo(null);
     }
-  }, [isOpen]);
+  }, [isOpen, students]);
 
-  // Lines 61-70: Update session type when schedule changes
+  // Lines 64-73: Update session type when schedule changes
   useEffect(() => {
     if (sessionSchedule === 'mwf') {
       setSessionType('WEEKDAY');
@@ -67,7 +71,7 @@ const BulkAttendanceModal = ({
     }
   }, [sessionSchedule]);
 
-  // Lines 72-97: NEW - Filter students by search term
+  // Lines 75-100: Filter students by search term
   const filteredStudents = useMemo(() => {
     const activeStudents = Array.isArray(students) 
       ? students.filter(s => s && s.id && s.name) 
@@ -89,23 +93,27 @@ const BulkAttendanceModal = ({
     });
   }, [students, searchTerm]);
 
-  // Lines 99-112: Compute students to process (UPDATED to use filteredStudents)
+  // Lines 102-108: Compute students to process (based on selectedStudentIds)
   const studentsToProcess = useMemo(() => {
-    if (selectionMode === 'all') {
-      return filteredStudents;
-    }
-    
-    return filteredStudents.filter(s => selectedStudentIds.has(s.id));
-  }, [filteredStudents, selectionMode, selectedStudentIds]);
+    // Always use selectedStudentIds Set regardless of mode
+    return Array.isArray(students) 
+      ? students.filter(s => selectedStudentIds.has(s.id))
+      : [];
+  }, [students, selectedStudentIds]);
 
-  // Lines 114-120: Selection summary stats (UPDATED)
+  // Lines 110-119: Selection summary stats
+  const visibleSelectedCount = useMemo(() => {
+    return filteredStudents.filter(s => selectedStudentIds.has(s.id)).length;
+  }, [filteredStudents, selectedStudentIds]);
+
   const selectionStats = {
     total: filteredStudents.length,
     totalUnfiltered: Array.isArray(students) ? students.length : 0,
-    selected: studentsToProcess.length
+    selected: studentsToProcess.length,
+    visibleSelected: visibleSelectedCount
   };
 
-  // Lines 122-137: Individual student selection toggle
+  // Lines 121-136: Individual student selection toggle (works in BOTH modes)
   const handleStudentToggle = (studentId) => {
     setSelectedStudentIds(prev => {
       const newSet = new Set(prev);
@@ -118,7 +126,7 @@ const BulkAttendanceModal = ({
     });
   };
 
-  // Lines 139-144: Individual status override
+  // Lines 138-143: Individual status override
   const handleStatusOverride = (studentId, status) => {
     setIndividualStatuses(prev => ({
       ...prev,
@@ -126,17 +134,51 @@ const BulkAttendanceModal = ({
     }));
   };
 
-  // Lines 146-155: Select all / deselect all (UPDATED to use filteredStudents)
+  // Lines 145-161: Select all / deselect all visible students
   const handleSelectAll = () => {
-    const allIds = filteredStudents.map(s => s.id);
-    setSelectedStudentIds(new Set(allIds));
+    setSelectedStudentIds(prev => {
+      const newSet = new Set(prev);
+      filteredStudents.forEach(s => newSet.add(s.id));
+      return newSet;
+    });
   };
 
   const handleDeselectAll = () => {
-    setSelectedStudentIds(new Set());
+    setSelectedStudentIds(prev => {
+      const newSet = new Set(prev);
+      filteredStudents.forEach(s => newSet.delete(s.id));
+      return newSet;
+    });
   };
 
-  // Lines 157-290: ENHANCED - Bulk submission with duplicate detection
+  // Lines 163-177: Handle mode change
+  const handleModeChange = (mode) => {
+    setSelectionMode(mode);
+    if (mode === 'all') {
+      // Select all students when switching to "All Students" mode
+      const allIds = Array.isArray(students) ? students.map(s => s.id) : [];
+      setSelectedStudentIds(new Set(allIds));
+    } else {
+      // Clear selection when switching to "Select Specific" mode
+      setSelectedStudentIds(new Set());
+    }
+  };
+
+  // Lines 179-193: NEW - Bulk apply status to all selected students
+  const handleBulkApplyStatus = (status) => {
+    const selectedIds = Array.from(selectedStudentIds);
+    
+    if (selectedIds.length === 0) return;
+    
+    const newStatuses = { ...individualStatuses };
+    selectedIds.forEach(id => {
+      newStatuses[id] = status;
+    });
+    
+    setIndividualStatuses(newStatuses);
+  };
+
+  // Lines 195-330: Bulk submission with duplicate detection
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -158,14 +200,12 @@ const BulkAttendanceModal = ({
 
       const sessionsData = studentsToProcess.map(student => ({
         studentId: student.id,
-        studentName: student.name, // For error reporting
+        studentName: student.name,
         sessionType,
         sessionDate,
         attendanceStatus: individualStatuses[student.id] || defaultStatus,
         notes: notes || null
       }));
-
-      console.log(`🥋 Submitting ${sessionsData.length} training sessions`);
 
       // Submit all sessions with duplicate detection
       const results = await Promise.allSettled(
@@ -211,8 +251,6 @@ const BulkAttendanceModal = ({
       const failed = results.filter(r => r.status === 'rejected').length;
       const duplicates = results.filter(r => r.status === 'fulfilled' && r.value.isDuplicate);
 
-      console.log(`✅ Results: ${successful} successful, ${failed} failed, ${duplicates.length} duplicates`);
-
       // Handle duplicates
       if (duplicates.length > 0) {
         const duplicateDetails = duplicates.map(d => ({
@@ -232,7 +270,6 @@ const BulkAttendanceModal = ({
           setError(`All ${duplicates.length} student(s) already have sessions on ${sessionDate}. No new sessions created.`);
         }
         
-        // Don't close modal so user can see duplicate info
         return;
       }
 
@@ -248,7 +285,6 @@ const BulkAttendanceModal = ({
       onClose();
 
     } catch (err) {
-      console.error('❌ Bulk attendance error:', err);
       setError(err.message || 'Failed to log attendance');
     } finally {
       setIsSubmitting(false);
@@ -257,12 +293,12 @@ const BulkAttendanceModal = ({
 
   if (!isOpen) return null;
 
-  // Lines 292-680: Main UI Render
+  // Lines 332-750: Main UI Render
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
       <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-5xl max-h-[95vh] overflow-y-auto border border-gray-700 my-4">
         
-        {/* Lines 296-321: Modal Header */}
+        {/* Modal Header */}
         <div className="sticky top-0 bg-gray-800 z-10 flex items-center justify-between p-6 border-b border-gray-700">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🥋</span>
@@ -271,8 +307,8 @@ const BulkAttendanceModal = ({
                 Bulk Attendance Tracker
               </h2>
               <p className="text-sm text-gray-400 mt-1">
-                {selectionStats.selected} of {selectionStats.total} students selected
-                {searchTerm && ` (filtered from ${selectionStats.totalUnfiltered})`}
+                {selectionStats.selected} students selected total
+                {searchTerm && ` (${selectionStats.visibleSelected} visible of ${selectionStats.total} filtered)`}
               </p>
             </div>
           </div>
@@ -289,7 +325,7 @@ const BulkAttendanceModal = ({
         {/* Form Content */}
         <div className="p-6 space-y-6">
           
-          {/* Lines 327-355: NEW - Duplicate Warning */}
+          {/* Duplicate Warning */}
           {duplicateInfo && (
             <div className="bg-yellow-900 bg-opacity-20 border border-yellow-600 rounded-lg p-4">
               <div className="flex items-start gap-2 mb-3">
@@ -319,7 +355,7 @@ const BulkAttendanceModal = ({
             </div>
           )}
 
-          {/* Lines 357-367: Error Display */}
+          {/* Error Display */}
           {error && !duplicateInfo && (
             <div className="bg-red-600 bg-opacity-20 border border-red-600 rounded-lg p-4">
               <div className="flex items-center gap-2">
@@ -329,7 +365,7 @@ const BulkAttendanceModal = ({
             </div>
           )}
 
-          {/* Lines 369-475: Session Configuration Section */}
+          {/* Session Configuration Section */}
           <div className="bg-gray-750 rounded-lg p-6 border border-gray-600 space-y-4">
             <h3 className="text-lg font-semibold text-white mb-4">Session Configuration</h3>
             
@@ -422,7 +458,7 @@ const BulkAttendanceModal = ({
             </div>
           </div>
 
-          {/* Lines 477-625: Student Selection Section with Search */}
+          {/* Student Selection Section */}
           <div className="bg-gray-750 rounded-lg p-6 border border-gray-600 space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">Student Selection</h3>
@@ -430,7 +466,7 @@ const BulkAttendanceModal = ({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setSelectionMode('all')}
+                  onClick={() => handleModeChange('all')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     selectionMode === 'all' 
                       ? 'bg-blue-600 text-white' 
@@ -442,7 +478,7 @@ const BulkAttendanceModal = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectionMode('specific')}
+                  onClick={() => handleModeChange('specific')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     selectionMode === 'specific' 
                       ? 'bg-blue-600 text-white' 
@@ -455,7 +491,17 @@ const BulkAttendanceModal = ({
               </div>
             </div>
 
-            {/* Lines 510-540: NEW - Search Input */}
+            {/* Instruction Text */}
+            <div className="bg-blue-900 bg-opacity-20 border border-blue-600 rounded-lg p-3">
+              <p className="text-blue-300 text-sm">
+                {selectionMode === 'all' 
+                  ? '💡 Click any student card to toggle them off (remove blue border). Search works across all students.'
+                  : '💡 Check students to select them. Your selections persist when you search for different students.'
+                }
+              </p>
+            </div>
+
+            {/* Search Input */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Search Students
@@ -485,39 +531,70 @@ const BulkAttendanceModal = ({
               </div>
             </div>
 
-            {/* Lines 542-562: Quick Select Buttons */}
-            {selectionMode === 'specific' && (
-              <div className="flex gap-3 pb-4 border-b border-gray-600">
-                <button
-                  type="button"
-                  onClick={handleSelectAll}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors"
-                  disabled={isSubmitting}
-                >
-                  Select All {searchTerm && `(${filteredStudents.length})`}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeselectAll}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors"
-                  disabled={isSubmitting}
-                >
-                  Deselect All
-                </button>
-              </div>
-            )}
+            {/* Quick Actions Row */}
+            <div className="flex gap-2 flex-wrap pb-4 border-b border-gray-600">
+              <button
+                type="button"
+                onClick={handleSelectAll}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors"
+                disabled={isSubmitting}
+              >
+                Select All Visible ({filteredStudents.length})
+              </button>
+              <button
+                type="button"
+                onClick={handleDeselectAll}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors"
+                disabled={isSubmitting}
+              >
+                Deselect All Visible
+              </button>
+              
+              {/* Bulk Apply Status Buttons */}
+              {studentsToProcess.length > 0 && (
+                <>
+                  <div className="w-px bg-gray-600"></div>
+                  <span className="text-gray-400 text-sm self-center px-2">Quick Apply:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleBulkApplyStatus('PRESENT')}
+                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors"
+                    disabled={isSubmitting}
+                  >
+                    ✓ All Present
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBulkApplyStatus('ABSENT')}
+                    className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors"
+                    disabled={isSubmitting}
+                  >
+                    ✕ All Absent
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBulkApplyStatus('LATE')}
+                    className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded-lg transition-colors"
+                    disabled={isSubmitting}
+                  >
+                    ⏰ All Late
+                  </button>
+                </>
+              )}
+            </div>
 
-            {/* Lines 564-625: Student List */}
+            {/* Student List */}
             <div className="max-h-[400px] overflow-y-auto space-y-2">
               {filteredStudents.length > 0 ? (
                 filteredStudents.map(student => {
-                  const isSelected = selectionMode === 'all' || selectedStudentIds.has(student.id);
+                  const isSelected = selectedStudentIds.has(student.id);
                   const currentStatus = individualStatuses[student.id] || defaultStatus;
                   
                   return (
                     <div
                       key={student.id}
-                      className={`p-4 rounded-lg border-2 transition-all ${
+                      onClick={() => handleStudentToggle(student.id)}
+                      className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
                         isSelected
                           ? 'border-blue-500 bg-blue-900 bg-opacity-20'
                           : 'border-gray-600 bg-gray-700'
@@ -528,9 +605,9 @@ const BulkAttendanceModal = ({
                           {selectionMode === 'specific' && (
                             <input
                               type="checkbox"
-                              checked={selectedStudentIds.has(student.id)}
-                              onChange={() => handleStudentToggle(student.id)}
-                              className="w-5 h-5 rounded"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              className="w-5 h-5 rounded pointer-events-none"
                               disabled={isSubmitting}
                             />
                           )}
@@ -542,7 +619,11 @@ const BulkAttendanceModal = ({
 
                         <select
                           value={currentStatus}
-                          onChange={(e) => handleStatusOverride(student.id, e.target.value)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleStatusOverride(student.id, e.target.value);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
                           className={`px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                             !isSelected ? 'opacity-50' : ''
                           }`}
@@ -568,7 +649,7 @@ const BulkAttendanceModal = ({
             </div>
           </div>
 
-          {/* Lines 627-668: Action Buttons */}
+          {/* Action Buttons */}
           <div className="sticky bottom-0 bg-gray-800 pt-4 border-t border-gray-700 flex gap-4">
             <button
               type="button"
