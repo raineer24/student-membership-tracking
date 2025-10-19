@@ -1,4 +1,5 @@
 // File: client/src/components/modals/MonthlyReportModal.jsx
+// FIXED: Shows ALL payments including Alexis & Tyla (Founding Members)
 // Lines 1-25: Enhanced imports and dependencies - Following established patterns
 import React, { useState, useCallback, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
@@ -278,17 +279,17 @@ export default function MonthlyReportModal({
                 </div>
               </div>
 
-              {/* Pricing Breakdown */}
+              {/* Pricing Breakdown - FIXED: Correct tier labels */}
               <div className="bg-gray-900 rounded-lg p-4 border border-gray-600">
                 <h3 className="text-lg font-medium text-white mb-4">Pricing Tier Breakdown</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-gray-800 rounded-lg p-3">
-                    <div className="text-lg font-semibold text-orange-400">Founding (₱1,200)</div>
+                    <div className="text-lg font-semibold text-orange-400">Founding (₱1,000)</div>
                     <div className="text-sm text-gray-400">{reportData.pricingBreakdown.founding.count} students</div>
                     <div className="text-lg font-bold text-white">₱{reportData.pricingBreakdown.founding.revenue.toLocaleString()}</div>
                   </div>
                   <div className="bg-gray-800 rounded-lg p-3">
-                    <div className="text-lg font-semibold text-yellow-400">Early (₱1,300)</div>
+                    <div className="text-lg font-semibold text-yellow-400">Early (₱1,200)</div>
                     <div className="text-sm text-gray-400">{reportData.pricingBreakdown.early.count} students</div>
                     <div className="text-lg font-bold text-white">₱{reportData.pricingBreakdown.early.revenue.toLocaleString()}</div>
                   </div>
@@ -313,9 +314,11 @@ export default function MonthlyReportModal({
                 </div>
               </div>
 
-              {/* Recent Payments Table */}
+              {/* Payment Details Table - FIXED: Shows ALL payments */}
               <div className="bg-gray-900 rounded-lg p-4 border border-gray-600">
-                <h3 className="text-lg font-medium text-white mb-4">Payment Details</h3>
+                <h3 className="text-lg font-medium text-white mb-4">
+                  Payment Details ({reportData.payments.length} students)
+                </h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-left text-gray-300">
                     <thead className="text-xs text-gray-400 uppercase bg-gray-800">
@@ -328,7 +331,7 @@ export default function MonthlyReportModal({
                       </tr>
                     </thead>
                     <tbody className="bg-gray-800 divide-y divide-gray-700">
-                      {reportData.payments.slice(0, 10).map((payment) => (
+                      {reportData.payments.map((payment) => (
                         <tr key={payment.id} className="hover:bg-gray-700">
                           <td className="px-4 py-3 font-medium text-white">{payment.studentName}</td>
                           <td className="px-4 py-3">₱{payment.amount.toLocaleString()}</td>
@@ -336,11 +339,17 @@ export default function MonthlyReportModal({
                           <td className="px-4 py-3">{new Date(payment.paidAt).toLocaleDateString()}</td>
                           <td className="px-4 py-3">
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              payment.studentTier === 'Legacy' 
-                                ? 'bg-orange-900 text-orange-300' 
+                              payment.amount === 1000 
+                                ? 'bg-purple-900 text-purple-300'
+                                : payment.amount === 1200
+                                ? 'bg-orange-900 text-orange-300'
                                 : 'bg-green-900 text-green-300'
                             }`}>
-                              {payment.studentTier}
+                              {payment.amount === 1000 
+                                ? 'Founding' 
+                                : payment.amount === 1200 
+                                ? 'Early' 
+                                : 'Standard'}
                             </span>
                           </td>
                         </tr>
@@ -348,11 +357,9 @@ export default function MonthlyReportModal({
                     </tbody>
                   </table>
                 </div>
-                {reportData.payments.length > 10 && (
-                  <div className="mt-3 text-sm text-gray-400 text-center">
-                    Showing first 10 payments of {reportData.payments.length} total. Export CSV for complete data.
-                  </div>
-                )}
+                <div className="mt-3 text-sm text-gray-400 text-center">
+                  Showing all {reportData.payments.length} payments. Export CSV for spreadsheet analysis.
+                </div>
               </div>
 
               {/* Missed Payments Alert */}
