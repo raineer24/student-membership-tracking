@@ -1,7 +1,6 @@
 // File: client/src/utils/studentCalculations.js
-// Lines 1-220: Enhanced pure function utilities with consistent status logic
-// FIXED: Math.ceil consistency across all date calculations
-// ZERO RISK: Pure functions, no side effects, deterministic outputs
+// Lines 1-280: Enhanced with Monthly Frequency Calculation
+// ADDED: Lines 217-280 - New frequency calculation function
 
 /**
  * Calculate comprehensive revenue data from students array
@@ -193,4 +192,107 @@ export const canSendReminder = (student) => {
   
   // Lines 213-215: Business rule: Only send to expiring/overdue students with phone
   return (status === 'expiring' || status === 'overdue') && hasPhone;
+};
+
+/**
+ * NEW FUNCTION: Calculate monthly training frequency for a student
+ * Lines 217-280: Calculate how many times student trained in last 30 days
+ * 
+ * Purpose: Help determine if payment request is appropriate based on attendance
+ * Business Logic:
+ *   - High Engagement (≥12 sessions): ~3x/week - Active student, safe to request payment
+ *   - Medium Engagement (6-11 sessions): ~1-2x/week - Regular attendance, reasonable to request
+ *   - Low Engagement (1-5 sessions): Rare training - Consider personal follow-up first
+ *   - No Engagement (0 sessions): Not training - Requires personal contact
+ * 
+ * @param {Array} trainingSessions - Array of training session objects with sessionDate and attendanceStatus
+ * @param {number} daysWindow - Number of days to look back (default: 30)
+ * @returns {Object} Frequency data with count, level, color, emoji, and recommendation
+ */
+export const calculateMonthlyFrequency = (trainingSessions, daysWindow = 30) => {
+  // Lines 232-240: Handle edge cases - no sessions data
+  if (!trainingSessions || !Array.isArray(trainingSessions) || trainingSessions.length === 0) {
+    return {
+      count: 0,
+      level: 'none',
+      color: 'gray',
+      emoji: '⚫',
+      label: 'No Training',
+      recommendation: 'No training activity in 30 days. Requires personal contact to assess situation.',
+      shouldRequest: false
+    };
+  }
+
+  // Lines 242-252: Calculate date threshold (30 days ago)
+  const today = new Date();
+  const thresholdDate = new Date();
+  thresholdDate.setDate(today.getDate() - daysWindow);
+  
+  // Filter sessions from last 30 days that count as attendance
+  // Only count PRESENT and LATE (not ABSENT or LEFT_EARLY)
+  const recentValidSessions = trainingSessions.filter(session => {
+    if (!session || !session.sessionDate) return false;
+    
+    const sessionDate = new Date(session.sessionDate);
+    if (isNaN(sessionDate.getTime())) return false;
+    
+    // Only count sessions that actually happened (PRESENT or LATE)
+    const validStatuses = ['PRESENT', 'LATE'];
+    const isValidStatus = validStatuses.includes(session.attendanceStatus);
+    
+    return sessionDate >= thresholdDate && isValidStatus;
+  });
+
+  // Lines 254-280: Categorize engagement level and provide guidance
+  const sessionCount = recentValidSessions.length;
+
+  // High engagement: Training 3+ times per week
+  if (sessionCount >= 12) {
+    return {
+      count: sessionCount,
+      level: 'high',
+      color: 'green',
+      emoji: '🟢',
+      label: 'High Engagement',
+      recommendation: 'Student trains frequently (3+ times/week). Proceed with payment request confidently.',
+      shouldRequest: true
+    };
+  }
+
+  // Medium engagement: Training 1-2 times per week
+  if (sessionCount >= 6) {
+    return {
+      count: sessionCount,
+      level: 'medium',
+      color: 'yellow',
+      emoji: '🟡',
+      label: 'Medium Engagement',
+      recommendation: 'Student trains regularly (1-2 times/week). Payment request is reasonable.',
+      shouldRequest: true
+    };
+  }
+
+  // Low engagement: Training rarely (less than once per week)
+  if (sessionCount >= 1) {
+    return {
+      count: sessionCount,
+      level: 'low',
+      color: 'red',
+      emoji: '🔴',
+      label: 'Low Engagement',
+      recommendation: 'Student trains rarely. Consider personal follow-up to check if everything is okay before requesting payment.',
+      shouldRequest: 'with_caution'
+    };
+  }
+
+  // No engagement: Not training at all
+  return {
+    count: 0,
+    level: 'none',
+    color: 'gray',
+    emoji: '⚫',
+    label: 'No Training',
+    recommendation: 'No training activity in 30 days. Requires personal contact to assess situation before payment request.',
+    shouldRequest: false
+  };
 };

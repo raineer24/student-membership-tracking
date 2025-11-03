@@ -24,8 +24,8 @@
 ├── client
 │   ├── dist
 │   │   ├── assets
-│   │   │   ├── index-BeQHuxx2.js
-│   │   │   └── index-CKOXdSYH.css
+│   │   │   ├── index-GIpDrcio.js
+│   │   │   └── index-QGlk_3sb.css
 │   │   └── index.html
 │   ├── public
 │   ├── src
@@ -69,6 +69,7 @@
 │   │   │   │   ├── StudentTableRow.jsx
 │   │   │   │   └── TabNavigation.jsx
 │   │   │   ├── training
+│   │   │   │   ├── BulkAttendanceModal.jsx
 │   │   │   │   └── TrainingSessionModal.jsx
 │   │   │   ├── AddStudentModal.jsx
 │   │   │   ├── AuthDebugger.jsx
@@ -77,6 +78,7 @@
 │   │   │   ├── Header.jsx
 │   │   │   ├── LoadingSpinner.jsx
 │   │   │   ├── LogoutButton.jsx
+│   │   │   ├── MonthlyFrequencyWidget.jsx
 │   │   │   ├── PaymentModal.jsx
 │   │   │   ├── ProtectedRoute.jsx
 │   │   │   ├── SMSActionButton.jsx
@@ -179,4 +181,4 @@
 ├── tree_output.txt
 └── vercel.json
 
-43 directories, 137 files
+43 directories, 139 files

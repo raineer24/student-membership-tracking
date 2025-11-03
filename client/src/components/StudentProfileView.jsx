@@ -1,10 +1,12 @@
 // File: client/src/components/StudentProfileView.jsx
-// Enhanced with Payment Delete functionality + Training History Pagination
+// Enhanced with Payment Delete functionality + Training History Pagination + Monthly Frequency Widget
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { calculateAge, formatDate, formatCurrency, ensureArray } from "../utils/profileCalculations";
 import { getPaymentStatusBadge, getTrainingStatusBadge } from "../utils/profileHelpers";
 import { calculateMembershipStatus } from "../utils/profileStats";
+import { calculateDaysRemaining } from "../utils/studentCalculations"; // NEW: Import for days calculation
+import MonthlyFrequencyWidget from "./MonthlyFrequencyWidget"; // NEW: Import frequency widget
 
 const StudentProfileView = ({ student, onBack, onEdit }) => {
   const { token } = useAuth();
@@ -347,6 +349,18 @@ const StudentProfileView = ({ student, onBack, onEdit }) => {
                   <div className="text-xs text-gray-400 uppercase tracking-wider">Days Since</div>
                 </div>
               </div>
+
+              {/* ============================================ */}
+              {/* NEW: MONTHLY FREQUENCY WIDGET - INSERTED HERE */}
+              {/* ============================================ */}
+              <MonthlyFrequencyWidget 
+                trainingSessions={trainingHistory}
+                daysOverdue={calculateDaysRemaining(studentData)}
+                compact={false}
+              />
+              {/* ============================================ */}
+              {/* END OF NEW WIDGET */}
+              {/* ============================================ */}
 
               {trainingLoading ? (
                 <div className="text-center py-8">
