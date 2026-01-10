@@ -160,8 +160,8 @@ export default async function handler(req, res) {
             email,
             age: age ? parseInt(age) : null,
             parentName: parent || null,  // FIXED: Use parentName field
-            monthlyRate: monthlyRate ? parseFloat(monthlyRate) : 1400,
-            isLegacyStudent: Boolean(isLegacyStudent),
+            monthlyRate: 1500, // Standard rate for all students
+            isLegacyStudent: false,
             userId: user.id,
           },
           include: {
@@ -211,8 +211,8 @@ export default async function handler(req, res) {
           email: email || null,
           age: age ? parseInt(age) : null,
           parentName: parent || null,  // CRITICAL FIX: Use parentName field from schema
-          monthlyRate: monthlyRate ? parseFloat(monthlyRate) : 1400,
-          isLegacyStudent: Boolean(isLegacyStudent),
+          monthlyRate: 1500, // Standard rate for all students
+          isLegacyStudent: false,
         };
 
         // Remove null/undefined values to avoid overwriting with nulls

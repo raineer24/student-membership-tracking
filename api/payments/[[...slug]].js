@@ -3,23 +3,18 @@
 import prisma from "../../utils/db";
 import { authenticate, authorizeRole } from "../../utils/auth";
 
-// Helper: Get student pricing with grandfathered rates
+// Helper: Get student pricing (standardized to ₱1,500)
 const getPricingForStudent = (student) => {
-  const monthlyRate = student.monthlyRate || 1400;
-  const yearlyRate = monthlyRate * 12;
+  const monthlyRate = 1500; // All students standard rate
+  const yearlyRate = 18000; // 1500 * 12
   
   let pricingTier = "Standard";
-  if (student.isLegacyStudent) {
-    if (monthlyRate === 1000) pricingTier = "Founding Member";
-    else if (monthlyRate === 1200) pricingTier = "Early Adopter";
-    else pricingTier = "Legacy";
-  }
   
   return {
     monthly: monthlyRate,
     yearly: yearlyRate,
     tier: pricingTier,
-    isLegacy: student.isLegacyStudent || false,
+    isLegacy: false,
     monthlyFormatted: `₱${monthlyRate.toLocaleString()}`,
     yearlyFormatted: `₱${yearlyRate.toLocaleString()}`
   };

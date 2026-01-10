@@ -198,11 +198,11 @@ async function generateMonthlyReport(month, year) {
     const totalPayments = paymentsData.length;
     const totalRevenue = paymentsData.reduce((sum, payment) => sum + (payment.amount || 0), 0);
     
-    // Pricing tier breakdown - Safe defaults
+    // Pricing tier breakdown - All students standard ₱1,500
     const pricingBreakdown = {
-      founding: { count: 0, revenue: 0, rate: 1200 },
-      early: { count: 0, revenue: 0, rate: 1300 },
-      standard: { count: 0, revenue: 0, rate: 1400 }
+      founding: { count: 0, revenue: 0, rate: 1500 },
+      early: { count: 0, revenue: 0, rate: 1500 },
+      standard: { count: 0, revenue: 0, rate: 1500 }
     };
 
     // Payment method tracking
@@ -212,22 +212,13 @@ async function generateMonthlyReport(month, year) {
     let paidStudents = 0;
     const activeStudentsWhoNotPaid = [];
 
-    // Process payment data - SAFE ACCESS
+    // Process payment data - All students ₱1,500
     paymentsData.forEach(payment => {
-      // Use safe defaults for missing fields
       const amount = payment.amount || 0;
       
-      // Since monthlyRate/isLegacyStudent may not exist, use amount-based categorization
-      if (amount <= 1200) {
-        pricingBreakdown.founding.count++;
-        pricingBreakdown.founding.revenue += amount;
-      } else if (amount <= 1300) {
-        pricingBreakdown.early.count++;
-        pricingBreakdown.early.revenue += amount;
-      } else {
-        pricingBreakdown.standard.count++;
-        pricingBreakdown.standard.revenue += amount;
-      }
+      // All payments now standard tier
+      pricingBreakdown.standard.count++;
+      pricingBreakdown.standard.revenue += amount;
 
       // Track payment methods
       const method = payment.method || 'CASH';
@@ -247,7 +238,7 @@ async function generateMonthlyReport(month, year) {
           activeStudentsWhoNotPaid.push({
             id: student.id,
             name: student.name,
-            expectedAmount: 1400, // Default rate if monthlyRate not available
+            expectedAmount: 1500, // Standard rate
             membershipEndDate: latestMembership.endDate
           });
         }
@@ -306,8 +297,8 @@ async function generateMonthlyReport(month, year) {
         method: payment.method || 'CASH',
         description: payment.description || '',
         paidAt: payment.paidAt,
-        studentTier: 'Standard', // Default since we can't access isLegacyStudent safely
-        expectedRate: 1400 // Default rate
+        studentTier: 'Standard', // All students standard now
+        expectedRate: 1500 // Standard rate
       })),
 
       missedPayments: activeStudentsWhoNotPaid
