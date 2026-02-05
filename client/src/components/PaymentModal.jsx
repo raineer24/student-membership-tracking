@@ -1,7 +1,7 @@
 // File: client/src/components/PaymentModal.jsx
-// PaymentModal - PHASE 3 COMPLETE - FULLY REFACTORED
-// Lines reduced from 420 to 250 (170 lines extracted in Phase 3)
-// Total reduction: 717 → 250 lines (65% reduction from original)
+// PaymentModal - FIXED VERSION - Auto-extends membership on ALL payments
+// Lines reduced: 250 → 235 (removed extendMembership checkbox)
+// CRITICAL FIX: Hardcoded extendMembership=true to prevent status update bugs
 // PRESERVED: All existing functionality - zero breaking changes
 
 import { useEffect, useState } from "react";
@@ -16,7 +16,7 @@ import { formatDate } from "../utils/paymentDateUtils";
 import useStudentPricing from "../hooks/useStudentPricing";
 import usePaymentValidation from "../hooks/usePaymentValidation";
 
-// Line 22-25: Phase 3 NEW IMPORTS - final extractions
+// Line 22-25: Phase 3 hooks
 import usePaymentSubmission from "../hooks/usePaymentSubmission";
 import QuickSelectButtons from "./payment/QuickSelectButtons";
 import PaymentDatePicker from "./payment/PaymentDatePicker";
@@ -47,18 +47,17 @@ const PaymentModal = ({
     setError
   } = usePaymentSubmission(token, onPaymentSuccess, onClose);
 
-  // Line 56-63: Form state
+  // Line 56-62: Form state - REMOVED extendMembership (now hardcoded)
   const [formData, setFormData] = useState({
     amount: "",
     method: "CASH",
     description: "",
-    extendMembership: true,
     membershipType: "MONTHLY",
     paymentDateOption: "today",
     customPaymentDate: "",
   });
 
-  // Line 66-72: Payment method options
+  // Line 65-71: Payment method options
   const paymentMethods = [
     { value: "CASH", label: "💵 Cash" },
     { value: "CARD", label: "💳 Card" },
@@ -68,10 +67,10 @@ const PaymentModal = ({
     { value: "OTHER", label: "📋 Other" },
   ];
 
-  // Line 75-77: Phase 2 - Validation hook
+  // Line 74-76: Phase 2 - Validation hook
   const { validateForm } = usePaymentValidation(formData, student, studentPricing);
 
-  // Line 80-90: Auto-update amount when pricing loads
+  // Line 79-89: Auto-update amount when pricing loads
   useEffect(() => {
     if (studentPricing) {
       const prices = getMembershipPrices();
@@ -82,7 +81,7 @@ const PaymentModal = ({
     }
   }, [studentPricing, getMembershipPrices]);
 
-  // Line 93-104: Handle membership type change
+  // Line 92-103: Handle membership type change
   const handleMembershipTypeChange = (type) => {
     const prices = getMembershipPrices();
     
@@ -97,7 +96,7 @@ const PaymentModal = ({
     }
   };
 
-  // Line 107-135: Submit handler - uses extracted submission hook
+  // Line 106-135: Submit handler - CRITICAL FIX: hardcoded extendMembership=true
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -119,7 +118,7 @@ const PaymentModal = ({
       amount: parseFloat(formData.amount),
       method: formData.method,
       description: formData.description || `${formData.membershipType} membership payment${tierContext}`,
-      extendMembership: formData.extendMembership,
+      extendMembership: true, // ← HARDCODED: Always extend membership on payment
       membershipType: formData.membershipType,
       ...(paymentDateToSend && { paymentDate: paymentDateToSend }),
     };
@@ -164,13 +163,12 @@ const PaymentModal = ({
     }
   };
 
-  // Line 163-180: Reset and close modal
+  // Line 163-177: Reset and close modal - REMOVED extendMembership from reset
   const handleClose = () => {
     setFormData({
       amount: "",
       method: "CASH",
       description: "",
-      extendMembership: true,
       membershipType: "MONTHLY",
       paymentDateOption: "today",
       customPaymentDate: "",
@@ -179,7 +177,7 @@ const PaymentModal = ({
     onClose();
   };
 
-  // Line 183-195: Escape key handler
+  // Line 180-192: Escape key handler
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && isOpen && !loading) {
@@ -201,7 +199,7 @@ const PaymentModal = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto shadow-xl relative">
         
-        {/* Line 207-227: Header */}
+        {/* Line 204-224: Header */}
         <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">💳 Record Payment</h2>
@@ -228,14 +226,14 @@ const PaymentModal = ({
           </button>
         </div>
 
-        {/* Line 230-235: Phase 2 - Student Info Card */}
+        {/* Line 227-232: Phase 2 - Student Info Card */}
         <StudentInfoCard 
           student={student}
           studentPricing={studentPricing}
           pricingLoading={pricingLoading}
         />
 
-        {/* Line 238-250: Messages */}
+        {/* Line 235-247: Messages */}
         {successMessage && (
           <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-green-800 text-sm">✅ {successMessage}</p>
@@ -248,10 +246,10 @@ const PaymentModal = ({
           </div>
         )}
 
-        {/* Line 253-360: Form section */}
+        {/* Line 250-345: Form section */}
         <div className="space-y-4">
           
-          {/* Line 256-263: Phase 3 - Quick Select Buttons Component */}
+          {/* Line 253-260: Phase 3 - Quick Select Buttons Component */}
           <QuickSelectButtons
             selectedType={formData.membershipType}
             prices={membershipPrices}
@@ -260,7 +258,7 @@ const PaymentModal = ({
             studentPricing={studentPricing}
           />
 
-          {/* Line 266-278: Amount input */}
+          {/* Line 263-275: Amount input */}
           <div>
             <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
               Payment Amount (₱)
@@ -276,7 +274,7 @@ const PaymentModal = ({
             />
           </div>
 
-          {/* Line 281-298: Payment method */}
+          {/* Line 278-295: Payment method */}
           <div>
             <label htmlFor="method" className="block text-sm font-medium text-gray-700 mb-1">
               Payment Method
@@ -297,7 +295,7 @@ const PaymentModal = ({
             </select>
           </div>
 
-          {/* Line 301-314: Description */}
+          {/* Line 298-311: Description */}
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
               Description (Optional)
@@ -313,24 +311,11 @@ const PaymentModal = ({
             />
           </div>
 
-          {/* Line 317-328: Extend membership checkbox */}
-          <div>
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                name="extendMembership"
-                checked={formData.extendMembership}
-                onChange={handleInputChange}
-                disabled={loading || isSubmitting}
-                className="rounded text-blue-600"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Extend Membership ({formData.membershipType === "MONTHLY" ? "30 days" : "365 days"})
-              </span>
-            </label>
-          </div>
-
-          {/* Line 331-339: Phase 3 - Payment Date Picker Component */}
+          {/* Line 314-322: REMOVED - Extend membership checkbox (now hardcoded true) */}
+          {/* CRITICAL FIX: Checkbox removed to prevent accidental unchecks */}
+          {/* All payments now AUTOMATICALLY extend membership by 30/365 days */}
+          
+          {/* Line 325-333: Phase 3 - Payment Date Picker Component */}
           <PaymentDatePicker
             selectedOption={formData.paymentDateOption}
             customDate={formData.customPaymentDate}
@@ -339,7 +324,7 @@ const PaymentModal = ({
             disabled={loading || isSubmitting}
           />
 
-          {/* Line 342-365: Action buttons */}
+          {/* Line 336-359: Action buttons */}
           <div className="flex gap-3 pt-4">
             <button
               type="button"
@@ -366,7 +351,7 @@ const PaymentModal = ({
           </div>
         </div>
 
-        {/* Line 368-385: Loading overlay */}
+        {/* Line 362-379: Loading overlay */}
         {(loading || pricingLoading || isSubmitting) && (
           <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-lg">
             <div className="text-center">
